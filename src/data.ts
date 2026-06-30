@@ -2,7 +2,8 @@ import { Project, DSREntry } from './types';
 
 export const ADMIN_EMAILS = [
   'assetscout007rohan@gmail.com',
-  'vatsalpatelwork20@gmail.com'
+  'vatsalpatelwork20@gmail.com',
+  'shadowff2309@gmail.com'
 ];
 
 export const DEFAULT_ALLOWED_USERS = [
@@ -10,7 +11,8 @@ export const DEFAULT_ALLOWED_USERS = [
   'rushikeshpote14@gmail.com',
   'kavita.assetscout@gmail.com',
   'assetscout007rohan@gmail.com',
-  'vatsalpatelwork20@gmail.com'
+  'vatsalpatelwork20@gmail.com',
+  'shadowff2309@gmail.com'
 ];
 
 export const DEFAULT_PROJECTS: Project[] = [];

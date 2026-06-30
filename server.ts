@@ -4,6 +4,29 @@ import fs from "fs";
 import { createServer as createViteServer } from "vite";
 import dotenv from "dotenv";
 import { JWT } from "google-auth-library";
+import {
+  isSupabaseConfigured,
+  checkSupabaseTablesStatus,
+  SUPABASE_SQL_SCHEMA,
+  getProjectsDb,
+  saveProjectsBulkDb,
+  saveProjectDb,
+  deleteProjectDb,
+  getSubmissionsDb,
+  saveSubmissionsBulkDb,
+  appendSubmissionDb,
+  clearSubmissionsDb,
+  getAlertsDb,
+  saveAlertDb,
+  saveAlertsBulkDb,
+  deleteAlertDb,
+  getActivitiesDb,
+  logActivityDb,
+  clearActivitiesDb,
+  getRankingsDb,
+  saveRankingsDb,
+  clearRankingsDb
+} from "./src/lib/supabaseServer";
 
 dotenv.config();
 
@@ -99,22 +122,9 @@ const logActivityLocally = async (email: string, eventType: string, details: str
       details,
       platform: "Web App"
     };
-
-    let list = [];
-    if (fs.existsSync(ACTIVITIES_FALLBACK_FILE)) {
-      try {
-        list = JSON.parse(fs.readFileSync(ACTIVITIES_FALLBACK_FILE, "utf-8"));
-      } catch {
-        list = [];
-      }
-    }
-    list.unshift(activity);
-    if (list.length > 1000) {
-      list = list.slice(0, 1000);
-    }
-    fs.writeFileSync(ACTIVITIES_FALLBACK_FILE, JSON.stringify(list, null, 2));
+    await logActivityDb(activity);
   } catch (err) {
-    console.error("Failed to log activity locally:", err);
+    console.error("Failed to log activity:", err);
   }
 };
 
@@ -492,6 +502,7 @@ async function syncProjectsFromGoogleSheet(): Promise<any[] | null> {
             if (mapped && mapped.length > 0) {
               const finalMerged = mergeWithLocalProjects(mapped);
               fs.writeFileSync(PROJECTS_FALLBACK_FILE, JSON.stringify(finalMerged, null, 2));
+              await saveProjectsBulkDb(finalMerged);
               return finalMerged;
             }
           }
@@ -515,6 +526,7 @@ async function syncProjectsFromGoogleSheet(): Promise<any[] | null> {
           if (mapped && mapped.length > 0) {
             const finalMerged = mergeWithLocalProjects(mapped);
             fs.writeFileSync(PROJECTS_FALLBACK_FILE, JSON.stringify(finalMerged, null, 2));
+            await saveProjectsBulkDb(finalMerged);
             return finalMerged;
           }
         }
@@ -662,6 +674,7 @@ async function syncSubmissionsFromGoogleSheet(): Promise<any[] | null> {
           const sortedList = parseSubmissionsRows(rows);
           const finalMergedList = mergeWithLocalSubmissions(sortedList);
           fs.writeFileSync(SUBMISSIONS_FALLBACK_FILE, JSON.stringify(finalMergedList, null, 2));
+          await saveSubmissionsBulkDb(finalMergedList);
           return finalMergedList;
         }
       } catch (err: any) {
@@ -682,6 +695,7 @@ async function syncSubmissionsFromGoogleSheet(): Promise<any[] | null> {
           const sortedList = parseSubmissionsRows(rows);
           const finalMergedList = mergeWithLocalSubmissions(sortedList);
           fs.writeFileSync(SUBMISSIONS_FALLBACK_FILE, JSON.stringify(finalMergedList, null, 2));
+          await saveSubmissionsBulkDb(finalMergedList);
           return finalMergedList;
         }
       }
@@ -875,13 +889,21 @@ app.get("/api/config-status", async (req, res) => {
     }
   }
 
+  let dbStatus = { ok: true, error: "Using local fallback (Supabase not configured)" };
+  if (isSupabaseConfigured()) {
+    const status = await checkSupabaseTablesStatus();
+    dbStatus = { ok: status.ok, error: status.error };
+  }
+
   res.json({
     serviceAccountConfigured,
     serviceAccountEmail,
     projectsSpreadsheetId: process.env.GOOGLE_SPREADSHEET_ID || DEFAULT_SPREADSHEET_ID,
     logsSpreadsheetId: process.env.GOOGLE_SPREADSHEET_ID || DEFAULT_SPREADSHEET_ID,
     fetchStatus: (serviceAccountConfigured && tokenSuccess) ? { ok: true, error: "" } : { ok: false, error: tokenError || "Authentication offline / Fallback active" },
-    databaseStatus: { ok: true, error: "" }
+    databaseStatus: dbStatus,
+    supabaseConfigured: isSupabaseConfigured(),
+    supabaseSchemaSql: SUPABASE_SQL_SCHEMA
   });
 });
 
@@ -891,10 +913,7 @@ app.get("/api/projects", async (req, res) => {
     // Sync from Google Sheets first if credentials are valid
     await syncProjectsFromGoogleSheet();
 
-    let list = [];
-    if (fs.existsSync(PROJECTS_FALLBACK_FILE)) {
-      list = JSON.parse(fs.readFileSync(PROJECTS_FALLBACK_FILE, "utf-8"));
-    }
+    let list = await getProjectsDb();
 
     const clientUserEmail = req.headers['x-user-email'];
     const clientUserRole = req.headers['x-user-role'];
@@ -919,38 +938,26 @@ app.get("/api/projects", async (req, res) => {
 app.post("/api/projects", async (req, res) => {
   const { action, project } = req.body;
   try {
-    let list = [];
-    if (fs.existsSync(PROJECTS_FALLBACK_FILE)) {
-      try {
-        list = JSON.parse(fs.readFileSync(PROJECTS_FALLBACK_FILE, "utf-8"));
-      } catch {
-        list = [];
-      }
-    }
-
     if (action === "add" && project) {
       project.id = project.domain.toLowerCase().replace(/[^a-z0-9]/g, "-") || `p-${Date.now()}`;
-      list.push(project);
+      await saveProjectDb(project);
     } else if (action === "edit" && project) {
-      const idx = list.findIndex((p: any) => p.id === project.id);
-      if (idx !== -1) {
-        list[idx] = project;
-      }
+      await saveProjectDb(project);
       try {
         await updateProjectInGoogleSheet(project);
       } catch (sheetErr: any) {
         console.error("Failed to update project in Google Sheets:", sheetErr.message);
       }
     } else if (action === "delete" && project) {
-      list = list.filter((p: any) => p.id !== project.id);
+      await deleteProjectDb(project.id);
     }
 
-    fs.writeFileSync(PROJECTS_FALLBACK_FILE, JSON.stringify(list, null, 2));
+    const updatedList = await getProjectsDb();
 
     const userEmail = req.headers['x-user-email'] || "Admin";
     await logActivityLocally(String(userEmail), `${action === 'add' ? 'CREATE' : action === 'edit' ? 'EDIT' : 'DELETE'} Project`, `${action === 'add' ? 'Created' : action === 'edit' ? 'Edited' : 'Deleted'} project: "${project?.name || project?.domain || 'unnamed'}"`);
 
-    return res.json({ success: true, list });
+    return res.json({ success: true, list: updatedList });
   } catch (err: any) {
     return res.status(500).json({ error: err.message });
   }
@@ -963,14 +970,7 @@ app.get("/api/filters", async (req, res) => {
     await syncProjectsFromGoogleSheet();
     await syncSubmissionsFromGoogleSheet();
 
-    let projectsArr = [];
-    if (fs.existsSync(PROJECTS_FALLBACK_FILE)) {
-      try {
-        projectsArr = JSON.parse(fs.readFileSync(PROJECTS_FALLBACK_FILE, "utf-8"));
-      } catch {
-        projectsArr = [];
-      }
-    }
+    let projectsArr = await getProjectsDb();
 
     const clientUserEmail = req.headers['x-user-email'];
     const clientUserRole = req.headers['x-user-role'];
@@ -1024,14 +1024,7 @@ app.get("/api/filters", async (req, res) => {
       }
     });
 
-    let submissionsArr = [];
-    if (fs.existsSync(SUBMISSIONS_FALLBACK_FILE)) {
-      try {
-        submissionsArr = JSON.parse(fs.readFileSync(SUBMISSIONS_FALLBACK_FILE, "utf-8"));
-      } catch {
-        submissionsArr = [];
-      }
-    }
+    let submissionsArr = await getSubmissionsDb();
 
     submissionsArr.forEach((entry: any) => {
       if (entry.userEmail) {
@@ -1074,10 +1067,7 @@ app.get("/api/submissions", async (req, res) => {
     // Sync from Google Sheets first if credentials are valid
     await syncSubmissionsFromGoogleSheet();
 
-    let list = [];
-    if (fs.existsSync(SUBMISSIONS_FALLBACK_FILE)) {
-      list = JSON.parse(fs.readFileSync(SUBMISSIONS_FALLBACK_FILE, "utf-8"));
-    }
+    let list = await getSubmissionsDb();
     return res.json(list);
   } catch (err: any) {
     console.error("GET /api/submissions error:", err);
@@ -1096,15 +1086,6 @@ app.post("/api/submissions/append", async (req, res) => {
   const createdAt = new Date().toISOString();
 
   try {
-    let list = [];
-    if (fs.existsSync(SUBMISSIONS_FALLBACK_FILE)) {
-      try {
-        list = JSON.parse(fs.readFileSync(SUBMISSIONS_FALLBACK_FILE, "utf-8"));
-      } catch {
-        list = [];
-      }
-    }
-
     const worksWithIds = works.map((w: any, index: number) => ({
       ...w,
       id: `${submissionId}-${index}`
@@ -1118,8 +1099,7 @@ app.post("/api/submissions/append", async (req, res) => {
       createdAt
     };
 
-    list.unshift(newEntry);
-    fs.writeFileSync(SUBMISSIONS_FALLBACK_FILE, JSON.stringify(list, null, 2));
+    await appendSubmissionDb(newEntry);
 
     await logActivityLocally(userEmail, "DSR Submission", `Submitted Work Log for date ${date} containing ${works.length} project block(s).`);
 
@@ -1130,7 +1110,8 @@ app.post("/api/submissions/append", async (req, res) => {
       console.error("Failed to append to Google Sheets:", sheetErr.message);
     }
 
-    return res.json({ success: true, list });
+    const updatedList = await getSubmissionsDb();
+    return res.json({ success: true, list: updatedList });
   } catch (err: any) {
     console.error("POST /api/submissions/append error:", err);
     return res.status(500).json({ error: err.message });
@@ -1138,15 +1119,22 @@ app.post("/api/submissions/append", async (req, res) => {
 });
 
 // POST Reset Database
-app.post("/api/reset-database", (req, res) => {
+app.post("/api/reset-database", async (req, res) => {
   try {
     fs.writeFileSync(PROJECTS_FALLBACK_FILE, "[]", "utf-8");
     fs.writeFileSync(SUBMISSIONS_FALLBACK_FILE, "[]", "utf-8");
     fs.writeFileSync(ALERTS_FALLBACK_FILE, "[]", "utf-8");
     fs.writeFileSync(ACTIVITIES_FALLBACK_FILE, "[]", "utf-8");
     fs.writeFileSync(RANKINGS_FALLBACK_FILE, "{}", "utf-8");
+
+    // Also clear from Supabase database
+    await saveProjectsBulkDb([]);
+    await clearSubmissionsDb();
+    await saveAlertsBulkDb([]);
+    await clearActivitiesDb();
+    await clearRankingsDb();
     
-    return res.json({ success: true, message: "Workspace files cleared and reset." });
+    return res.json({ success: true, message: "Workspace files and Supabase database tables cleared and reset." });
   } catch (err: any) {
     console.error("Error resetting database:", err);
     return res.status(500).json({ error: err.message });
@@ -1154,9 +1142,10 @@ app.post("/api/reset-database", (req, res) => {
 });
 
 // Clear logs/submissions
-app.delete("/api/submissions", (req, res) => {
+app.delete("/api/submissions", async (req, res) => {
   try {
     fs.writeFileSync(SUBMISSIONS_FALLBACK_FILE, "[]", "utf-8");
+    await clearSubmissionsDb();
     return res.json({ success: true, message: "All work log submissions have been cleared from history." });
   } catch (err: any) {
     console.error("Error clearing submissions:", err);
@@ -1165,12 +1154,9 @@ app.delete("/api/submissions", (req, res) => {
 });
 
 // GET Alerts
-app.get("/api/alerts", (req, res) => {
+app.get("/api/alerts", async (req, res) => {
   try {
-    let list = [];
-    if (fs.existsSync(ALERTS_FALLBACK_FILE)) {
-      list = JSON.parse(fs.readFileSync(ALERTS_FALLBACK_FILE, "utf-8"));
-    }
+    const list = await getAlertsDb();
     return res.json(list);
   } catch (err: any) {
     return res.status(500).json({ error: err.message });
@@ -1185,21 +1171,14 @@ app.post("/api/alerts", async (req, res) => {
   }
 
   try {
-    let list = [];
-    if (fs.existsSync(ALERTS_FALLBACK_FILE)) {
-      try {
-        list = JSON.parse(fs.readFileSync(ALERTS_FALLBACK_FILE, "utf-8"));
-      } catch {
-        list = [];
-      }
-    }
-    list.unshift(alert);
-    fs.writeFileSync(ALERTS_FALLBACK_FILE, JSON.stringify(list, null, 2));
+    alert.createdAt = alert.createdAt || new Date().toISOString();
+    await saveAlertDb(alert);
 
     const adminEmail = req.headers['x-user-email'] || alert.adminEmail || "Admin";
     await logActivityLocally(String(adminEmail), "Create Note/Assignment", `Created notification assignment for ${alert.userEmail || 'all workers'} on project "${alert.projectName || alert.projectDomain || 'All'}"`);
 
-    return res.json(list);
+    const updatedList = await getAlertsDb();
+    return res.json(updatedList);
   } catch (err: any) {
     return res.status(500).json({ error: err.message });
   }
@@ -1209,25 +1188,24 @@ app.post("/api/alerts", async (req, res) => {
 app.post("/api/alerts/clear", async (req, res) => {
   const { id, ids, all } = req.body;
   try {
-    let list = [];
-    if (fs.existsSync(ALERTS_FALLBACK_FILE)) {
-      try {
-        list = JSON.parse(fs.readFileSync(ALERTS_FALLBACK_FILE, "utf-8"));
-      } catch {
-        list = [];
-      }
-    }
+    let list = await getAlertsDb();
 
     const clearedItem = id ? list.find((a: any) => a.id === id) : null;
     if (all) {
+      // mark all as read
       list = list.map((a: any) => ({ ...a, read: true }));
+      await saveAlertsBulkDb(list);
     } else if (ids && Array.isArray(ids)) {
-      list = list.filter((a: any) => !ids.includes(a.id));
+      // delete specified ids
+      for (const alertId of ids) {
+        await deleteAlertDb(alertId);
+      }
     } else if (id) {
-      list = list.filter((a: any) => a.id !== id);
+      // delete single id
+      await deleteAlertDb(id);
     }
 
-    fs.writeFileSync(ALERTS_FALLBACK_FILE, JSON.stringify(list, null, 2));
+    const updatedList = await getAlertsDb();
 
     const actorEmail = req.headers['x-user-email'] || "User";
     const logMsg = all 
@@ -1237,19 +1215,16 @@ app.post("/api/alerts/clear", async (req, res) => {
         : `Cleared notification assignment: "${clearedItem?.message || id}"`;
     await logActivityLocally(String(actorEmail), "Clear Note/Assignment", logMsg);
 
-    return res.json(list);
+    return res.json(updatedList);
   } catch (err: any) {
     return res.status(500).json({ error: err.message });
   }
 });
 
 // GET Activity Logs
-app.get("/api/activity", (req, res) => {
+app.get("/api/activity", async (req, res) => {
   try {
-    let list = [];
-    if (fs.existsSync(ACTIVITIES_FALLBACK_FILE)) {
-      list = JSON.parse(fs.readFileSync(ACTIVITIES_FALLBACK_FILE, "utf-8"));
-    }
+    const list = await getActivitiesDb();
     return res.json(list);
   } catch (err: any) {
     return res.status(500).json({ error: err.message });
@@ -1259,23 +1234,12 @@ app.get("/api/activity", (req, res) => {
 // =========================================================================
 // SERP RANKING INTEGRATION ENDPOINTS
 // =========================================================================
-const readRankings = (): Record<string, Record<string, { ranking: string; lastChecked: string }>> => {
-  if (fs.existsSync(RANKINGS_FALLBACK_FILE)) {
-    try {
-      return JSON.parse(fs.readFileSync(RANKINGS_FALLBACK_FILE, "utf-8"));
-    } catch {
-      return {};
-    }
-  }
-  return {};
+const readRankings = async (): Promise<Record<string, Record<string, { ranking: string; lastChecked: string }>>> => {
+  return await getRankingsDb();
 };
 
-const writeRankings = (rankings: Record<string, Record<string, { ranking: string; lastChecked: string }>>) => {
-  try {
-    fs.writeFileSync(RANKINGS_FALLBACK_FILE, JSON.stringify(rankings, null, 2));
-  } catch (err) {
-    console.error("Failed to write rankings file:", err);
-  }
+const writeRankings = async (rankings: Record<string, Record<string, { ranking: string; lastChecked: string }>>) => {
+  await saveRankingsDb(rankings);
 };
 
 async function checkSerpRanking(keyword: string, domain: string): Promise<string> {
@@ -1364,9 +1328,9 @@ async function checkSerpRanking(keyword: string, domain: string): Promise<string
 }
 
 // GET rankings
-app.get("/api/rankings", (req, res) => {
+app.get("/api/rankings", async (req, res) => {
   try {
-    const rankings = readRankings();
+    const rankings = await readRankings();
     res.json(rankings);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
@@ -1381,7 +1345,7 @@ app.post("/api/rankings/check", async (req, res) => {
       return res.status(400).json({ error: "projectId and domain are required." });
     }
 
-    const rankings = readRankings();
+    const rankings = await readRankings();
     if (!rankings[projectId]) {
       rankings[projectId] = {};
     }
@@ -1394,36 +1358,32 @@ app.post("/api/rankings/check", async (req, res) => {
         ranking: rank,
         lastChecked: timestamp
       };
-      writeRankings(rankings);
+      await writeRankings(rankings);
       return res.json({ projectId, keyword, ranking: rankings[projectId][keyword] });
     } else {
       let projectKeywords: string[] = [];
       try {
-        if (fs.existsSync(PROJECTS_FALLBACK_FILE)) {
-          const projs = JSON.parse(fs.readFileSync(PROJECTS_FALLBACK_FILE, "utf-8"));
-          const found = projs.find((p: any) => p.id === projectId);
-          if (found && found.keywords) {
-            projectKeywords = [...found.keywords];
-          }
+        const projs = await getProjectsDb();
+        const found = projs.find((p: any) => p.id === projectId);
+        if (found && found.keywords) {
+          projectKeywords = [...found.keywords];
         }
       } catch (e) {
         console.error("Error loading project keywords:", e);
       }
 
       try {
-        if (fs.existsSync(SUBMISSIONS_FALLBACK_FILE)) {
-          const submissions = JSON.parse(fs.readFileSync(SUBMISSIONS_FALLBACK_FILE, "utf-8"));
-          if (Array.isArray(submissions)) {
-            for (const sub of submissions) {
-              if (sub && Array.isArray(sub.works)) {
-                for (const work of sub.works) {
-                  if (work && work.projectId === projectId && Array.isArray(work.selectedKeywords)) {
-                    for (const kw of work.selectedKeywords) {
-                      if (kw && typeof kw === 'string' && kw.trim()) {
-                        const cleaned = kw.trim();
-                        if (!projectKeywords.map(k => k.toLowerCase()).includes(cleaned.toLowerCase())) {
-                          projectKeywords.push(cleaned);
-                        }
+        const submissions = await getSubmissionsDb();
+        if (Array.isArray(submissions)) {
+          for (const sub of submissions) {
+            if (sub && Array.isArray(sub.works)) {
+              for (const work of sub.works) {
+                if (work && work.projectId === projectId && Array.isArray(work.selectedKeywords)) {
+                  for (const kw of work.selectedKeywords) {
+                    if (kw && typeof kw === 'string' && kw.trim()) {
+                      const cleaned = kw.trim();
+                      if (!projectKeywords.map(k => k.toLowerCase()).includes(cleaned.toLowerCase())) {
+                        projectKeywords.push(cleaned);
                       }
                     }
                   }
@@ -1452,7 +1412,7 @@ app.post("/api/rankings/check", async (req, res) => {
         }
       }
 
-      writeRankings(rankings);
+      await writeRankings(rankings);
       return res.json({ projectId, results });
     }
   } catch (err: any) {

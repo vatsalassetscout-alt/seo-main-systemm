@@ -105,7 +105,7 @@ export default function DSRSettings({
   onResetToDefault,
 }: DSRSettingsProps) {
   // Navigation Tabs inside Settings Panel
-  const [activeSubTab, setActiveSubTab] = useState<'users' | 'assignments'>('users');
+  const [activeSubTab, setActiveSubTab] = useState<'users' | 'assignments' | 'database'>('users');
 
   // Deletion selection states for assignments
   const [isDeleteMode, setIsDeleteMode] = useState(false);
@@ -124,6 +124,12 @@ export default function DSRSettings({
   const [logsSpreadsheetId, setLogsSpreadsheetId] = useState('');
   const [isCopied, setIsCopied] = useState(false);
 
+  // Supabase Integration States
+  const [supabaseConfigured, setSupabaseConfigured] = useState(false);
+  const [supabaseSchemaSql, setSupabaseSchemaSql] = useState('');
+  const [isSqlCopied, setIsSqlCopied] = useState(false);
+  const [databaseStatusError, setDatabaseStatusError] = useState('');
+
   useEffect(() => {
     fetch('/api/config-status')
       .then(res => {
@@ -137,6 +143,9 @@ export default function DSRSettings({
           setFetchStatusError(data.fetchStatus?.error || '');
           setProjectsSpreadsheetId(data.projectsSpreadsheetId || '');
           setLogsSpreadsheetId(data.logsSpreadsheetId || '');
+          setSupabaseConfigured(!!data.supabaseConfigured);
+          setSupabaseSchemaSql(data.supabaseSchemaSql || '');
+          setDatabaseStatusError(data.databaseStatus?.error || '');
         }
       })
       .catch(err => console.error("Could not fetch service account detail:", err));
@@ -253,6 +262,18 @@ export default function DSRSettings({
           >
             <Lock size={15} />
             Assign Project
+          </button>
+
+          <button
+            onClick={() => setActiveSubTab('database')}
+            className={`flex items-center gap-2 px-5 py-3 border-b-2 font-bold text-xs cursor-pointer transition ${
+              activeSubTab === 'database'
+                ? 'border-indigo-600 text-indigo-700'
+                : 'border-transparent text-gray-400 hover:text-gray-700 hover:border-gray-200'
+            }`}
+          >
+            <Database size={15} />
+            Database Setup
           </button>
         </div>
 
@@ -693,6 +714,106 @@ export default function DSRSettings({
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+        )}
+
+        {activeSubTab === 'database' && (
+          <div className="bg-white rounded-2xl shadow-xs border border-gray-150 p-6 space-y-6">
+            <div className="flex items-center gap-2 pb-4 border-b border-gray-100">
+              <Database className="text-indigo-600" size={20} />
+              <div>
+                <h3 className="text-sm font-extrabold text-gray-900 uppercase tracking-wide">
+                  Supabase Database Status & Schema
+                </h3>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  View connection status and SQL schemas required to bootstrap persistent database tables.
+                </p>
+              </div>
+            </div>
+
+            {/* Connection Status Box */}
+            <div className={`p-4 rounded-xl flex items-start gap-3 border ${
+              !supabaseConfigured
+                ? 'bg-amber-50/50 border-amber-100 text-amber-900'
+                : databaseStatusError && databaseStatusError.includes('Missing table(s)')
+                ? 'bg-rose-50/50 border-rose-100 text-rose-900'
+                : 'bg-emerald-50/50 border-emerald-100 text-emerald-900'
+            }`}>
+              <span className="text-lg">
+                {!supabaseConfigured 
+                  ? '⚠️' 
+                  : databaseStatusError && databaseStatusError.includes('Missing table(s)')
+                  ? '❌' 
+                  : '🟢'}
+              </span>
+              <div className="space-y-1">
+                <div className="text-xs font-bold uppercase tracking-wider">
+                  {!supabaseConfigured 
+                    ? 'Local Fallback Mode Active' 
+                    : databaseStatusError && databaseStatusError.includes('Missing table(s)')
+                    ? 'Tables Missing in Supabase' 
+                    : 'Active & Fully Connected'}
+                </div>
+                <p className="text-xs text-gray-500 font-medium leading-relaxed">
+                  {!supabaseConfigured 
+                    ? `SUPABASE_URL and SUPABASE_KEY are not specified in your secret environment variables. The system has fallen back to offline JSON files for local-only execution.`
+                    : databaseStatusError && databaseStatusError.includes('Missing table(s)')
+                    ? `Connected to Supabase client, but the tables have not been created yet in your database: ${databaseStatusError}. Please use the SQL schema script below to bootstrap them.`
+                    : `Successfully connected to your custom Supabase instance and verified all database tables. All team logs, projects, allocations, rankings, and notes are synchronized in real-time.`}
+                </p>
+              </div>
+            </div>
+
+            {/* SQL Table Schema Copy box */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="text-xs font-extrabold text-gray-700 uppercase tracking-wider">
+                  Recommended SQL Table Initialization Schema
+                </div>
+                <button
+                  onClick={() => {
+                    if (!supabaseSchemaSql) return;
+                    navigator.clipboard.writeText(supabaseSchemaSql)
+                      .then(() => {
+                        setIsSqlCopied(true);
+                        setTimeout(() => setIsSqlCopied(false), 2000);
+                      });
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-extrabold uppercase tracking-wider text-indigo-700 bg-indigo-50 border border-indigo-100 rounded-lg hover:bg-indigo-100 transition cursor-pointer inline-flex items-center"
+                >
+                  {isSqlCopied ? <Check size={11} className="mr-1" /> : <Copy size={11} className="mr-1" />}
+                  {isSqlCopied ? 'Copied' : 'Copy SQL Schema'}
+                </button>
+              </div>
+              <p className="text-xs text-gray-400 leading-relaxed">
+                Copy and run this SQL script in your Supabase SQL Editor to instantly bootstrap all database tables, columns, indexes, and performance constraints.
+              </p>
+              
+              <div className="relative rounded-xl overflow-hidden border border-gray-150 bg-slate-900 p-4">
+                <pre className="text-[10px] text-indigo-200 font-mono overflow-x-auto max-h-72 leading-relaxed whitespace-pre-wrap select-all scrollbar-thin">
+                  {supabaseSchemaSql || 'Loading SQL schema...'}
+                </pre>
+              </div>
+            </div>
+
+            {/* Setup Instructions list */}
+            <div className="bg-slate-50 rounded-xl p-5 border border-gray-150 space-y-4">
+              <div className="text-xs font-bold text-gray-800 uppercase tracking-wide">
+                How to set up Supabase Persistence:
+              </div>
+              <ol className="list-decimal list-inside space-y-2.5 text-xs text-gray-500 leading-relaxed">
+                <li>Create a free account or project on <a href="https://supabase.com" target="_blank" rel="noreferrer" className="text-indigo-600 hover:underline inline-flex items-center gap-0.5 font-bold">Supabase <ExternalLink size={11} /></a>.</li>
+                <li>Go to <strong>Project Settings</strong> &gt; <strong>API</strong> and find your Project URL and anon/public Key.</li>
+                <li>Add these keys to your AI Studio secrets / environment variables as:
+                  <div className="mt-1.5 font-mono text-[10px] bg-slate-100 p-1.5 px-2 rounded-lg text-slate-700 block whitespace-pre-wrap">
+                    SUPABASE_URL=your_project_url<br/>
+                    SUPABASE_KEY=your_anon_public_key
+                  </div>
+                </li>
+                <li>Go to the <strong>SQL Editor</strong> tab in your Supabase Dashboard, click <strong>New Query</strong>, paste the copied SQL schema above, and click <strong>Run</strong>.</li>
+                <li>Your secure multi-user persistent SEO operations database is ready!</li>
+              </ol>
             </div>
           </div>
         )}
