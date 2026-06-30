@@ -1,16 +1,4 @@
 import { createClient } from "@supabase/supabase-js";
-import fs from "fs";
-import path from "path";
-
-// Fallback file paths identical to server.ts
-const isServerless = !!(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.LAMBDA_TASK_ROOT);
-const DB_DIR = isServerless ? "/tmp" : path.join(process.cwd(), "data");
-
-const PROJECTS_FALLBACK_FILE = path.join(DB_DIR, "projects_fallback.json");
-const SUBMISSIONS_FALLBACK_FILE = path.join(DB_DIR, "submissions_fallback.json");
-const ALERTS_FALLBACK_FILE = path.join(DB_DIR, "alerts_fallback.json");
-const ACTIVITIES_FALLBACK_FILE = path.join(DB_DIR, "activities_fallback.json");
-const RANKINGS_FALLBACK_FILE = path.join(DB_DIR, "rankings_fallback.json");
 
 let supabaseClient: any = null;
 
@@ -132,28 +120,22 @@ CREATE TABLE IF NOT EXISTS rankings (
   data JSONB DEFAULT '{}'::jsonb,
   created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now())
 );
+
+-- Row Level Security (RLS) Setup
+-- Disable RLS to allow direct database sync from the web client safely:
+ALTER TABLE projects DISABLE ROW LEVEL SECURITY;
+ALTER TABLE submissions DISABLE ROW LEVEL SECURITY;
+ALTER TABLE alerts DISABLE ROW LEVEL SECURITY;
+ALTER TABLE activities DISABLE ROW LEVEL SECURITY;
+ALTER TABLE rankings DISABLE ROW LEVEL SECURITY;
+
+-- If you prefer keeping RLS enabled on your database, run the following commands to allow full public access instead:
+-- CREATE POLICY "Allow public read-write for projects" ON projects FOR ALL USING (true) WITH CHECK (true);
+-- CREATE POLICY "Allow public read-write for submissions" ON submissions FOR ALL USING (true) WITH CHECK (true);
+-- CREATE POLICY "Allow public read-write for alerts" ON alerts FOR ALL USING (true) WITH CHECK (true);
+-- CREATE POLICY "Allow public read-write for activities" ON activities FOR ALL USING (true) WITH CHECK (true);
+-- CREATE POLICY "Allow public read-write for rankings" ON rankings FOR ALL USING (true) WITH CHECK (true);
 `;
-
-// Helper to safely write fallback file
-function saveLocalFallback(filePath: string, data: any) {
-  try {
-    fs.writeFileSync(filePath, JSON.stringify(data, null, 2), "utf-8");
-  } catch (err) {
-    console.error(`Failed to write local fallback file at ${filePath}:`, err);
-  }
-}
-
-// Helper to read fallback file
-function readLocalFallback(filePath: string, defaultVal: any = []): any {
-  if (fs.existsSync(filePath)) {
-    try {
-      return JSON.parse(fs.readFileSync(filePath, "utf-8"));
-    } catch {
-      return defaultVal;
-    }
-  }
-  return defaultVal;
-}
 
 // =========================================================================
 // PROJECTS DB INTERACTION
@@ -169,10 +151,10 @@ export async function getProjectsDb(): Promise<any[]> {
         .order("created_at", { ascending: false });
 
       if (error) {
-        console.warn("Supabase query error for projects, falling back to local files:", error.message);
+        console.warn("Supabase query error for projects:", error.message);
       } else if (data) {
         // Map snake_case to camelCase structure for Frontend
-        const mapped = data.map((p: any) => ({
+        return data.map((p: any) => ({
           id: p.id,
           name: p.name,
           code: p.code,
@@ -186,21 +168,15 @@ export async function getProjectsDb(): Promise<any[]> {
           keywords: p.keywords || [],
           description: p.description || ""
         }));
-        // Update local fallback with current state for high availability
-        saveLocalFallback(PROJECTS_FALLBACK_FILE, mapped);
-        return mapped;
       }
     } catch (err) {
       console.error("Supabase exception for getProjectsDb:", err);
     }
   }
-  return readLocalFallback(PROJECTS_FALLBACK_FILE, []);
+  return [];
 }
 
 export async function saveProjectsBulkDb(projects: any[]): Promise<boolean> {
-  // Always update local fallback first
-  saveLocalFallback(PROJECTS_FALLBACK_FILE, projects);
-
   const sb = getSupabase();
   if (sb) {
     try {
@@ -237,16 +213,6 @@ export async function saveProjectsBulkDb(projects: any[]): Promise<boolean> {
 }
 
 export async function saveProjectDb(project: any): Promise<boolean> {
-  // Update local file first
-  const list = readLocalFallback(PROJECTS_FALLBACK_FILE, []);
-  const idx = list.findIndex((p: any) => p.id === project.id);
-  if (idx !== -1) {
-    list[idx] = project;
-  } else {
-    list.push(project);
-  }
-  saveLocalFallback(PROJECTS_FALLBACK_FILE, list);
-
   const sb = getSupabase();
   if (sb) {
     try {
@@ -282,10 +248,6 @@ export async function saveProjectDb(project: any): Promise<boolean> {
 }
 
 export async function deleteProjectDb(projectId: string): Promise<boolean> {
-  const list = readLocalFallback(PROJECTS_FALLBACK_FILE, []);
-  const filtered = list.filter((p: any) => p.id !== projectId);
-  saveLocalFallback(PROJECTS_FALLBACK_FILE, filtered);
-
   const sb = getSupabase();
   if (sb) {
     try {
@@ -322,26 +284,22 @@ export async function getSubmissionsDb(): Promise<any[]> {
       if (error) {
         console.warn("Supabase query error for submissions:", error.message);
       } else if (data) {
-        const mapped = data.map((s: any) => ({
+        return data.map((s: any) => ({
           id: s.id,
           date: s.date,
           userEmail: s.user_email,
           works: s.works || [],
           createdAt: s.created_at
         }));
-        saveLocalFallback(SUBMISSIONS_FALLBACK_FILE, mapped);
-        return mapped;
       }
     } catch (err) {
       console.error("Supabase submissions read exception:", err);
     }
   }
-  return readLocalFallback(SUBMISSIONS_FALLBACK_FILE, []);
+  return [];
 }
 
 export async function saveSubmissionsBulkDb(submissions: any[]): Promise<boolean> {
-  saveLocalFallback(SUBMISSIONS_FALLBACK_FILE, submissions);
-
   const sb = getSupabase();
   if (sb) {
     try {
@@ -370,10 +328,6 @@ export async function saveSubmissionsBulkDb(submissions: any[]): Promise<boolean
 }
 
 export async function appendSubmissionDb(entry: any): Promise<boolean> {
-  const list = readLocalFallback(SUBMISSIONS_FALLBACK_FILE, []);
-  list.unshift(entry);
-  saveLocalFallback(SUBMISSIONS_FALLBACK_FILE, list);
-
   const sb = getSupabase();
   if (sb) {
     try {
@@ -402,8 +356,6 @@ export async function appendSubmissionDb(entry: any): Promise<boolean> {
 }
 
 export async function clearSubmissionsDb(): Promise<boolean> {
-  saveLocalFallback(SUBMISSIONS_FALLBACK_FILE, []);
-
   const sb = getSupabase();
   if (sb) {
     try {
@@ -440,7 +392,7 @@ export async function getAlertsDb(): Promise<any[]> {
       if (error) {
         console.warn("Supabase alerts get failed:", error.message);
       } else if (data) {
-        const mapped = data.map((a: any) => ({
+        return data.map((a: any) => ({
           id: a.id,
           userEmail: a.user_email,
           projectName: a.project_name,
@@ -450,21 +402,15 @@ export async function getAlertsDb(): Promise<any[]> {
           createdAt: a.created_at,
           adminEmail: a.admin_email
         }));
-        saveLocalFallback(ALERTS_FALLBACK_FILE, mapped);
-        return mapped;
       }
     } catch (err) {
       console.error("Supabase alerts fetch exception:", err);
     }
   }
-  return readLocalFallback(ALERTS_FALLBACK_FILE, []);
+  return [];
 }
 
 export async function saveAlertDb(alert: any): Promise<boolean> {
-  const list = readLocalFallback(ALERTS_FALLBACK_FILE, []);
-  list.unshift(alert);
-  saveLocalFallback(ALERTS_FALLBACK_FILE, list);
-
   const sb = getSupabase();
   if (sb) {
     try {
@@ -496,8 +442,6 @@ export async function saveAlertDb(alert: any): Promise<boolean> {
 }
 
 export async function saveAlertsBulkDb(alerts: any[]): Promise<boolean> {
-  saveLocalFallback(ALERTS_FALLBACK_FILE, alerts);
-
   const sb = getSupabase();
   if (sb) {
     try {
@@ -529,10 +473,6 @@ export async function saveAlertsBulkDb(alerts: any[]): Promise<boolean> {
 }
 
 export async function deleteAlertDb(alertId: string): Promise<boolean> {
-  const list = readLocalFallback(ALERTS_FALLBACK_FILE, []);
-  const filtered = list.filter((a: any) => a.id !== alertId);
-  saveLocalFallback(ALERTS_FALLBACK_FILE, filtered);
-
   const sb = getSupabase();
   if (sb) {
     try {
@@ -570,7 +510,7 @@ export async function getActivitiesDb(): Promise<any[]> {
       if (error) {
         console.warn("Supabase get activities failed:", error.message);
       } else if (data) {
-        const mapped = data.map((a: any) => ({
+        return data.map((a: any) => ({
           id: a.id,
           timestamp: a.timestamp,
           userEmail: a.user_email,
@@ -578,24 +518,15 @@ export async function getActivitiesDb(): Promise<any[]> {
           details: a.details,
           platform: a.platform
         }));
-        saveLocalFallback(ACTIVITIES_FALLBACK_FILE, mapped);
-        return mapped;
       }
     } catch (err) {
       console.error("Supabase activities fetch exception:", err);
     }
   }
-  return readLocalFallback(ACTIVITIES_FALLBACK_FILE, []);
+  return [];
 }
 
 export async function logActivityDb(activity: any): Promise<boolean> {
-  const list = readLocalFallback(ACTIVITIES_FALLBACK_FILE, []);
-  list.unshift(activity);
-  if (list.length > 1000) {
-    list.splice(1000);
-  }
-  saveLocalFallback(ACTIVITIES_FALLBACK_FILE, list);
-
   const sb = getSupabase();
   if (sb) {
     try {
@@ -625,8 +556,6 @@ export async function logActivityDb(activity: any): Promise<boolean> {
 }
 
 export async function clearActivitiesDb(): Promise<boolean> {
-  saveLocalFallback(ACTIVITIES_FALLBACK_FILE, []);
-
   const sb = getSupabase();
   if (sb) {
     try {
@@ -666,19 +595,16 @@ export async function getRankingsDb(): Promise<any> {
           console.warn("Supabase get rankings failed:", error.message);
         }
       } else if (data) {
-        saveLocalFallback(RANKINGS_FALLBACK_FILE, data.data || {});
         return data.data || {};
       }
     } catch (err) {
       console.error("Supabase rankings fetch exception:", err);
     }
   }
-  return readLocalFallback(RANKINGS_FALLBACK_FILE, {});
+  return {};
 }
 
 export async function saveRankingsDb(rankingsData: any): Promise<boolean> {
-  saveLocalFallback(RANKINGS_FALLBACK_FILE, rankingsData);
-
   const sb = getSupabase();
   if (sb) {
     try {
@@ -705,8 +631,6 @@ export async function saveRankingsDb(rankingsData: any): Promise<boolean> {
 }
 
 export async function clearRankingsDb(): Promise<boolean> {
-  saveLocalFallback(RANKINGS_FALLBACK_FILE, {});
-
   const sb = getSupabase();
   if (sb) {
     try {

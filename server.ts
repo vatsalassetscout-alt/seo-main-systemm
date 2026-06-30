@@ -1,6 +1,5 @@
 import express from "express";
 import path from "path";
-import fs from "fs";
 import { createServer as createViteServer } from "vite";
 import dotenv from "dotenv";
 import { JWT } from "google-auth-library";
@@ -34,42 +33,6 @@ const app = express();
 const PORT = 3000;
 
 app.use(express.json());
-
-// Dynamic local database folder setup
-const isServerless = !!(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.LAMBDA_TASK_ROOT);
-const DB_DIR = isServerless ? "/tmp" : path.join(process.cwd(), "data");
-
-const PROJECTS_FALLBACK_FILE = path.join(DB_DIR, "projects_fallback.json");
-const SUBMISSIONS_FALLBACK_FILE = path.join(DB_DIR, "submissions_fallback.json");
-const ALERTS_FALLBACK_FILE = path.join(DB_DIR, "alerts_fallback.json");
-const ACTIVITIES_FALLBACK_FILE = path.join(DB_DIR, "activities_fallback.json");
-const RANKINGS_FALLBACK_FILE = path.join(DB_DIR, "rankings_fallback.json");
-
-// Ensure dynamic database folder exists securely
-try {
-  if (!fs.existsSync(DB_DIR)) {
-    fs.mkdirSync(DB_DIR, { recursive: true });
-  }
-} catch (e) {
-  console.error("Warning: Failed to create DB_DIR: " + e);
-}
-
-// Ensure local JSON files exist with empty array/object if not present
-const initJSONFile = (filePath: string, defaultContent: string = "[]") => {
-  try {
-    if (!fs.existsSync(filePath)) {
-      fs.writeFileSync(filePath, defaultContent, "utf-8");
-    }
-  } catch (err) {
-    console.error(`Failed to initialize file ${filePath}:`, err);
-  }
-};
-
-initJSONFile(PROJECTS_FALLBACK_FILE, "[]");
-initJSONFile(SUBMISSIONS_FALLBACK_FILE, "[]");
-initJSONFile(ALERTS_FALLBACK_FILE, "[]");
-initJSONFile(ACTIVITIES_FALLBACK_FILE, "[]");
-initJSONFile(RANKINGS_FALLBACK_FILE, "{}");
 
 // User email authentication mapping
 const ALLOWED_ADMINS = [
@@ -436,14 +399,12 @@ function parseCSV(csvText: string): string[][] {
 }
 
 async function syncProjectsFromGoogleSheet(): Promise<any[] | null> {
-  const mergeWithLocalProjects = (sheetProjects: any[]) => {
+  const mergeWithLocalProjects = async (sheetProjects: any[]) => {
     let localProjects = [];
-    if (fs.existsSync(PROJECTS_FALLBACK_FILE)) {
-      try {
-        localProjects = JSON.parse(fs.readFileSync(PROJECTS_FALLBACK_FILE, "utf-8"));
-      } catch (e) {
-        localProjects = [];
-      }
+    try {
+      localProjects = await getProjectsDb();
+    } catch (e) {
+      localProjects = [];
     }
 
     if (!Array.isArray(localProjects)) {
@@ -500,8 +461,7 @@ async function syncProjectsFromGoogleSheet(): Promise<any[] | null> {
           if (data.values && data.values.length > 0) {
             const mapped = mapRowsToProjects(data.values);
             if (mapped && mapped.length > 0) {
-              const finalMerged = mergeWithLocalProjects(mapped);
-              fs.writeFileSync(PROJECTS_FALLBACK_FILE, JSON.stringify(finalMerged, null, 2));
+              const finalMerged = await mergeWithLocalProjects(mapped);
               await saveProjectsBulkDb(finalMerged);
               return finalMerged;
             }
@@ -524,8 +484,7 @@ async function syncProjectsFromGoogleSheet(): Promise<any[] | null> {
         if (rows && rows.length > 0) {
           const mapped = mapRowsToProjects(rows);
           if (mapped && mapped.length > 0) {
-            const finalMerged = mergeWithLocalProjects(mapped);
-            fs.writeFileSync(PROJECTS_FALLBACK_FILE, JSON.stringify(finalMerged, null, 2));
+            const finalMerged = await mergeWithLocalProjects(mapped);
             await saveProjectsBulkDb(finalMerged);
             return finalMerged;
           }
@@ -620,14 +579,12 @@ async function syncSubmissionsFromGoogleSheet(): Promise<any[] | null> {
     return Object.values(groupedEntries).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   };
 
-  const mergeWithLocalSubmissions = (sheetEntries: any[]) => {
+  const mergeWithLocalSubmissions = async (sheetEntries: any[]) => {
     let localEntries = [];
-    if (fs.existsSync(SUBMISSIONS_FALLBACK_FILE)) {
-      try {
-        localEntries = JSON.parse(fs.readFileSync(SUBMISSIONS_FALLBACK_FILE, "utf-8"));
-      } catch (e) {
-        localEntries = [];
-      }
+    try {
+      localEntries = await getSubmissionsDb();
+    } catch (e) {
+      localEntries = [];
     }
 
     if (!Array.isArray(localEntries)) {
@@ -672,8 +629,7 @@ async function syncSubmissionsFromGoogleSheet(): Promise<any[] | null> {
           const data = await res.json();
           const rows: string[][] = data.values || [];
           const sortedList = parseSubmissionsRows(rows);
-          const finalMergedList = mergeWithLocalSubmissions(sortedList);
-          fs.writeFileSync(SUBMISSIONS_FALLBACK_FILE, JSON.stringify(finalMergedList, null, 2));
+          const finalMergedList = await mergeWithLocalSubmissions(sortedList);
           await saveSubmissionsBulkDb(finalMergedList);
           return finalMergedList;
         }
@@ -693,8 +649,7 @@ async function syncSubmissionsFromGoogleSheet(): Promise<any[] | null> {
         const rows = parseCSV(text);
         if (rows && rows.length > 0) {
           const sortedList = parseSubmissionsRows(rows);
-          const finalMergedList = mergeWithLocalSubmissions(sortedList);
-          fs.writeFileSync(SUBMISSIONS_FALLBACK_FILE, JSON.stringify(finalMergedList, null, 2));
+          const finalMergedList = await mergeWithLocalSubmissions(sortedList);
           await saveSubmissionsBulkDb(finalMergedList);
           return finalMergedList;
         }
@@ -1121,20 +1076,14 @@ app.post("/api/submissions/append", async (req, res) => {
 // POST Reset Database
 app.post("/api/reset-database", async (req, res) => {
   try {
-    fs.writeFileSync(PROJECTS_FALLBACK_FILE, "[]", "utf-8");
-    fs.writeFileSync(SUBMISSIONS_FALLBACK_FILE, "[]", "utf-8");
-    fs.writeFileSync(ALERTS_FALLBACK_FILE, "[]", "utf-8");
-    fs.writeFileSync(ACTIVITIES_FALLBACK_FILE, "[]", "utf-8");
-    fs.writeFileSync(RANKINGS_FALLBACK_FILE, "{}", "utf-8");
-
-    // Also clear from Supabase database
+    // Clear from Supabase database only
     await saveProjectsBulkDb([]);
     await clearSubmissionsDb();
     await saveAlertsBulkDb([]);
     await clearActivitiesDb();
     await clearRankingsDb();
     
-    return res.json({ success: true, message: "Workspace files and Supabase database tables cleared and reset." });
+    return res.json({ success: true, message: "Supabase database tables cleared and reset." });
   } catch (err: any) {
     console.error("Error resetting database:", err);
     return res.status(500).json({ error: err.message });
@@ -1144,7 +1093,6 @@ app.post("/api/reset-database", async (req, res) => {
 // Clear logs/submissions
 app.delete("/api/submissions", async (req, res) => {
   try {
-    fs.writeFileSync(SUBMISSIONS_FALLBACK_FILE, "[]", "utf-8");
     await clearSubmissionsDb();
     return res.json({ success: true, message: "All work log submissions have been cleared from history." });
   } catch (err: any) {
