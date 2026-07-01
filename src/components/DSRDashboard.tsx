@@ -977,12 +977,14 @@ export default function DSRDashboard({
   const [planMessage, setPlanMessage] = useState('');
 
   const unworkedProjects = useMemo(() => {
-    // Current date reference for calculation (as specified by system context: 2026-06-16)
-    const today = new Date('2026-06-16');
+    // Current date reference for calculation
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
     return filteredProjectsForMetrics.map((p) => {
       // Find all submissions for this project cross-matching DSR works
-      const pWorks = filteredWorks.filter(w => w.projectId === p.id);
+      // Using enrichedWorks ensures we evaluate all historical submissions, ignoring any active date filters
+      const pWorks = enrichedWorks.filter(w => w.projectId === p.id);
 
       let lastWorkedDateStr = 'Never';
       let daysSinceLastWorked = Infinity;
@@ -996,7 +998,10 @@ export default function DSRDashboard({
           lastWorkedDateStr = sortedDates[0];
           
           try {
-            const workDate = new Date(lastWorkedDateStr);
+            const [y, m, d] = lastWorkedDateStr.split('-').map(Number);
+            const workDate = new Date(y, m - 1, d);
+            workDate.setHours(0, 0, 0, 0);
+            
             const timeDiff = today.getTime() - workDate.getTime();
             const diffDays = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
             daysSinceLastWorked = diffDays >= 0 ? diffDays : 0;
@@ -1021,7 +1026,7 @@ export default function DSRDashboard({
       ...p,
       srNo: idx + 1
     }));
-  }, [filteredProjectsForMetrics, filteredWorks, unworkedFilter]);
+  }, [filteredProjectsForMetrics, enrichedWorks, unworkedFilter]);
 
   const projectKeywordGroups = useMemo(() => {
     return filteredProjectsForMetrics.map((proj) => {
