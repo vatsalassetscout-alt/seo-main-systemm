@@ -431,7 +431,20 @@ export default function DSRForm({
                                       return domainMatch || nameMatch;
                                     });
 
-                                    if (filtered.length === 0) {
+                                    // Deduplicate projects by domain/name to avoid repeated project names in the dropdown list
+                                    const uniqueFiltered: typeof filtered = [];
+                                    const seen = new Set<string>();
+                                    for (const p of filtered) {
+                                      const key = (p.domain || p.name || '').trim().toLowerCase();
+                                      if (key && !seen.has(key)) {
+                                        seen.add(key);
+                                        uniqueFiltered.push(p);
+                                      } else if (!key) {
+                                        uniqueFiltered.push(p);
+                                      }
+                                    }
+
+                                    if (uniqueFiltered.length === 0) {
                                       return (
                                         <div className="p-3 text-center text-xs text-gray-400 select-none font-medium">
                                           No matching domains found
@@ -439,7 +452,7 @@ export default function DSRForm({
                                       );
                                     }
 
-                                    return filtered.map((p) => {
+                                    return uniqueFiltered.map((p) => {
                                       const isSelected = work.projectId === p.id;
                                       return (
                                         <button
