@@ -126,9 +126,19 @@ export default function DSRDashboard({
   };
 
   // Heatmap Calendar state declarations
-  const [heatmapMonth, setHeatmapMonth] = useState<number>(5); // Default to June (index 5)
-  const [heatmapYear, setHeatmapYear] = useState<number>(2026); // Default to 2026
-  const [selectedCalendarDay, setSelectedCalendarDay] = useState<string | null>('2026-06-16');
+  const [heatmapMonth, setHeatmapMonth] = useState<number>(() => {
+    return new Date().getMonth();
+  });
+  const [heatmapYear, setHeatmapYear] = useState<number>(() => {
+    return new Date().getFullYear();
+  });
+  const [selectedCalendarDay, setSelectedCalendarDay] = useState<string | null>(() => {
+    const today = new Date();
+    const y = today.getFullYear();
+    const m = String(today.getMonth() + 1).padStart(2, '0');
+    const d = String(today.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  });
   const [selectedUserProjects, setSelectedUserProjects] = useState<Record<string, string>>({});
 
   const monthNames = [

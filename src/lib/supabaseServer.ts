@@ -101,7 +101,10 @@ CREATE TABLE IF NOT EXISTS alerts (
   message TEXT,
   read BOOLEAN DEFAULT false,
   created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()),
-  admin_email TEXT
+  admin_email TEXT,
+  alert_type TEXT,
+  project_id TEXT,
+  date TEXT
 );
 
 -- 4. Activities Table
@@ -400,7 +403,10 @@ export async function getAlertsDb(): Promise<any[]> {
           message: a.message,
           read: a.read,
           createdAt: a.created_at,
-          adminEmail: a.admin_email
+          adminEmail: a.admin_email,
+          alertType: a.alert_type || "",
+          projectId: a.project_id || "",
+          date: a.date || ""
         }));
       }
     } catch (err) {
@@ -422,7 +428,10 @@ export async function saveAlertDb(alert: any): Promise<boolean> {
         message: alert.message,
         read: alert.read || false,
         created_at: alert.createdAt || new Date().toISOString(),
-        admin_email: alert.adminEmail
+        admin_email: alert.adminEmail,
+        alert_type: alert.alertType || "",
+        project_id: alert.projectId || "",
+        date: alert.date || ""
       };
 
       const { error } = await sb
@@ -430,6 +439,25 @@ export async function saveAlertDb(alert: any): Promise<boolean> {
         .insert(row);
 
       if (error) {
+        if (error.message && (error.message.includes("does not exist") || error.code === "42703")) {
+          console.warn("New alert columns do not exist yet. Retrying insert with fallback columns...");
+          const fallbackRow = {
+            id: alert.id,
+            user_email: alert.userEmail,
+            project_name: alert.projectName,
+            project_domain: alert.projectDomain,
+            message: alert.message,
+            read: alert.read || false,
+            created_at: alert.createdAt || new Date().toISOString(),
+            admin_email: alert.adminEmail
+          };
+          const { error: errRetry } = await sb.from("alerts").insert(fallbackRow);
+          if (errRetry) {
+            console.error("Fallback insert failed:", errRetry.message);
+            return false;
+          }
+          return true;
+        }
         console.warn("Supabase insert alert failed:", error.message);
         return false;
       }
@@ -453,7 +481,10 @@ export async function saveAlertsBulkDb(alerts: any[]): Promise<boolean> {
         message: alert.message,
         read: alert.read || false,
         created_at: alert.createdAt || new Date().toISOString(),
-        admin_email: alert.adminEmail
+        admin_email: alert.adminEmail,
+        alert_type: alert.alertType || "",
+        project_id: alert.projectId || "",
+        date: alert.date || ""
       }));
 
       const { error } = await sb
@@ -461,6 +492,25 @@ export async function saveAlertsBulkDb(alerts: any[]): Promise<boolean> {
         .upsert(rows, { onConflict: "id" });
 
       if (error) {
+        if (error.message && (error.message.includes("does not exist") || error.code === "42703")) {
+          console.warn("New alert columns do not exist. Retrying bulk upsert with fallback columns...");
+          const fallbackRows = alerts.map(alert => ({
+            id: alert.id,
+            user_email: alert.userEmail,
+            project_name: alert.projectName,
+            project_domain: alert.projectDomain,
+            message: alert.message,
+            read: alert.read || false,
+            created_at: alert.createdAt || new Date().toISOString(),
+            admin_email: alert.adminEmail
+          }));
+          const { error: errRetry } = await sb.from("alerts").upsert(fallbackRows, { onConflict: "id" });
+          if (errRetry) {
+            console.error("Fallback bulk upsert failed:", errRetry.message);
+            return false;
+          }
+          return true;
+        }
         console.warn("Supabase bulk alerts upsert failed:", error.message);
         return false;
       }

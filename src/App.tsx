@@ -910,7 +910,7 @@ export default function App() {
               <img 
                 src="https://assetscout.in/assets/images/Assetscout%20Logo%20Black.webp" 
                 alt="Assetscout Logo" 
-                className="h-7 sm:h-8 w-auto object-contain block"
+                className="h-7 sm:h-8 w-auto object-contain block dark-logo-invert"
                 referrerPolicy="no-referrer"
               />
             </div>

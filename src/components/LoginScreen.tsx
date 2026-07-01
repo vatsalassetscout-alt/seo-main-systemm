@@ -80,7 +80,7 @@ export default function LoginScreen({
           <img 
             src="https://assetscout.in/assets/images/Assetscout%20Logo%20Black.webp" 
             alt="Assetscout Logo" 
-            className="h-10 sm:h-12 w-auto object-contain block mx-auto"
+            className="h-10 sm:h-12 w-auto object-contain block mx-auto dark-logo-invert"
             referrerPolicy="no-referrer"
           />
         </div>

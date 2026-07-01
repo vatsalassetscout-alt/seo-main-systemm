@@ -483,7 +483,7 @@ export default function DSRSettings({
                             })
                           : projects;
                         return filtered.map(p => (
-                          <option key={p.id} value={p.id}>{p.name}</option>
+                          <option key={p.id} value={p.id}>{p.domain || p.name}</option>
                         ));
                       })()}
                     </select>
