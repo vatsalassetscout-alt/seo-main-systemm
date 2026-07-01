@@ -733,6 +733,19 @@ export default function DSRDashboard({
         }
       }
 
+      // Compute raw absolute last worked date from enrichedWorks for stable sorting
+      const pWorksAll = enrichedWorks.filter(w => w.projectId === p.id);
+      let lastWorkedRaw = 'Never';
+      if (pWorksAll.length > 0) {
+        const sortedDatesAll = [...pWorksAll]
+          .map(w => w.date)
+          .filter(Boolean)
+          .sort((a, b) => b.localeCompare(a));
+        if (sortedDatesAll.length > 0) {
+          lastWorkedRaw = sortedDatesAll[0];
+        }
+      }
+
       // Domain mapping
       let domain = p.domain || '';
       if (!domain) {
@@ -761,6 +774,7 @@ export default function DSRDashboard({
         totalBacklinks,
         timesWorked,
         lastWorked,
+        lastWorkedRaw,
         priority,
         frequency,
         keywords: p.keywords || [],
@@ -771,14 +785,22 @@ export default function DSRDashboard({
     rawList.sort((a, b) => {
       const wA = weights[a.priority || ''] || 999;
       const wB = weights[b.priority || ''] || 999;
-      return wA - wB;
+      if (wA !== wB) {
+        return wA - wB;
+      }
+      const aNever = !a.lastWorkedRaw || a.lastWorkedRaw === 'Never';
+      const bNever = !b.lastWorkedRaw || b.lastWorkedRaw === 'Never';
+      if (aNever && bNever) return 0;
+      if (aNever) return 1;
+      if (bNever) return -1;
+      return b.lastWorkedRaw.localeCompare(a.lastWorkedRaw);
     });
 
     return rawList.map((item, idx) => ({
       ...item,
       srNo: idx + 1
     }));
-  }, [filteredProjectsForMetrics, filteredWorks, pendingChanges]);
+  }, [filteredProjectsForMetrics, filteredWorks, enrichedWorks, pendingChanges]);
 
   // Computation of days in current selection
   const timeSpanDays = useMemo(() => {
@@ -871,25 +893,45 @@ export default function DSRDashboard({
       const timesWorked = pWorks.length;
       const assignedFrequency = pendingChanges[p.id]?.frequency !== undefined ? pendingChanges[p.id].frequency : p.frequency;
 
+      const pWorksAll = enrichedWorks.filter(w => w.projectId === p.id);
+      let lastWorkedRaw = 'Never';
+      if (pWorksAll.length > 0) {
+        const sortedDatesAll = [...pWorksAll]
+          .map(w => w.date)
+          .filter(Boolean)
+          .sort((a, b) => b.localeCompare(a));
+        if (sortedDatesAll.length > 0) {
+          lastWorkedRaw = sortedDatesAll[0];
+        }
+      }
+
       return {
         id: p.id,
         name: p.name,
         code: p.code,
         domain: p.domain,
         assignedFrequency,
-        timesWorked
+        timesWorked,
+        lastWorkedRaw
       };
     });
 
-    // Sort by timesWorked descending
-    list.sort((a, b) => b.timesWorked - a.timesWorked);
+    // Sort by lastWorkedRaw descending, "Never" at the bottom
+    list.sort((a, b) => {
+      const aNever = !a.lastWorkedRaw || a.lastWorkedRaw === 'Never';
+      const bNever = !b.lastWorkedRaw || b.lastWorkedRaw === 'Never';
+      if (aNever && bNever) return 0;
+      if (aNever) return 1;
+      if (bNever) return -1;
+      return b.lastWorkedRaw.localeCompare(a.lastWorkedRaw);
+    });
 
     // Map srNo sequentially
     return list.map((item, idx) => ({
       ...item,
       srNo: idx + 1
     }));
-  }, [filteredProjectsForMetrics, filteredWorks, pendingChanges]);
+  }, [filteredProjectsForMetrics, filteredWorks, enrichedWorks, pendingChanges]);
 
   // Tab 3: Team performance computed scoreboard
   const teamPerformanceData = useMemo(() => {
@@ -998,13 +1040,38 @@ export default function DSRDashboard({
           lastWorkedDateStr = sortedDates[0];
           
           try {
-            const [y, m, d] = lastWorkedDateStr.split('-').map(Number);
-            const workDate = new Date(y, m - 1, d);
-            workDate.setHours(0, 0, 0, 0);
-            
-            const timeDiff = today.getTime() - workDate.getTime();
-            const diffDays = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
-            daysSinceLastWorked = diffDays >= 0 ? diffDays : 0;
+            let workDate: Date | null = null;
+            if (lastWorkedDateStr.includes('-')) {
+              const parts = lastWorkedDateStr.split('-').map(Number);
+              if (parts[0] > 1000) {
+                // YYYY-MM-DD
+                workDate = new Date(parts[0], parts[1] - 1, parts[2]);
+              } else {
+                // DD-MM-YYYY
+                workDate = new Date(parts[2], parts[1] - 1, parts[0]);
+              }
+            } else if (lastWorkedDateStr.includes('/')) {
+              const parts = lastWorkedDateStr.split('/').map(Number);
+              if (parts[0] > 1000) {
+                // YYYY/MM/DD
+                workDate = new Date(parts[0], parts[1] - 1, parts[2]);
+              } else {
+                // DD/MM/YYYY
+                workDate = new Date(parts[2], parts[1] - 1, parts[0]);
+              }
+            } else {
+              const parsed = new Date(lastWorkedDateStr);
+              if (!isNaN(parsed.getTime())) {
+                workDate = parsed;
+              }
+            }
+
+            if (workDate) {
+              workDate.setHours(0, 0, 0, 0);
+              const timeDiff = today.getTime() - workDate.getTime();
+              const diffDays = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
+              daysSinceLastWorked = diffDays >= 0 ? diffDays : 0;
+            }
           } catch (e) {
             // fallback
           }
@@ -1022,6 +1089,12 @@ export default function DSRDashboard({
     }).filter(proj => {
       const threshold = unworkedFilter === 'daily' ? 1 : unworkedFilter === 'weekly' ? 7 : 30;
       return proj.daysSinceLastWorked >= threshold;
+    }).sort((a, b) => {
+      // Sort descending by inactivity duration (Never/Infinity on top, followed by highest daysSinceLastWorked to lowest)
+      if (a.daysSinceLastWorked === Infinity && b.daysSinceLastWorked !== Infinity) return -1;
+      if (b.daysSinceLastWorked === Infinity && a.daysSinceLastWorked !== Infinity) return 1;
+      if (a.daysSinceLastWorked === Infinity && b.daysSinceLastWorked === Infinity) return 0;
+      return b.daysSinceLastWorked - a.daysSinceLastWorked;
     }).map((p, idx) => ({
       ...p,
       srNo: idx + 1
@@ -1125,7 +1198,18 @@ export default function DSRDashboard({
         return nameMatch || domainMatch || keywordMatch;
       });
     }
-    return result.map((item, idx) => ({
+
+    // Sort by lastWorkedDate descending, "Never" at the bottom
+    const sortedResult = [...result].sort((a, b) => {
+      const aNever = !a.lastWorkedDate || a.lastWorkedDate === 'Never';
+      const bNever = !b.lastWorkedDate || b.lastWorkedDate === 'Never';
+      if (aNever && bNever) return 0;
+      if (aNever) return 1;
+      if (bNever) return -1;
+      return b.lastWorkedDate.localeCompare(a.lastWorkedDate);
+    });
+
+    return sortedResult.map((item, idx) => ({
       ...item,
       srNo: idx + 1
     }));
@@ -1835,13 +1919,13 @@ export default function DSRDashboard({
 
                     // Calculate frequency expression
                     let factor = 1;
-                    let suffix = 'd';
+                    let suffix = 'day';
                     if (freqFilterType === 'weekly') {
                       factor = 7;
-                      suffix = 'w';
+                      suffix = 'wk';
                     } else if (freqFilterType === 'monthly') {
                       factor = 30;
-                      suffix = 'm';
+                      suffix = 'mo';
                     }
                     const rate = (timesWorked / (timeSpanDays || 1)) * factor;
                     const formattedRate = rate % 1 === 0 ? rate.toFixed(0) : rate.toFixed(1);
@@ -2566,15 +2650,36 @@ export default function DSRDashboard({
               total += sum;
             });
 
+            // Get absolute last worked date from enrichedWorks
+            const pWorksAll = enrichedWorks.filter(w => w.projectId === proj.id);
+            let lastWorkedRaw = 'Never';
+            if (pWorksAll.length > 0) {
+              const sortedDatesAll = [...pWorksAll]
+                .map(w => w.date)
+                .filter(Boolean)
+                .sort((a, b) => b.localeCompare(a));
+              if (sortedDatesAll.length > 0) {
+                lastWorkedRaw = sortedDatesAll[0];
+              }
+            }
+
             return {
               id: proj.id,
               name: proj.name,
               code: proj.code,
               domain: proj.domain || '',
               counts: countsMap,
-              total
+              total,
+              lastWorkedRaw
             };
-          }).filter(row => row.total > 0);
+          }).filter(row => row.total > 0).sort((a, b) => {
+            const aNever = !a.lastWorkedRaw || a.lastWorkedRaw === 'Never';
+            const bNever = !b.lastWorkedRaw || b.lastWorkedRaw === 'Never';
+            if (aNever && bNever) return 0;
+            if (aNever) return 1;
+            if (bNever) return -1;
+            return b.lastWorkedRaw.localeCompare(a.lastWorkedRaw);
+          });
 
           return (
             <div>
