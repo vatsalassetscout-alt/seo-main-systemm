@@ -489,7 +489,15 @@ export default function App() {
       registerNamesFromProjects(projects);
     }
     const dynamicUsers = mapUsersFromProjects(projects);
-    setAllowedUsers(dynamicUsers);
+    // Merge instead of overwrite, so users loaded from /api/filters
+    // (e.g. the currently logged in user) are never dropped from the list.
+    setAllowedUsers(prev => {
+      const uniqueMap = new Map<string, AppUser>();
+      [...prev, ...dynamicUsers].forEach(user => {
+        uniqueMap.set(user.email.toLowerCase().trim(), user);
+      });
+      return Array.from(uniqueMap.values());
+    });
   }, [projects]);
 
   useEffect(() => {
