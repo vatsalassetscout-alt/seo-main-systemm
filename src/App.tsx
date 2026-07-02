@@ -63,11 +63,11 @@ const mapUsersFromProjects = (projectsList: any[]): AppUser[] => {
 
   // Hardcode defaults as backup if any of the specified users are not mapped yet
   const idsMap = [
-    { id: "1859", name: "Pratap More" }, // Default fallback if no sheet mapping is present yet
-    { id: "9531", name: "Pratap More" },
-    { id: "5595", name: "Kavita Patel" },
-    { id: "4001", name: "Vatsal Patel" },
-    { id: "8888", name: "Vatsal Patel" }
+    { id: "9531", name: "Pratap More" }, // Default fallback if no sheet mapping is present yet
+    { id: "5595", name: "Kavita Mishra" },
+    { id: "4001", name: "Rushikesh Pote" },
+    { id: "1859", name: "Vatsal Patel" },
+    { id: "8888", name: "Admin" }
   ];
   idsMap.forEach(({ id, name }) => {
     if (!usersMap.has(id)) {
