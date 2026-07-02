@@ -64,6 +64,32 @@ const isUserAdmin = (email: string): boolean => {
   return false;
 };
 
+const BACKEND_USER_MAP: Record<string, string[]> = {
+  "1859": ["pratap more", "pratap", "more", "1859"],
+  "9531": ["pratap more", "pratap", "more", "9531"],
+  "5595": ["kavita patel", "kavita", "patel", "5595"],
+  "4001": ["vatsal patel", "vatsal", "patel", "4001"],
+  "8888": ["vatsal patel", "vatsal", "patel", "8888"]
+};
+
+const doesUserMatchBackend = (val: string, clientUserEmail: string): boolean => {
+  if (!val || !clientUserEmail) return false;
+  const v = val.trim().toLowerCase();
+  const c = clientUserEmail.trim().toLowerCase();
+  if (v === c) return true;
+
+  if (BACKEND_USER_MAP[c]) {
+    if (BACKEND_USER_MAP[c].includes(v)) return true;
+  }
+  if (BACKEND_USER_MAP[v]) {
+    if (BACKEND_USER_MAP[v].includes(c)) return true;
+  }
+
+  if (v.includes(c) || c.includes(v)) return true;
+
+  return false;
+};
+
 const cleanEmailToNameOrUsername = (email: string): string => {
   if (!email) return "";
   const emailLower = email.trim().toLowerCase();
@@ -875,8 +901,8 @@ app.get("/api/projects", async (req, res) => {
       const emailLower = clientUserEmail.trim().toLowerCase();
       list = list.filter((p: any) => {
         const assigned = Array.isArray(p.users) ? p.users : [];
-        const matchesUsers = assigned.some((u: string) => u.trim().toLowerCase() === emailLower);
-        const matchesUserId = p.userId && String(p.userId).trim().toLowerCase() === emailLower;
+        const matchesUsers = assigned.some((u: string) => doesUserMatchBackend(u, emailLower));
+        const matchesUserId = p.userId && doesUserMatchBackend(String(p.userId), emailLower);
         return matchesUsers || matchesUserId;
       });
     }
@@ -932,8 +958,8 @@ app.get("/api/filters", async (req, res) => {
       const emailLower = clientUserEmail.trim().toLowerCase();
       projectsArr = projectsArr.filter((p: any) => {
         const assigned = Array.isArray(p.users) ? p.users : [];
-        const matchesUsers = assigned.some((u: string) => u.trim().toLowerCase() === emailLower);
-        const matchesUserId = p.userId && String(p.userId).trim().toLowerCase() === emailLower;
+        const matchesUsers = assigned.some((u: string) => doesUserMatchBackend(u, emailLower));
+        const matchesUserId = p.userId && doesUserMatchBackend(String(p.userId), emailLower);
         return matchesUsers || matchesUserId;
       });
     }

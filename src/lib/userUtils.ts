@@ -73,10 +73,16 @@ export const getUserDisplayName = (email: string | null | undefined, allowedUser
     return USER_NAMES_DICT[foundPartialKey];
   }
 
-  // Find in allowedUsers and prefer non-generic placeholder name
+  // Find in allowedUsers by email/id
   const matched = allowedUsers.find((u) => u.email.trim().toLowerCase() === val);
   if (matched && matched.name && matched.name.trim() && !/^User\s+\d+$/i.test(matched.name.trim())) {
     return matched.name;
+  }
+
+  // Find in allowedUsers by name
+  const matchedByName = allowedUsers.find((u) => u.name.trim().toLowerCase() === val);
+  if (matchedByName && matchedByName.name && matchedByName.name.trim()) {
+    return matchedByName.name;
   }
 
   // Check if purely numeric
@@ -96,17 +102,61 @@ export const getUserDisplayName = (email: string | null | undefined, allowedUser
   return formatted;
 };
 
+export const getUserIdentifiers = (emailOrId: string, allowedUsers: AppUser[] = []): string[] => {
+  if (!emailOrId) return [];
+  const val = emailOrId.trim().toLowerCase();
+  const ids = [val];
+
+  // Also check USER_NAMES_DICT
+  if (USER_NAMES_DICT[val]) {
+    ids.push(USER_NAMES_DICT[val].toLowerCase().trim());
+    const parts = USER_NAMES_DICT[val].toLowerCase().trim().split(/\s+/);
+    ids.push(...parts);
+  }
+
+  // Check in allowedUsers
+  allowedUsers.forEach(u => {
+    if (u.email.trim().toLowerCase() === val || u.name.trim().toLowerCase() === val) {
+      ids.push(u.email.trim().toLowerCase());
+      ids.push(u.name.trim().toLowerCase());
+      const parts = u.name.trim().toLowerCase().split(/\s+/);
+      ids.push(...parts);
+    }
+  });
+
+  // Inverse check: check if val matches any USER_NAMES_DICT value
+  Object.entries(USER_NAMES_DICT).forEach(([k, name]) => {
+    const nLower = name.toLowerCase().trim();
+    if (nLower === val || nLower.includes(val) || val.includes(nLower)) {
+      ids.push(k);
+      ids.push(nLower);
+      const parts = nLower.split(/\s+/);
+      ids.push(...parts);
+    }
+  });
+
+  return Array.from(new Set(ids));
+};
+
 export const doesUserMatch = (userA: string, userB: string, allowedUsers: AppUser[] = []): boolean => {
   if (!userA || !userB) return false;
   const a = userA.trim().toLowerCase();
   const b = userB.trim().toLowerCase();
   if (a === b) return true;
 
+  const idsA = getUserIdentifiers(a, allowedUsers);
+  const idsB = getUserIdentifiers(b, allowedUsers);
+
+  if (idsA.some(id => idsB.includes(id))) return true;
+
   const nameA = getUserDisplayName(a, allowedUsers).toLowerCase().trim();
   const nameB = getUserDisplayName(b, allowedUsers).toLowerCase().trim();
   if (nameA && nameB && nameA === nameB && nameA !== 'admin' && !nameA.startsWith('user ')) return true;
 
   if (a === nameB || b === nameA) return true;
+
+  // Partial substring matches
+  if (nameA.includes(nameB) || nameB.includes(nameA)) return true;
 
   return false;
 };

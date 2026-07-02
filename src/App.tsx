@@ -542,17 +542,16 @@ export default function App() {
   // Active Project Assignment tasks for the currently logged in user
   const activeAssignmentAlerts = useMemo(() => {
     if (!currentUserEmail) return [];
-    const lowerCurrent = currentUserEmail.trim().toLowerCase();
     
     return alerts.filter(alert => {
       if (alert.alertType !== 'project_assignment') return false;
       const lowerEmail = (alert.userEmail || '').trim().toLowerCase();
-      if (lowerEmail !== lowerCurrent) return false;
+      if (!doesUserMatch(lowerEmail, currentUserEmail, allowedUsers)) return false;
 
       // Check if user has already submitted a work log for this project on this target date
       const isFulfilled = entries.some(entry => {
         const entryUserLower = (entry.userEmail || '').trim().toLowerCase();
-        const matchesUser = entryUserLower === lowerCurrent;
+        const matchesUser = doesUserMatch(entryUserLower, currentUserEmail, allowedUsers);
         const matchesDate = entry.date === alert.date;
         const hasProject = (entry.works || []).some(w => String(w.projectId) === String(alert.projectId));
         return matchesUser && matchesDate && hasProject;
@@ -560,22 +559,21 @@ export default function App() {
 
       return !isFulfilled;
     });
-  }, [alerts, entries, currentUserEmail]);
+  }, [alerts, entries, currentUserEmail, allowedUsers]);
 
   // Filter alerts by role: admins see user notes and admin notes, users only see admin notes.
   // Assignment alerts are automatically filtered out for the user if they are already fulfilled.
   const visibleAlerts = useMemo(() => {
     if (!currentUserEmail) return [];
-    const lowerCurrent = currentUserEmail.trim().toLowerCase();
     
     return alerts.filter(alert => {
       if (alert.alertType === 'project_assignment') {
         const lowerEmail = (alert.userEmail || '').trim().toLowerCase();
-        if (lowerEmail !== lowerCurrent) return false;
+        if (!doesUserMatch(lowerEmail, currentUserEmail, allowedUsers)) return false;
         
         const isFulfilled = entries.some(entry => {
           const entryUserLower = (entry.userEmail || '').trim().toLowerCase();
-          const matchesUser = entryUserLower === lowerCurrent;
+          const matchesUser = doesUserMatch(entryUserLower, currentUserEmail, allowedUsers);
           const matchesDate = entry.date === alert.date;
           const hasProject = (entry.works || []).some(w => String(w.projectId) === String(alert.projectId));
           return matchesUser && matchesDate && hasProject;
@@ -586,7 +584,7 @@ export default function App() {
       const isUserMsg = alert.alertType === 'user_message';
       return isAdmin ? true : !isUserMsg;
     });
-  }, [alerts, entries, currentUserEmail, isAdmin]);
+  }, [alerts, entries, currentUserEmail, isAdmin, allowedUsers]);
 
   const unreadCount = visibleAlerts.filter(a => !a.read).length;
   const [filteredLogsCount, setFilteredLogsCount] = useState<number | null>(null);

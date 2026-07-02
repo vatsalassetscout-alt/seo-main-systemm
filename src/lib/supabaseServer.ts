@@ -439,7 +439,7 @@ export async function saveAlertDb(alert: any): Promise<boolean> {
         .insert(row);
 
       if (error) {
-        if (error.message && (error.message.includes("does not exist") || error.code === "42703")) {
+        if (error.message && (error.message.includes("does not exist") || error.message.includes("schema cache") || error.message.includes("Could not find") || error.message.includes("alert_type") || error.code === "42703")) {
           console.warn("New alert columns do not exist yet. Retrying insert with fallback columns...");
           const fallbackRow = {
             id: alert.id,
@@ -492,7 +492,7 @@ export async function saveAlertsBulkDb(alerts: any[]): Promise<boolean> {
         .upsert(rows, { onConflict: "id" });
 
       if (error) {
-        if (error.message && (error.message.includes("does not exist") || error.code === "42703")) {
+        if (error.message && (error.message.includes("does not exist") || error.message.includes("schema cache") || error.message.includes("Could not find") || error.message.includes("alert_type") || error.code === "42703")) {
           console.warn("New alert columns do not exist. Retrying bulk upsert with fallback columns...");
           const fallbackRows = alerts.map(alert => ({
             id: alert.id,
