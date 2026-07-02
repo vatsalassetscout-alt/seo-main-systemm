@@ -64,12 +64,66 @@ const isUserAdmin = (email: string): boolean => {
   return false;
 };
 
-const BACKEND_USER_MAP: Record<string, string[]> = {
-  "1859": ["pratap more", "pratap", "more", "1859"],
-  "9531": ["pratap more", "pratap", "more", "9531"],
-  "5595": ["kavita patel", "kavita", "patel", "5595"],
-  "4001": ["vatsal patel", "vatsal", "patel", "4001"],
-  "8888": ["vatsal patel", "vatsal", "patel", "8888"]
+const CANONICAL_PROFILES_BACKEND = [
+  {
+    name: "Vatsal Patel",
+    keys: [
+      "4001",
+      "8888",
+      "vatsalpatelwork20@gmail.com",
+      "vatsalpatel1720@gmail.com",
+      "vatsal.assetscout@gmail.com",
+      "vatsal patel",
+      "vatsal"
+    ]
+  },
+  {
+    name: "Pratap More",
+    keys: [
+      "1859",
+      "9531",
+      "pratap more",
+      "pratap"
+    ]
+  },
+  {
+    name: "Kavita Patel",
+    keys: [
+      "5595",
+      "kavita.assetscout@gmail.com",
+      "kavita patel",
+      "kavita"
+    ]
+  },
+  {
+    name: "Rohan Patel",
+    keys: [
+      "assetscout007rohan@gmail.com",
+      "rohan patel",
+      "rohan"
+    ]
+  },
+  {
+    name: "Rushikesh Pote",
+    keys: [
+      "rushikeshpote14@gmail.com",
+      "rushikesh pote",
+      "rushikesh"
+    ]
+  }
+];
+
+const getProfileNameBackend = (userStr: string): string => {
+  const s = userStr.trim().toLowerCase();
+  if (!s) return "";
+
+  for (const profile of CANONICAL_PROFILES_BACKEND) {
+    if (profile.keys.includes(s) || profile.name.toLowerCase() === s) {
+      return profile.name;
+    }
+  }
+
+  return "";
 };
 
 const doesUserMatchBackend = (val: string, clientUserEmail: string): boolean => {
@@ -78,14 +132,12 @@ const doesUserMatchBackend = (val: string, clientUserEmail: string): boolean => 
   const c = clientUserEmail.trim().toLowerCase();
   if (v === c) return true;
 
-  if (BACKEND_USER_MAP[c]) {
-    if (BACKEND_USER_MAP[c].includes(v)) return true;
-  }
-  if (BACKEND_USER_MAP[v]) {
-    if (BACKEND_USER_MAP[v].includes(c)) return true;
-  }
+  const profileV = getProfileNameBackend(v);
+  const profileC = getProfileNameBackend(c);
 
-  if (v.includes(c) || c.includes(v)) return true;
+  if (profileV && profileC && profileV.toLowerCase() === profileC.toLowerCase()) {
+    return true;
+  }
 
   return false;
 };

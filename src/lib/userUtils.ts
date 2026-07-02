@@ -102,40 +102,100 @@ export const getUserDisplayName = (email: string | null | undefined, allowedUser
   return formatted;
 };
 
+export const CANONICAL_PROFILES = [
+  {
+    name: "Vatsal Patel",
+    keys: [
+      "4001",
+      "8888",
+      "vatsalpatelwork20@gmail.com",
+      "vatsalpatel1720@gmail.com",
+      "vatsal.assetscout@gmail.com",
+      "vatsal patel",
+      "vatsal"
+    ]
+  },
+  {
+    name: "Pratap More",
+    keys: [
+      "1859",
+      "9531",
+      "pratap more",
+      "pratap"
+    ]
+  },
+  {
+    name: "Kavita Patel",
+    keys: [
+      "5595",
+      "kavita.assetscout@gmail.com",
+      "kavita patel",
+      "kavita"
+    ]
+  },
+  {
+    name: "Rohan Patel",
+    keys: [
+      "assetscout007rohan@gmail.com",
+      "rohan patel",
+      "rohan"
+    ]
+  },
+  {
+    name: "Rushikesh Pote",
+    keys: [
+      "rushikeshpote14@gmail.com",
+      "rushikesh pote",
+      "rushikesh"
+    ]
+  }
+];
+
+export const getProfileName = (userStr: string, allowedUsers: AppUser[] = []): string => {
+  const s = userStr.trim().toLowerCase();
+  if (!s) return "";
+
+  // 1. Check hardcoded profiles
+  for (const profile of CANONICAL_PROFILES) {
+    if (profile.keys.includes(s) || profile.name.toLowerCase() === s) {
+      return profile.name;
+    }
+  }
+
+  // 2. Check allowedUsers list
+  for (const u of allowedUsers) {
+    const uEmail = u.email.trim().toLowerCase();
+    const uName = u.name.trim().toLowerCase();
+    if (uEmail === s || uName === s) {
+      return u.name;
+    }
+    const firstName = u.name.split(/\s+/)[0].toLowerCase();
+    if (firstName && firstName === s && firstName !== 'user') {
+      return u.name;
+    }
+  }
+
+  // 3. Fallback: if numeric ID, find in allowedUsers
+  if (/^\d+$/.test(s)) {
+    const found = allowedUsers.find(u => u.email.trim().toLowerCase() === s);
+    if (found) return found.name;
+  }
+
+  return "";
+};
+
 export const getUserIdentifiers = (emailOrId: string, allowedUsers: AppUser[] = []): string[] => {
   if (!emailOrId) return [];
   const val = emailOrId.trim().toLowerCase();
-  const ids = [val];
-
-  // Also check USER_NAMES_DICT
-  if (USER_NAMES_DICT[val]) {
-    ids.push(USER_NAMES_DICT[val].toLowerCase().trim());
-    const parts = USER_NAMES_DICT[val].toLowerCase().trim().split(/\s+/);
-    ids.push(...parts);
+  const profile = getProfileName(val, allowedUsers);
+  if (profile) {
+    const matchedProfile = CANONICAL_PROFILES.find(p => p.name === profile);
+    if (matchedProfile) {
+      return matchedProfile.keys;
+    }
+    return [val, profile.toLowerCase()];
   }
-
-  // Check in allowedUsers
-  allowedUsers.forEach(u => {
-    if (u.email.trim().toLowerCase() === val || u.name.trim().toLowerCase() === val) {
-      ids.push(u.email.trim().toLowerCase());
-      ids.push(u.name.trim().toLowerCase());
-      const parts = u.name.trim().toLowerCase().split(/\s+/);
-      ids.push(...parts);
-    }
-  });
-
-  // Inverse check: check if val matches any USER_NAMES_DICT value
-  Object.entries(USER_NAMES_DICT).forEach(([k, name]) => {
-    const nLower = name.toLowerCase().trim();
-    if (nLower === val || nLower.includes(val) || val.includes(nLower)) {
-      ids.push(k);
-      ids.push(nLower);
-      const parts = nLower.split(/\s+/);
-      ids.push(...parts);
-    }
-  });
-
-  return Array.from(new Set(ids));
+  return [val];
 };
 
 export const doesUserMatch = (userA: string, userB: string, allowedUsers: AppUser[] = []): boolean => {
@@ -144,19 +204,12 @@ export const doesUserMatch = (userA: string, userB: string, allowedUsers: AppUse
   const b = userB.trim().toLowerCase();
   if (a === b) return true;
 
-  const idsA = getUserIdentifiers(a, allowedUsers);
-  const idsB = getUserIdentifiers(b, allowedUsers);
+  const profileA = getProfileName(a, allowedUsers);
+  const profileB = getProfileName(b, allowedUsers);
 
-  if (idsA.some(id => idsB.includes(id))) return true;
-
-  const nameA = getUserDisplayName(a, allowedUsers).toLowerCase().trim();
-  const nameB = getUserDisplayName(b, allowedUsers).toLowerCase().trim();
-  if (nameA && nameB && nameA === nameB && nameA !== 'admin' && !nameA.startsWith('user ')) return true;
-
-  if (a === nameB || b === nameA) return true;
-
-  // Partial substring matches
-  if (nameA.includes(nameB) || nameB.includes(nameA)) return true;
+  if (profileA && profileB && profileA.toLowerCase() === profileB.toLowerCase()) {
+    return true;
+  }
 
   return false;
 };
