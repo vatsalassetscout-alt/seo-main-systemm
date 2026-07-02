@@ -36,11 +36,6 @@ app.use(express.json());
 // User email authentication mapping
 const ALLOWED_ADMINS = [
   "8888",
-  "vatsalpatel1720@gmail.com",
-  "vatsalpatelwork20@gmail.com",
-  "rushikeshpote14@gmail.com",
-  "kavita.assetscout@gmail.com",
-  "assetscout007rohan@gmail.com"
 ];
 
 const ALLOWED_USERS = [
@@ -48,11 +43,6 @@ const ALLOWED_USERS = [
   "9531",
   "5595",
   "4001",
-  "vatsalpatel1720@gmail.com",
-  "vatsalpatelwork20@gmail.com",
-  "rushikeshpote14@gmail.com",
-  "kavita.assetscout@gmail.com",
-  "assetscout007rohan@gmail.com"
 ];
 
 const isUserAdmin = (email: string): boolean => {
@@ -64,68 +54,11 @@ const isUserAdmin = (email: string): boolean => {
   return false;
 };
 
-const CANONICAL_PROFILES_BACKEND = [
-  {
-    name: "Vatsal Patel",
-    keys: [
-      "1859",
-    ]
-  },
-    {
-    name: "Admin",
-    keys: [
-      "8888",
-    ]
-  },
-  {
-    name: "Pratap More",
-    keys: [
-      
-      "9531",
-    ]
-  },
-  {
-    name: "Kavita Patel",
-    keys: [
-      "5595",
- 
-    ]
-  },
-  {
-    name: "Rushikesh Pote",
-    keys: [
-     "4001"
-    ]
-  }
-];
-
-const getProfileNameBackend = (userStr: string): string => {
-  const s = userStr.trim().toLowerCase();
-  if (!s) return "";
-
-  for (const profile of CANONICAL_PROFILES_BACKEND) {
-    if (profile.keys.includes(s) || profile.name.toLowerCase() === s) {
-      return profile.name;
-    }
-  }
-
-  return "";
-};
-
+// Straightforward userId equality — the Sheet is the single source of
+// identity, so no hardcoded name/email synonym list is needed here.
 const doesUserMatchBackend = (val: string, clientUserEmail: string): boolean => {
   if (!val || !clientUserEmail) return false;
-  const v = val.trim().toLowerCase();
-  const c = clientUserEmail.trim().toLowerCase();
-  if (v === c) return true;
-
-  const profileV = getProfileNameBackend(v);
-  const profileC = getProfileNameBackend(c);
-
-  if (profileV && profileC && profileV.toLowerCase() === profileC.toLowerCase()) {
-    return true;
-  }
-
-  return false;
+  return val.trim().toLowerCase() === clientUserEmail.trim().toLowerCase();
 };
 
 const cleanEmailToNameOrUsername = (email: string): string => {
@@ -873,6 +806,25 @@ app.post("/api/auth/verify", (req, res) => {
     allowedAdmins: ALLOWED_ADMINS,
     allowedUsers: filteredUsers
   });
+});
+
+// POST record a successful login timestamp (used for "Last Logged In" on admin side)
+app.post("/api/activity/login", async (req, res) => {
+  try {
+    const { userEmail, role } = req.body;
+    if (!userEmail || typeof userEmail !== 'string') {
+      return res.status(400).json({ error: "userEmail is required." });
+    }
+    const emailLower = userEmail.trim().toLowerCase();
+    await logActivityLocally(
+      emailLower,
+      "User Login",
+      `Successfully logged in as ${role === 'admin' ? 'Admin' : 'Standard Employee'}`
+    );
+    return res.json({ success: true });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
 });
 
 // GET configuration diagnostics status (indicating Google Sheets and fallback status)
