@@ -70,9 +70,24 @@ export const getUserDisplayName = (
 };
 
 /**
- * Compares two userId values (or a userId and a name) for equality.
+ * Compares two identifiers (userId, or userId vs a name string from the
+ * Sheet) for equality. Falls back to resolving both through the Sheet-driven
+ * display-name lookup, so "4001" and "Vatsal Patel" are recognized as the
+ * same person even if the Sheet stores names in some places and IDs in others.
  */
-export const doesUserMatch = (userA: string, userB: string): boolean => {
+export const doesUserMatch = (
+  userA: string,
+  userB: string,
+  allowedUsers: AppUser[] = []
+): boolean => {
   if (!userA || !userB) return false;
-  return userA.trim().toLowerCase() === userB.trim().toLowerCase();
+  const a = userA.trim().toLowerCase();
+  const b = userB.trim().toLowerCase();
+  if (a === b) return true;
+
+  const nameA = getUserDisplayName(a, allowedUsers).toLowerCase();
+  const nameB = getUserDisplayName(b, allowedUsers).toLowerCase();
+  if (nameA && nameB && nameA === nameB) return true;
+
+  return false;
 };
