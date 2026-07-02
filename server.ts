@@ -1069,7 +1069,10 @@ app.post("/api/submissions/append", async (req, res) => {
       createdAt
     };
 
-    await appendSubmissionDb(newEntry);
+    const dbSaved = await appendSubmissionDb(newEntry);
+    if (!dbSaved) {
+      console.error(`Submission "${submissionId}" was NOT saved to Supabase — check server logs for the underlying database error. It only exists in the submitter's local browser state right now.`);
+    }
 
     await logActivityLocally(userEmail, "DSR Submission", `Submitted Work Log for date ${date} containing ${works.length} project block(s).`);
 
@@ -1081,7 +1084,7 @@ app.post("/api/submissions/append", async (req, res) => {
     }
 
     const updatedList = await getSubmissionsDb();
-    return res.json({ success: true, list: updatedList });
+    return res.json({ success: true, dbSaved, list: updatedList });
   } catch (err: any) {
     console.error("POST /api/submissions/append error:", err);
     return res.status(500).json({ error: err.message });
@@ -1135,13 +1138,19 @@ app.post("/api/alerts", async (req, res) => {
 
   try {
     alert.createdAt = alert.createdAt || new Date().toISOString();
-    await saveAlertDb(alert);
+    const dbSaved = await saveAlertDb(alert);
+
+    if (!dbSaved) {
+      // Don't pretend this succeeded — if it didn't actually persist, the alert will
+      // silently vanish on the next background sync. Surface it clearly instead.
+      console.error(`Alert "${alert.id}" was NOT saved to Supabase — it will only exist in the requester's local browser state until the DB issue is fixed. Check server logs above for the missing-column details.`);
+    }
 
     const adminEmail = req.headers['x-user-email'] || alert.adminEmail || "Admin";
     await logActivityLocally(String(adminEmail), "Create Note/Assignment", `Created notification assignment for ${alert.userEmail || 'all workers'} on project "${alert.projectName || alert.projectDomain || 'All'}"`);
 
     const updatedList = await getAlertsDb();
-    return res.json(updatedList);
+    return res.json({ list: updatedList, dbSaved });
   } catch (err: any) {
     return res.status(500).json({ error: err.message });
   }
