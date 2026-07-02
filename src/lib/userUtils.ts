@@ -7,20 +7,10 @@ import { AppUser } from '../types';
 const ADMIN_USER_ID = "8888";
 
 /**
- * Static fallback map of known userId -> display name.
- * This is ONLY used if the Sheet has no name attached to that userId yet
- * (see registerNamesFromProjects below, which is the primary source of truth).
- * Keep this in sync with the CANONICAL_PROFILES_BACKEND list in server.ts
- * and the idsMap fallback in App.tsx — all three must agree.
+ * userId -> display name map. This is populated ONLY from the Sheet at
+ * runtime, via registerNamesFromProjects() below. No hardcoded names.
  */
-const USER_NAMES_DICT: Record<string, string> = {
-  "1859": "Vatsal Patel",
-  "9531": "Pratap More",
-  "5595": "Kavita Mishra",
-  "4001": "Rushikesh Pote",
-  "8888": "Admin",
-  // add more userId -> name pairs here (keep server.ts + App.tsx in sync)
-};
+const USER_NAMES_DICT: Record<string, string> = {};
 
 /**
  * Auto-registers names from fetched project data if a new userId
