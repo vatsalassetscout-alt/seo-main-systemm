@@ -68,47 +68,33 @@ const CANONICAL_PROFILES_BACKEND = [
   {
     name: "Vatsal Patel",
     keys: [
-      "4001",
+      "1859",
+    ]
+  },
+    {
+    name: "Admin",
+    keys: [
       "8888",
-      "vatsalpatelwork20@gmail.com",
-      "vatsalpatel1720@gmail.com",
-      "vatsal.assetscout@gmail.com",
-      "vatsal patel",
-      "vatsal"
     ]
   },
   {
     name: "Pratap More",
     keys: [
-      "1859",
+      
       "9531",
-      "pratap more",
-      "pratap"
     ]
   },
   {
     name: "Kavita Patel",
     keys: [
       "5595",
-      "kavita.assetscout@gmail.com",
-      "kavita patel",
-      "kavita"
-    ]
-  },
-  {
-    name: "Rohan Patel",
-    keys: [
-      "assetscout007rohan@gmail.com",
-      "rohan patel",
-      "rohan"
+ 
     ]
   },
   {
     name: "Rushikesh Pote",
     keys: [
-      "rushikeshpote14@gmail.com",
-      "rushikesh pote",
-      "rushikesh"
+     "4001"
     ]
   }
 ];
