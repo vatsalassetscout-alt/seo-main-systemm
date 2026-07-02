@@ -551,15 +551,13 @@ export default function App() {
         const lowerEmail = (alert.userEmail || '').trim().toLowerCase();
         if (!doesUserMatch(lowerEmail, currentUserEmail, allowedUsers)) return false;
         
-        const isFulfilled = entries.some(entry => {
-          const entryUserLower = (entry.userEmail || '').trim().toLowerCase();
-          const matchesUser = doesUserMatch(entryUserLower, currentUserEmail, allowedUsers);
-          const matchesDate = entry.date === alert.date;
-          const hasProject = (entry.works || []).some(w => String(w.projectId) === String(alert.projectId));
-          return matchesUser && matchesDate && hasProject;
-        });
-        return !isFulfilled;
-      }
+  const isFulfilled = entries.some(entry => {
+  const matchesUser = doesUserMatch(entry.userEmail, currentUserEmail, allowedUsers);
+  const matchesDate = entry.date === alert.date;
+  const hasProject = (entry.works || []).some(w => String(w.projectId) === String(alert.projectId));
+  const isAfterAssignment = new Date(entry.createdAt) >= new Date(alert.createdAt); // ✅ new check
+  return matchesUser && matchesDate && hasProject && isAfterAssignment;
+});
       
       const isUserMsg = alert.alertType === 'user_message';
       return isAdmin ? true : !isUserMsg;
