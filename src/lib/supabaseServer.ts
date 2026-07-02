@@ -439,24 +439,20 @@ export async function saveAlertDb(alert: any): Promise<boolean> {
         .insert(row);
 
       if (error) {
-        if (error.message && (error.message.includes("does not exist") || error.message.includes("schema cache") || error.message.includes("Could not find") || error.message.includes("alert_type") || error.code === "42703")) {
-          console.warn("New alert columns do not exist yet. Retrying insert with fallback columns...");
-          const fallbackRow = {
-            id: alert.id,
-            user_email: alert.userEmail,
-            project_name: alert.projectName,
-            project_domain: alert.projectDomain,
-            message: alert.message,
-            read: alert.read || false,
-            created_at: alert.createdAt || new Date().toISOString(),
-            admin_email: alert.adminEmail
-          };
-          const { error: errRetry } = await sb.from("alerts").insert(fallbackRow);
-          if (errRetry) {
-            console.error("Fallback insert failed:", errRetry.message);
-            return false;
-          }
-          return true;
+        const missingSchema = error.message && (error.message.includes("does not exist") || error.message.includes("schema cache") || error.message.includes("Could not find") || error.message.includes("alert_type") || error.code === "42703");
+        if (missingSchema) {
+          // Do NOT silently drop alert_type/project_id/date — that field loss is what makes
+          // assignment banners "disappear" after a background sync. Fail loudly instead so the
+          // real fix (adding the missing columns) actually gets applied.
+          console.error(
+            "Supabase 'alerts' table is missing required columns (alert_type, project_id, date). " +
+            "Run this in your Supabase SQL editor:\n" +
+            "ALTER TABLE alerts ADD COLUMN IF NOT EXISTS alert_type TEXT;\n" +
+            "ALTER TABLE alerts ADD COLUMN IF NOT EXISTS project_id TEXT;\n" +
+            "ALTER TABLE alerts ADD COLUMN IF NOT EXISTS date TEXT;\n" +
+            "Original error: " + error.message
+          );
+          return false;
         }
         console.warn("Supabase insert alert failed:", error.message);
         return false;
@@ -492,24 +488,17 @@ export async function saveAlertsBulkDb(alerts: any[]): Promise<boolean> {
         .upsert(rows, { onConflict: "id" });
 
       if (error) {
-        if (error.message && (error.message.includes("does not exist") || error.message.includes("schema cache") || error.message.includes("Could not find") || error.message.includes("alert_type") || error.code === "42703")) {
-          console.warn("New alert columns do not exist. Retrying bulk upsert with fallback columns...");
-          const fallbackRows = alerts.map(alert => ({
-            id: alert.id,
-            user_email: alert.userEmail,
-            project_name: alert.projectName,
-            project_domain: alert.projectDomain,
-            message: alert.message,
-            read: alert.read || false,
-            created_at: alert.createdAt || new Date().toISOString(),
-            admin_email: alert.adminEmail
-          }));
-          const { error: errRetry } = await sb.from("alerts").upsert(fallbackRows, { onConflict: "id" });
-          if (errRetry) {
-            console.error("Fallback bulk upsert failed:", errRetry.message);
-            return false;
-          }
-          return true;
+        const missingSchema = error.message && (error.message.includes("does not exist") || error.message.includes("schema cache") || error.message.includes("Could not find") || error.message.includes("alert_type") || error.code === "42703");
+        if (missingSchema) {
+          console.error(
+            "Supabase 'alerts' table is missing required columns (alert_type, project_id, date). " +
+            "Run this in your Supabase SQL editor:\n" +
+            "ALTER TABLE alerts ADD COLUMN IF NOT EXISTS alert_type TEXT;\n" +
+            "ALTER TABLE alerts ADD COLUMN IF NOT EXISTS project_id TEXT;\n" +
+            "ALTER TABLE alerts ADD COLUMN IF NOT EXISTS date TEXT;\n" +
+            "Original error: " + error.message
+          );
+          return false;
         }
         console.warn("Supabase bulk alerts upsert failed:", error.message);
         return false;
