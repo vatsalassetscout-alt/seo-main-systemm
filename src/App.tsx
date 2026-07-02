@@ -1020,14 +1020,14 @@ export default function App() {
                                       }}
                                       className="whitespace-nowrap px-4 py-1.5 bg-amber-600 hover:bg-amber-700 hover:scale-[1.01] active:scale-[0.99] text-white font-extrabold rounded-lg text-[11px] transition duration-75 shadow-3xs cursor-pointer inline-flex items-center gap-1"
                                     >
-                                      👉 Update on log
+                                       Update on log
                                     </button>
                                   </div>
                                 )}
                               </div>
 
                               <div className="flex justify-between items-center mt-3 text-[9px] text-gray-400 font-bold font-mono uppercase border-t border-gray-100/50 pt-2">
-                                <span>{isUserMsg ? `Sender: ${alert.adminEmail}` : `By ${alert.adminEmail}`}</span>
+                                <span>{isUserMsg ? `Sender: ${alert.adminEmail === '8888' ? 'Admin' : alert.adminEmail}` : `By ${alert.adminEmail === '8888' ? 'Admin' : alert.adminEmail}`}</span>
                                 <span>{new Date(alert.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
                               </div>
                               {!alert.read && (
@@ -1112,7 +1112,7 @@ export default function App() {
                     }}
                     className="whitespace-nowrap px-4 py-2 bg-amber-600 hover:bg-amber-700 hover:scale-[1.01] active:scale-[0.99] text-white font-extrabold rounded-xl text-xs transition duration-75 shadow-xs cursor-pointer"
                   >
-                    👉 Update on log
+                     Update on log
                   </button>
                 </div>
               </div>
