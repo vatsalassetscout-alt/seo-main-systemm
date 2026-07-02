@@ -528,13 +528,15 @@ export default function App() {
       const lowerEmail = (alert.userEmail || '').trim().toLowerCase();
       if (!doesUserMatch(lowerEmail, currentUserEmail, allowedUsers)) return false;
 
-      // Check if user has already submitted a work log for this project on this target date
+      // Check if user has already submitted a work log for this project on this target date,
+      // AFTER this assignment alert was created (older/unrelated logs don't count as fulfilling it)
       const isFulfilled = entries.some(entry => {
         const entryUserLower = (entry.userEmail || '').trim().toLowerCase();
         const matchesUser = doesUserMatch(entryUserLower, currentUserEmail, allowedUsers);
         const matchesDate = entry.date === alert.date;
         const hasProject = (entry.works || []).some(w => String(w.projectId) === String(alert.projectId));
-        return matchesUser && matchesDate && hasProject;
+        const isAfterAssignment = new Date(entry.createdAt) >= new Date(alert.createdAt);
+        return matchesUser && matchesDate && hasProject && isAfterAssignment;
       });
 
       return !isFulfilled;
@@ -550,14 +552,17 @@ export default function App() {
       if (alert.alertType === 'project_assignment') {
         const lowerEmail = (alert.userEmail || '').trim().toLowerCase();
         if (!doesUserMatch(lowerEmail, currentUserEmail, allowedUsers)) return false;
-        
-const isFulfilled = entries.some(entry => {
-  const matchesUser = doesUserMatch(entry.userEmail, currentUserEmail, allowedUsers);
-  const matchesDate = entry.date === alert.date;
-  const hasProject = (entry.works || []).some(w => String(w.projectId) === String(alert.projectId));
-  const isAfterAssignment = new Date(entry.createdAt) >= new Date(alert.createdAt); // ✅ new check
-  return matchesUser && matchesDate && hasProject && isAfterAssignment;
-});
+
+        const isFulfilled = entries.some(entry => {
+          const entryUserLower = (entry.userEmail || '').trim().toLowerCase();
+          const matchesUser = doesUserMatch(entryUserLower, currentUserEmail, allowedUsers);
+          const matchesDate = entry.date === alert.date;
+          const hasProject = (entry.works || []).some(w => String(w.projectId) === String(alert.projectId));
+          const isAfterAssignment = new Date(entry.createdAt) >= new Date(alert.createdAt);
+          return matchesUser && matchesDate && hasProject && isAfterAssignment;
+        });
+        return !isFulfilled;
+      }
       
       const isUserMsg = alert.alertType === 'user_message';
       return isAdmin ? true : !isUserMsg;
