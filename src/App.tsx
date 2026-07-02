@@ -551,7 +551,7 @@ export default function App() {
         const lowerEmail = (alert.userEmail || '').trim().toLowerCase();
         if (!doesUserMatch(lowerEmail, currentUserEmail, allowedUsers)) return false;
         
-  const isFulfilled = entries.some(entry => {
+const isFulfilled = entries.some(entry => {
   const matchesUser = doesUserMatch(entry.userEmail, currentUserEmail, allowedUsers);
   const matchesDate = entry.date === alert.date;
   const hasProject = (entry.works || []).some(w => String(w.projectId) === String(alert.projectId));
