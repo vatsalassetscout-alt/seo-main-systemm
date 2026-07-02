@@ -7,8 +7,11 @@ import { AppUser } from '../types';
 const ADMIN_USER_ID = "8888";
 
 /**
- * Static map of known userId -> display name.
- * Add new users here manually as needed.
+ * Static fallback map of known userId -> display name.
+ * This is ONLY used if the Sheet has no name attached to that userId yet
+ * (see registerNamesFromProjects below, which is the primary source of truth).
+ * Keep this in sync with the CANONICAL_PROFILES_BACKEND list in server.ts
+ * and the idsMap fallback in App.tsx — all three must agree.
  */
 const USER_NAMES_DICT: Record<string, string> = {
   "1859": "Vatsal Patel",
@@ -16,13 +19,16 @@ const USER_NAMES_DICT: Record<string, string> = {
   "5595": "Kavita Mishra",
   "4001": "Rushikesh Pote",
   "8888": "Admin",
-  // add more userId -> name pairs here
+  // add more userId -> name pairs here (keep server.ts + App.tsx in sync)
 };
 
 /**
  * Auto-registers names from fetched project data if a new userId
  * shows up with a name attached (e.g. from Project.users[]).
  * Call this once after fetching your projects list.
+ *
+ * Sheet data always wins over the static fallback dict above —
+ * this keeps every screen showing the name currently set in the Sheet.
  */
 export const registerNamesFromProjects = (projects: any[]): void => {
   if (!projects || !Array.isArray(projects)) return;
@@ -30,7 +36,7 @@ export const registerNamesFromProjects = (projects: any[]): void => {
     if (p.userId && p.users && p.users.length > 0) {
       const uId = String(p.userId).trim();
       const rawName = p.users[0];
-      if (rawName && rawName.trim() && !USER_NAMES_DICT[uId]) {
+      if (rawName && rawName.trim()) {
         USER_NAMES_DICT[uId] = rawName.trim();
       }
     }
