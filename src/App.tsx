@@ -9,7 +9,6 @@ import {
   DEFAULT_PROJECTS,
   INITIAL_DSR_ENTRIES,
   ADMIN_EMAILS,
-  DEFAULT_ALLOWED_USERS,
 } from './data';
 import DSRForm from './components/DSRForm';
 import DSRLogs from './components/DSRLogs';
@@ -45,7 +44,7 @@ import { motion, AnimatePresence } from 'motion/react';
 const mapUsersFromProjects = (projectsList: any[]): AppUser[] => {
   const usersMap = new Map<string, string>();
   
-  // Parse dynamic mappings from fetched projects
+  // Parse dynamic mappings from fetched projects — the Sheet is the only source.
   projectsList.forEach(p => {
     if (p.userId && String(p.userId).trim()) {
       const uId = String(p.userId).trim().toLowerCase();
@@ -58,20 +57,6 @@ const mapUsersFromProjects = (projectsList: any[]): AppUser[] => {
           .join(' ');
         usersMap.set(uId, formattedName);
       }
-    }
-  });
-
-  // Hardcode defaults as backup if any of the specified users are not mapped yet
-  const idsMap = [
-    { id: "9531", name: "Pratap More" }, // Default fallback if no sheet mapping is present yet
-    { id: "5595", name: "Kavita Mishra" },
-    { id: "4001", name: "Rushikesh Pote" },
-    { id: "1859", name: "Vatsal Patel" },
-    { id: "8888", name: "Admin" }
-  ];
-  idsMap.forEach(({ id, name }) => {
-    if (!usersMap.has(id)) {
-      usersMap.set(id, name);
     }
   });
 
@@ -349,19 +334,14 @@ export default function App() {
   const syncWithBackend = async () => {
     setIsSyncing(true);
     try {
-      // 1. Fetch access configurations from backend
+      // 1. Fetch admin access configuration from backend (admin gating only —
+      //    regular user list always comes from the Sheet via /api/filters below).
       try {
         const authConfRes = await fetch("/api/auth/config");
         if (authConfRes.ok) {
           const authConfData = await authConfRes.json();
           if (authConfData.allowedAdmins) {
             setAdminEmails(authConfData.allowedAdmins);
-          }
-          if (authConfData.allowedUsers) {
-            setAllowedUsers(authConfData.allowedUsers.map((u: string) => ({
-              email: u,
-              name: u.includes('@') ? u.split('@')[0].charAt(0).toUpperCase() + u.split('@')[0].slice(1) : u
-            })));
           }
         }
       } catch (authErr) {
@@ -396,17 +376,9 @@ export default function App() {
             }
 
             if (filterData.users && Array.isArray(filterData.users)) {
-              const defaultUsers: AppUser[] = DEFAULT_ALLOWED_USERS.map((email) => ({
-                email,
-                name: email.includes('@') ? email.split('@')[0].charAt(0).toUpperCase() + email.split('@')[0].slice(1) : email
-              }));
-              const uniqueMap = new Map<string, AppUser>();
-              [...defaultUsers, ...filterData.users].forEach(user => {
-                uniqueMap.set(user.email.toLowerCase().trim(), user);
-              });
-              const mergedUsers = Array.from(uniqueMap.values());
-              setAllowedUsers(mergedUsers);
-              localStorage.setItem('dsr_allowed_users', JSON.stringify(mergedUsers));
+              // Sheet-derived users only — no hardcoded email list merged in.
+              setAllowedUsers(filterData.users);
+              localStorage.setItem('dsr_allowed_users', JSON.stringify(filterData.users));
             }
           }
         }
@@ -598,6 +570,14 @@ export default function App() {
   const [filteredLogsCount, setFilteredLogsCount] = useState<number | null>(null);
 
   // Actions
+  const recordLoginActivity = (userEmail: string, role: 'user' | 'admin') => {
+    fetch("/api/activity/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userEmail, role })
+    }).catch((err) => console.warn("Failed to record login timestamp:", err));
+  };
+
   const handleLogin = async (email: string, role: 'user' | 'admin') => {
     const emailLower = email.trim().toLowerCase();
     setLoginValidationError(null);
@@ -617,6 +597,7 @@ export default function App() {
         setCurrentUserRole('admin');
         localStorage.setItem('dsr_logged_role', 'admin');
         setActiveTab('dashboard');
+        recordLoginActivity(emailLower, 'admin');
       } else {
         const validIds = ["1859", "9531", "5595", "4001"];
         const isAllowedUser = validIds.includes(emailLower) || 
@@ -626,34 +607,13 @@ export default function App() {
           throw new Error(`Access Denied: The ID "${emailLower}" is not authorized.`);
         }
 
-        const nowStr = new Date().toLocaleString('en-US', {
-          year: 'numeric',
-          month: 'short',
-          day: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: true
-        });
-
-        setAllowedUsers(prev => {
-          const exists = prev.some(u => u.email.trim().toLowerCase() === emailLower);
-          if (exists) {
-            return prev.map(u => 
-              u.email.trim().toLowerCase() === emailLower 
-                ? { ...u, lastLoggedIn: nowStr }
-                : u
-            );
-          } else {
-            return [...prev, { email: emailLower, name: `User ${emailLower}`, lastLoggedIn: nowStr }];
-          }
-        });
-
         registerLoggedInUser(emailLower);
 
         setCurrentUserEmail(emailLower);
         setCurrentUserRole('user');
         localStorage.setItem('dsr_logged_role', 'user');
         setActiveTab('submit');
+        recordLoginActivity(emailLower, 'user');
       }
 
       // Attempt background backend synchronization without blocking
@@ -718,21 +678,7 @@ export default function App() {
           throw new Error(`Access Denied: Google account "${userEmail}" is not authorized to access this workspace.`);
         }
 
-        if (finalRole === 'user') {
-          const nowStr = new Date().toLocaleString('en-US', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: true
-          });
-          setAllowedUsers(prev => prev.map(u => 
-            u.email.trim().toLowerCase() === userEmail 
-              ? { ...u, lastLoggedIn: nowStr }
-              : u
-          ));
-        }
+        recordLoginActivity(userEmail, finalRole);
 
         const resolvedName = getUserDisplayName(userEmail, allowedUsers) || result.user.displayName || userEmail;
 
