@@ -1219,7 +1219,7 @@ export default function App() {
                 <DSRLogs
                   entries={entries}
                   projects={projects}
-                  onDeleteEntry={handleDeleteDSR}
+                  onDeleteEntry={isAdmin ? handleDeleteDSR : undefined}
                   onUpdateStatus={handleUpdateDSRStatus}
                   isAdmin={isAdmin}
                   customSubmissionTypes={customSubmissionTypes}
