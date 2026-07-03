@@ -140,6 +140,7 @@ export default function DSRDashboard({
     return `${y}-${m}-${d}`;
   });
   const [selectedUserProjects, setSelectedUserProjects] = useState<Record<string, string>>({});
+  const [expandedLogUser, setExpandedLogUser] = useState<string | null>(null);
 
   const monthNames = [
     'January', 'February', 'March', 'April', 'May', 'June',
@@ -2187,7 +2188,10 @@ export default function DSRDashboard({
                       <button
                         key={`day-${day}`}
                         type="button"
-                        onClick={() => setSelectedCalendarDay(dateStr)}
+                        onClick={() => {
+                          setSelectedCalendarDay(dateStr);
+                          setExpandedLogUser(null);
+                        }}
                         className={`aspect-square rounded-2xl p-2.5 flex flex-col justify-between transition-all duration-300 ease-out cursor-pointer text-left select-none relative group hover:-translate-y-0.5 active:scale-95 ${heatClass} ${
                           isSelected ? 'ring-3 ring-indigo-500 ring-offset-2 scale-105 z-20 font-bold' : ''
                         }`}
@@ -2385,23 +2389,36 @@ export default function DSRDashboard({
                               const summaries = activeProjectWorks.map(w => w.workSummary).filter(Boolean);
                               const projectContentUpdates = Array.from(new Set(activeProjectWorks.flatMap(w => w.contentUpdates || [])));
 
+                              const isUserExpanded = expandedLogUser === userEmail;
+
                               return (
                                 <div key={userEmail} className="bg-white p-5 rounded-2xl border border-slate-150 shadow-sm space-y-4 text-xs text-left">
-                                  {/* User details at the top of the block */}
-                                  <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
-                                    <div>
+                                  {/* User details at the top of the block - click to expand/collapse (accordion) */}
+                                  <button
+                                    type="button"
+                                    onClick={() => setExpandedLogUser(prev => prev === userEmail ? null : userEmail)}
+                                    className={`w-full flex items-center justify-between pb-2.5 ${isUserExpanded ? 'border-b border-slate-100' : ''}`}
+                                  >
+                                    <div className="text-left">
                                       <span className="block text-[9px] font-black uppercase text-slate-400 tracking-wider">Submitted By</span>
                                       <span className="text-sm font-black text-slate-800">{userName}</span>
                                     </div>
-                                    {regionsInvolved.length > 0 && (
-                                      <span className="text-[9px] font-mono font-black border border-slate-200 bg-slate-50 px-2 py-0.5 rounded text-slate-500 uppercase leading-none">
-                                        {regionsInvolved.join(' / ')}
-                                      </span>
-                                    )}
-                                  </div>
+                                    <div className="flex items-center gap-2">
+                                      {regionsInvolved.length > 0 && (
+                                        <span className="text-[9px] font-mono font-black border border-slate-200 bg-slate-50 px-2 py-0.5 rounded text-slate-500 uppercase leading-none">
+                                          {regionsInvolved.join(' / ')}
+                                        </span>
+                                      )}
+                                      {isUserExpanded ? (
+                                        <ChevronUp size={16} className="text-slate-400 shrink-0" />
+                                      ) : (
+                                        <ChevronDown size={16} className="text-slate-400 shrink-0" />
+                                      )}
+                                    </div>
+                                  </button>
 
                                   {/* Dropdown to switch projects if this user submitted to multiple projects */}
-                                  {userProjectIds.length > 0 && (
+                                  {isUserExpanded && userProjectIds.length > 0 && (
                                     <div className="bg-slate-50/70 p-3 rounded-xl border border-slate-200/50 space-y-1.5">
                                       <label className="block text-[9px] font-black uppercase text-slate-400 tracking-wider">
                                         Select Project ({userProjectIds.length} worked)
@@ -2430,7 +2447,7 @@ export default function DSRDashboard({
                                   )}
 
                                   {/* Selected Project Specific Information */}
-                                  {activeProjId && (
+                                  {isUserExpanded && activeProjId && (
                                     <div className="space-y-3 pt-1">
                                       <div className="flex justify-between items-center">
                                         <div className="font-extrabold text-slate-900 flex items-center flex-wrap gap-1.5 leading-tight">
