@@ -1096,11 +1096,9 @@ export default function DSRDashboard({
         lastWorkedDate: lastWorkedDateStr,
         daysSinceLastWorked: daysSinceLastWorked,
       };
-    }).filter(proj => {
-      const threshold = unworkedFilter === 'daily' ? 1 : unworkedFilter === 'weekly' ? 7 : 30;
-      return proj.daysSinceLastWorked >= threshold;
     }).sort((a, b) => {
-      // Sort descending by inactivity duration (Never/Infinity on top, followed by highest daysSinceLastWorked to lowest)
+      // Show ALL projects (worked and never-worked) — sorted descending by duration since last worked.
+      // Never worked (Infinity) sits on top, most recently worked sits at the bottom.
       if (a.daysSinceLastWorked === Infinity && b.daysSinceLastWorked !== Infinity) return -1;
       if (b.daysSinceLastWorked === Infinity && a.daysSinceLastWorked !== Infinity) return 1;
       if (a.daysSinceLastWorked === Infinity && b.daysSinceLastWorked === Infinity) return 0;
@@ -1237,7 +1235,7 @@ export default function DSRDashboard({
     { id: 'frequency' as const, label: 'Frequency', icon: Clock },
     { id: 'activity' as const, label: isAdmin ? 'Team Activity' : 'Activity', icon: Calendar },
     { id: 'backlinks' as const, label: 'Backlinks', icon: Percent },
-    { id: 'unworked_project' as const, label: 'Unworked Projects', icon: FolderOpen },
+    { id: 'unworked_project' as const, label: 'Ideal Projects', icon: FolderOpen },
     { id: 'keyword_section' as const, label: 'Ranking', icon: Tag }
   ];
 
@@ -2831,7 +2829,7 @@ export default function DSRDashboard({
           <div>
             <div className="p-4 bg-gray-50/50 border-b border-gray-150 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <h3 className="text-xs font-black text-gray-900 uppercase tracking-wider">Unworked Projects</h3>
+                <h3 className="text-xs font-black text-gray-900 uppercase tracking-wider">Ideal Projects</h3>
               </div>
               
               <div className="flex bg-slate-100 p-0.5 rounded-xl border border-slate-200">
@@ -2854,7 +2852,7 @@ export default function DSRDashboard({
             {unworkedProjects.length === 0 ? (
               <div className="p-12 text-center text-xs text-gray-600 font-bold space-y-1 bg-slate-50/40 rounded-b-2xl border-t border-slate-150">
                 <CheckCircle size={22} className="text-emerald-500 block mx-auto mb-2.5 animate-bounce" />
-                <p>Outstanding! No unworked projects detected in this timeframe.</p>
+                <p>No projects found.</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -2864,7 +2862,7 @@ export default function DSRDashboard({
                       <th className="px-4 py-3 w-14 text-center">Sr No.</th>
                       <th className="px-4 py-3">Project Name</th>
                       <th className="px-4 py-3">Domain Name</th>
-                      <th className="px-4 py-3">Inactivity Duration</th>
+                      <th className="px-4 py-3">Duration</th>
                       <th className="px-4 py-3">Last Worked Date</th>
                       {isAdmin && <th className="px-4 py-3">User</th>}
                       {isAdmin && <th className="px-4 py-3 w-28 text-center">Action</th>}
@@ -2898,14 +2896,14 @@ export default function DSRDashboard({
                           )}
                         </td>
 
-                        {/* Inactivity Duration column */}
+                        {/* Duration column */}
                         <td className="px-4 py-3.5 text-left">
                           {(() => {
                             const days = proj.daysSinceLastWorked;
                             if (days === Infinity || days === undefined || proj.lastWorkedDate === 'Never') {
                               return (
                                 <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded bg-rose-50 text-rose-700 border border-rose-100/50 text-[9px] font-black uppercase tracking-wider">
-                                  ⚠️ Never Worked
+                                  Never
                                 </span>
                               );
                             }
