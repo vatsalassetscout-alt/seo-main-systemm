@@ -2169,18 +2169,39 @@ export default function DSRDashboard({
                     const totalBacklinks = dayWorks.reduce((sum, w) => sum + (Number(w.listingCount) || 0) + (Number(w.blogCount) || 0) + (Number(w.forumCount) || 0) + (Number(w.pdfCount) || 0) + (Number(w.imageCount) || 0) + (Number(w.videoPptCount) || 0) + (Number(w.profileCount) || 0) + (Number(w.linkCount) || 0), 0);
 
                     // Assign premium indigo contributions heatmap colors based on task density
+                    // 9-tier graduated scale (plus "no work") for finer-grained intensity.
+                    // Uses only standard Tailwind shade steps (50/100/200/300/400/500/600/700/800/900)
+                    // so every class actually compiles/renders.
                     let heatClass = 'bg-slate-50 hover:bg-slate-100/80 text-slate-400 border border-slate-200/50 hover:border-slate-300';
-                    let dayNumClass = 'text-slate-450';
+                    let dayNumClass = 'text-slate-500';
                     if (totalUpdates > 0) {
-                      if (totalUpdates <= 2) {
+                      if (totalUpdates === 1) {
                         heatClass = 'bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100 shadow-2xs';
                         dayNumClass = 'text-indigo-800 font-extrabold';
-                      } else if (totalUpdates <= 4) {
-                        heatClass = 'bg-indigo-100 border border-indigo-250 text-indigo-850 hover:bg-indigo-200 shadow-2xs';
+                      } else if (totalUpdates === 2) {
+                        heatClass = 'bg-indigo-100 border border-indigo-300 text-indigo-700 hover:bg-indigo-200 shadow-2xs';
+                        dayNumClass = 'text-indigo-800 font-extrabold';
+                      } else if (totalUpdates === 3) {
+                        heatClass = 'bg-indigo-200 border border-indigo-300 text-indigo-800 hover:bg-indigo-300 shadow-2xs';
                         dayNumClass = 'text-indigo-900 font-black';
-                      } else {
+                      } else if (totalUpdates === 4) {
+                        heatClass = 'bg-indigo-300 border border-indigo-400 text-indigo-900 hover:bg-indigo-400 shadow-2xs';
+                        dayNumClass = 'text-indigo-900 font-black';
+                      } else if (totalUpdates === 5) {
+                        heatClass = 'bg-indigo-400 border border-indigo-500 text-white hover:bg-indigo-500 shadow-2xs';
+                        dayNumClass = 'text-white font-black';
+                      } else if (totalUpdates === 6) {
+                        heatClass = 'bg-indigo-500 border border-indigo-600 text-white hover:bg-indigo-600 shadow-xs';
+                        dayNumClass = 'text-white font-black';
+                      } else if (totalUpdates === 7) {
                         heatClass = 'bg-indigo-600 border border-indigo-700 text-white hover:bg-indigo-700 shadow-xs scale-102';
-                        dayNumClass = 'text-indigo-50';
+                        dayNumClass = 'text-indigo-50 font-black';
+                      } else if (totalUpdates === 8) {
+                        heatClass = 'bg-indigo-700 border border-indigo-800 text-white hover:bg-indigo-800 shadow-xs scale-102';
+                        dayNumClass = 'text-indigo-50 font-black';
+                      } else {
+                        heatClass = 'bg-indigo-900 border border-indigo-900 text-white hover:bg-indigo-950 shadow-xs scale-102';
+                        dayNumClass = 'text-indigo-50 font-black';
                       }
                     }
 
@@ -2230,7 +2251,13 @@ export default function DSRDashboard({
                     <div className="w-3.5 h-3.5 rounded-lg bg-slate-50 border border-slate-200" />
                     <div className="w-3.5 h-3.5 rounded-lg bg-indigo-50 border border-indigo-200" />
                     <div className="w-3.5 h-3.5 rounded-lg bg-indigo-100 border border-indigo-250" />
+                    <div className="w-3.5 h-3.5 rounded-lg bg-indigo-200 border border-indigo-300" />
+                    <div className="w-3.5 h-3.5 rounded-lg bg-indigo-300 border border-indigo-400" />
+                    <div className="w-3.5 h-3.5 rounded-lg bg-indigo-400 border border-indigo-500" />
+                    <div className="w-3.5 h-3.5 rounded-lg bg-indigo-500 border border-indigo-600" />
                     <div className="w-3.5 h-3.5 rounded-lg bg-indigo-600 border border-indigo-700" />
+                    <div className="w-3.5 h-3.5 rounded-lg bg-indigo-700 border border-indigo-800" />
+                    <div className="w-3.5 h-3.5 rounded-lg bg-indigo-900 border border-indigo-950" />
                     <span>Peak Update Density</span>
                   </div>
                 </div>
