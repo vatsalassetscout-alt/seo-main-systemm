@@ -1235,7 +1235,7 @@ export default function DSRDashboard({
     { id: 'frequency' as const, label: 'Frequency', icon: Clock },
     { id: 'activity' as const, label: isAdmin ? 'Team Activity' : 'Activity', icon: Calendar },
     { id: 'backlinks' as const, label: 'Backlinks', icon: Percent },
-    { id: 'unworked_project' as const, label: 'Ideal Projects', icon: FolderOpen },
+    { id: 'unworked_project' as const, label: 'Idle Projects', icon: FolderOpen },
     { id: 'keyword_section' as const, label: 'Ranking', icon: Tag }
   ];
 
@@ -2829,7 +2829,7 @@ export default function DSRDashboard({
           <div>
             <div className="p-4 bg-gray-50/50 border-b border-gray-150 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <h3 className="text-xs font-black text-gray-900 uppercase tracking-wider">Ideal Projects</h3>
+                <h3 className="text-xs font-black text-gray-900 uppercase tracking-wider">Idle Projects</h3>
               </div>
               
               <div className="flex bg-slate-100 p-0.5 rounded-xl border border-slate-200">
