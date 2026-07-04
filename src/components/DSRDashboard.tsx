@@ -1256,41 +1256,17 @@ export default function DSRDashboard({
       
 
 
-      {/* Dynamic Common Search Bar - NOT sticky, scrolls away normally with the page */}
-      <div className="bg-white p-4 rounded-2xl border border-gray-150 shadow-2xs">
-        <div className="relative">
-          <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
-            <Search size={14} />
-          </span>
-          <input
-            type="text"
-            value={commonSearchTerm}
-            onChange={(e) => setCommonSearchTerm(e.target.value)}
-            placeholder="Search across project name, code, domain, location, users, task summaries..."
-            className="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-250 rounded-xl text-xs font-semibold placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 hover:bg-slate-100/50 transition cursor-text text-gray-950"
-          />
-          {commonSearchTerm && (
-            <button
-              type="button"
-              onClick={() => setCommonSearchTerm('')}
-              className="absolute inset-y-0 right-0 pr-3 flex items-center text-[10px] font-black text-indigo-600 hover:text-indigo-850"
-            >
-              Clear
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Sticky wrapper: holds Workspace Filters panel + Tab bar (search bar excluded), compacts on scroll for both admin and user views */}
+      {/* Sticky wrapper: holds Workspace Filters panel + Tab bar, compacts on scroll for both admin and user views.
+          top-16 matches the app's fixed header height (h-16) so this doesn't hide behind it; z-30 keeps it below that header (z-40). */}
       <div
-        className={`sticky top-0 z-20 -mx-1 px-1 bg-slate-50/95 backdrop-blur-sm transition-all duration-200 ${
+        className={`sticky top-16 z-30 -mx-1 px-1 bg-slate-50/95 backdrop-blur-sm transition-all duration-200 ${
           isScrolled ? 'space-y-2 pb-2 pt-1 shadow-md' : 'space-y-3 pb-0 pt-0'
         }`}
       >
       {/* Workspace Filters panel - ON TOP OF PAGE */}
       <div
         className={`bg-white rounded-2xl border border-gray-150 shadow-2xs transition-all duration-200 ${
-          isScrolled ? 'p-2.5 space-y-2' : 'p-5 space-y-4'
+          isScrolled ? 'p-1.5 space-y-0' : 'p-5 space-y-4'
         }`}
       >
         <div className={`flex items-center justify-between transition-all duration-200 ${isScrolled ? 'hidden' : ''}`}>
@@ -1305,6 +1281,31 @@ export default function DSRDashboard({
             </button>
           )}
         </div>
+
+        {/* Dynamic Common Search Bar - removed entirely from view when scrolled/sticky, back to normal position otherwise */}
+        {!isScrolled && (
+          <div className="relative">
+            <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
+              <Search size={14} />
+            </span>
+            <input
+              type="text"
+              value={commonSearchTerm}
+              onChange={(e) => setCommonSearchTerm(e.target.value)}
+              placeholder="Search across project name, code, domain, location, users, task summaries..."
+              className="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-250 rounded-xl text-xs font-semibold placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 hover:bg-slate-100/50 transition cursor-text text-gray-950"
+            />
+            {commonSearchTerm && (
+              <button
+                type="button"
+                onClick={() => setCommonSearchTerm('')}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-[10px] font-black text-indigo-600 hover:text-indigo-850"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+        )}
 
         {/* Filters Grid - collapses away on scroll to save vertical space, for both admin and user */}
         <div
