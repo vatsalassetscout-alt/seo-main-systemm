@@ -89,6 +89,17 @@ export default function DSRDashboard({
   const [isSavingChanges, setIsSavingChanges] = useState(false);
   const [applySuccessMessage, setApplySuccessMessage] = useState<string | null>(null);
 
+  // Sticky compact filter bar on scroll (applies for both admin and normal user views)
+  const [isScrolled, setIsScrolled] = useState(false);
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 24);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll();
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   const handleApplyChanges = async () => {
     if (Object.keys(pendingChanges).length === 0) return;
     setIsSavingChanges(true);
@@ -1245,9 +1256,19 @@ export default function DSRDashboard({
       
 
 
+      {/* Sticky wrapper: holds Workspace Filters panel + Tab bar, compacts on scroll for both admin and user views */}
+      <div
+        className={`sticky top-0 z-20 -mx-1 px-1 bg-slate-50/95 backdrop-blur-sm transition-all duration-200 ${
+          isScrolled ? 'space-y-2 pb-2 pt-1 shadow-md' : 'space-y-3 pb-0 pt-0'
+        }`}
+      >
       {/* Workspace Filters panel - ON TOP OF PAGE */}
-      <div className="bg-white p-5 rounded-2xl border border-gray-150 shadow-2xs space-y-4">
-        <div className="flex items-center justify-between">
+      <div
+        className={`bg-white rounded-2xl border border-gray-150 shadow-2xs transition-all duration-200 ${
+          isScrolled ? 'p-2.5 space-y-2' : 'p-5 space-y-4'
+        }`}
+      >
+        <div className={`flex items-center justify-between transition-all duration-200 ${isScrolled ? 'hidden' : ''}`}>
           <div />
           {(selectedProjectIds.length > 0 || selectedUsers.length > 0 || regionFilter !== 'All' || selectedLocations.length > 0 || dateFilterType !== 'all' || commonSearchTerm !== '') && (
             <button
@@ -1270,7 +1291,9 @@ export default function DSRDashboard({
             value={commonSearchTerm}
             onChange={(e) => setCommonSearchTerm(e.target.value)}
             placeholder="Search across project name, code, domain, location, users, task summaries..."
-            className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-250 rounded-xl text-xs font-semibold placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 hover:bg-slate-100/50 transition cursor-text text-gray-950"
+            className={`w-full pl-9 pr-4 bg-slate-50 border border-slate-250 rounded-xl text-xs font-semibold placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 hover:bg-slate-100/50 transition-all duration-200 cursor-text text-gray-950 ${
+              isScrolled ? 'py-2' : 'py-2.5'
+            }`}
           />
           {commonSearchTerm && (
             <button
@@ -1283,8 +1306,12 @@ export default function DSRDashboard({
           )}
         </div>
 
-        {/* Filters Grid */}
-        <div className={`grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 ${isAdmin ? 'lg:grid-cols-5' : 'lg:grid-cols-4'} gap-4 pt-1`}>
+        {/* Filters Grid - collapses away on scroll to save vertical space, for both admin and user */}
+        <div
+          className={`grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 ${isAdmin ? 'lg:grid-cols-5' : 'lg:grid-cols-4'} gap-4 pt-1 overflow-hidden transition-all duration-200 ${
+            isScrolled ? 'opacity-0 max-h-0 !gap-0 !pt-0 pointer-events-none' : 'opacity-100 max-h-[600px]'
+          }`}
+        >
           
           {/* Block 1: Date Filter */}
           <div className="flex flex-col gap-1.5 bg-slate-50/40 p-2.5 rounded-xl border border-gray-100">
@@ -1652,7 +1679,11 @@ export default function DSRDashboard({
 
 
       {/* 5 Horizontal Buttons Tab Selection Bar - Premium, Larger & Highly Professional */}
-      <div className="bg-slate-100/80 p-1.5 rounded-2xl flex flex-wrap gap-2 border border-slate-200/60 shadow-inner">
+      <div
+        className={`bg-slate-100/80 rounded-2xl flex flex-wrap gap-2 border border-slate-200/60 shadow-inner transition-all duration-200 ${
+          isScrolled ? 'p-1' : 'p-1.5'
+        }`}
+      >
         {tabsInfo.map((tab) => {
           const IconComponent = tab.icon;
           const isActive = activeTab === tab.id;
@@ -1660,7 +1691,9 @@ export default function DSRDashboard({
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2.5 px-5 py-3 rounded-xl text-xs sm:text-[13px] font-extrabold uppercase tracking-wider transition-all duration-200 select-none cursor-pointer active:scale-95 ${
+              className={`flex items-center gap-2.5 rounded-xl text-xs sm:text-[13px] font-extrabold uppercase tracking-wider transition-all duration-200 select-none cursor-pointer active:scale-95 ${
+                isScrolled ? 'px-3.5 py-2' : 'px-5 py-3'
+              } ${
                 isActive
                   ? 'bg-indigo-600 text-white shadow-md border-b-2 border-indigo-800 font-black'
                   : 'bg-transparent text-slate-650 hover:text-indigo-600 hover:bg-white/60'
@@ -1672,6 +1705,8 @@ export default function DSRDashboard({
           );
         })}
       </div>
+      </div>
+      {/* End sticky wrapper */}
 
       {/* Content Section corresponding to Selected Tab */}
       <div className="bg-white rounded-2xl border border-gray-150 shadow-3xs overflow-hidden">
