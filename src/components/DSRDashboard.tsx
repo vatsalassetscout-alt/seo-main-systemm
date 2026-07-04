@@ -1245,8 +1245,11 @@ export default function DSRDashboard({
       
 
 
+      {/* Sticky wrapper: keeps filters + tab bar visible while scrolling */}
+      <div className="sticky top-16 z-30 -mx-1 px-1 pt-2 pb-2.5 bg-gray-50/95 backdrop-blur-sm space-y-3">
+
       {/* Workspace Filters panel - ON TOP OF PAGE */}
-      <div className="bg-white p-5 rounded-2xl border border-gray-150 shadow-2xs space-y-4">
+      <div className="bg-white p-3 rounded-2xl border border-gray-150 shadow-2xs space-y-2.5">
         <div className="flex items-center justify-between">
           <div />
           {(selectedProjectIds.length > 0 || selectedUsers.length > 0 || regionFilter !== 'All' || selectedLocations.length > 0 || dateFilterType !== 'all' || commonSearchTerm !== '') && (
@@ -1270,7 +1273,7 @@ export default function DSRDashboard({
             value={commonSearchTerm}
             onChange={(e) => setCommonSearchTerm(e.target.value)}
             placeholder="Search across project name, code, domain, location, users, task summaries..."
-            className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-250 rounded-xl text-xs font-semibold placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 hover:bg-slate-100/50 transition cursor-text text-gray-950"
+            className="w-full pl-9 pr-4 py-1.5 bg-slate-50 border border-slate-250 rounded-xl text-xs font-semibold placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 hover:bg-slate-100/50 transition cursor-text text-gray-950"
           />
           {commonSearchTerm && (
             <button
@@ -1284,10 +1287,10 @@ export default function DSRDashboard({
         </div>
 
         {/* Filters Grid */}
-        <div className={`grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 ${isAdmin ? 'lg:grid-cols-5' : 'lg:grid-cols-4'} gap-4 pt-1`}>
+        <div className={`grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 ${isAdmin ? 'lg:grid-cols-5' : 'lg:grid-cols-4'} gap-2.5 pt-0.5`}>
           
           {/* Block 1: Date Filter */}
-          <div className="flex flex-col gap-1.5 bg-slate-50/40 p-2.5 rounded-xl border border-gray-100">
+          <div className="flex flex-col gap-1 bg-slate-50/40 p-2 rounded-xl border border-gray-100">
             <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1 leading-none">
               <Calendar size={11} className="text-gray-400" />
               Date Filter
@@ -1327,7 +1330,7 @@ export default function DSRDashboard({
           </div>
 
           {/* Block 2: Region Control */}
-          <div className="flex flex-col gap-1.5 bg-slate-50/40 p-2.5 rounded-xl border border-gray-100">
+          <div className="flex flex-col gap-1 bg-slate-50/40 p-2 rounded-xl border border-gray-100">
             <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-1 leading-none">
               <TrendingUp size={11} className="text-gray-400" />
               Region Control
@@ -1355,7 +1358,7 @@ export default function DSRDashboard({
           </div>
 
           {/* Block 3: Project with multi-select list and local search */}
-          <div className="flex flex-col gap-1.5 bg-slate-50/40 p-2.5 rounded-xl border border-gray-100">
+          <div className="flex flex-col gap-1 bg-slate-50/40 p-2 rounded-xl border border-gray-100">
             <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1 leading-none">
               <Tag size={11} className="text-gray-400" />
               Project
@@ -1450,7 +1453,7 @@ export default function DSRDashboard({
           </div>
 
           {/* Block 4: Dynamic Location drop down filter based on the particular user's projects */}
-          <div className="flex flex-col gap-1.5 bg-slate-50/40 p-2.5 rounded-xl border border-gray-100">
+          <div className="flex flex-col gap-1 bg-slate-50/40 p-2 rounded-xl border border-gray-100">
             <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1 leading-none">
               <MapPin size={11} className="text-gray-400" />
               Location
@@ -1546,7 +1549,7 @@ export default function DSRDashboard({
 
           {/* Block 5: Filter by User/Users (Admin Only) */}
           {isAdmin && (
-            <div className="flex flex-col gap-1.5 bg-slate-50/40 p-2.5 rounded-xl border border-gray-100">
+            <div className="flex flex-col gap-1 bg-slate-50/40 p-2 rounded-xl border border-gray-100">
               <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1 leading-none">
                 <Users size={11} className="text-gray-400" />
                 Users
@@ -1652,7 +1655,7 @@ export default function DSRDashboard({
 
 
       {/* 5 Horizontal Buttons Tab Selection Bar - Premium, Larger & Highly Professional */}
-      <div className="bg-slate-100/80 p-1.5 rounded-2xl flex flex-wrap gap-2 border border-slate-200/60 shadow-inner">
+      <div className="bg-slate-100/80 p-1 rounded-2xl flex flex-wrap gap-2 border border-slate-200/60 shadow-inner">
         {tabsInfo.map((tab) => {
           const IconComponent = tab.icon;
           const isActive = activeTab === tab.id;
@@ -1660,17 +1663,19 @@ export default function DSRDashboard({
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2.5 px-5 py-3 rounded-xl text-xs sm:text-[13px] font-extrabold uppercase tracking-wider transition-all duration-200 select-none cursor-pointer active:scale-95 ${
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-[13px] font-extrabold uppercase tracking-wider transition-all duration-200 select-none cursor-pointer active:scale-95 ${
                 isActive
                   ? 'bg-indigo-600 text-white shadow-md border-b-2 border-indigo-800 font-black'
                   : 'bg-transparent text-slate-650 hover:text-indigo-600 hover:bg-white/60'
               }`}
             >
-              <IconComponent size={15} className={`transition-transform duration-200 ${isActive ? 'text-white scale-110' : 'text-slate-400'}`} />
+              <IconComponent size={14} className={`transition-transform duration-200 ${isActive ? 'text-white scale-110' : 'text-slate-400'}`} />
               <span>{tab.label}</span>
             </button>
           );
         })}
+      </div>
+
       </div>
 
       {/* Content Section corresponding to Selected Tab */}
@@ -2797,8 +2802,8 @@ export default function DSRDashboard({
                       <thead className="bg-slate-50 border-b border-gray-150 text-[10px] text-gray-400 uppercase font-black tracking-wider">
                         <tr>
                           <th className="px-4 py-3.5 w-16">Sr No.</th>
-                          <th className="px-4 py-3.5 w-1/4">Project Name</th>
-                          <th className="px-4 py-3.5 w-1/4">Domain</th>
+                          <th className="pl-4 pr-2 py-3.5 w-1/4">Project Name</th>
+                          <th className="pl-1 pr-4 py-3.5 w-1/4">Domain</th>
                           {isAdmin && <th className="px-4 py-3.5 text-left">User</th>}
                           {activeColumns.map((col, cIdx) => (
                             <th key={cIdx} className="px-4 py-3.5 text-center font-bold">{col.label}</th>
@@ -2810,10 +2815,10 @@ export default function DSRDashboard({
                         {projectRows.map((row, idx) => (
                           <tr key={row.id} className="hover:bg-slate-50/50 transition">
                             <td className="px-4 py-3.5 font-mono text-gray-400 font-bold">{idx + 1}</td>
-                            <td className="px-4 py-3.5">
+                            <td className="pl-4 pr-2 py-3.5">
                               <span className="font-bold text-gray-900 block">{row.name}</span>
                             </td>
-                            <td className="px-4 py-3.5 font-mono text-gray-500">
+                            <td className="pl-1 pr-4 py-3.5 font-mono text-gray-500">
                               {row.domain ? (
                                 <a 
                                   href={`https://${row.domain}`} 
