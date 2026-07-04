@@ -1291,9 +1291,7 @@ export default function DSRDashboard({
             value={commonSearchTerm}
             onChange={(e) => setCommonSearchTerm(e.target.value)}
             placeholder="Search across project name, code, domain, location, users, task summaries..."
-            className={`w-full pl-9 pr-4 bg-slate-50 border border-slate-250 rounded-xl text-xs font-semibold placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 hover:bg-slate-100/50 transition-all duration-200 cursor-text text-gray-950 ${
-              isScrolled ? 'py-2' : 'py-2.5'
-            }`}
+            className="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-250 rounded-xl text-xs font-semibold placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 hover:bg-slate-100/50 transition cursor-text text-gray-950"
           />
           {commonSearchTerm && (
             <button
@@ -2833,8 +2831,8 @@ export default function DSRDashboard({
                         <tr>
                           <th className="px-4 py-3.5 w-16">Sr No.</th>
                           <th className="px-4 py-3.5 w-1/4">Project Name</th>
-                          <th className="px-4 py-3.5 w-1/4">Domain</th>
-                          {isAdmin && <th className="px-4 py-3.5 text-left">User</th>}
+                          <th className="px-4 py-3.5 w-32">Domain</th>
+                          {isAdmin && <th className="px-4 py-3.5 text-left w-auto">User</th>}
                           {activeColumns.map((col, cIdx) => (
                             <th key={cIdx} className="px-4 py-3.5 text-center font-bold">{col.label}</th>
                           ))}
@@ -2848,13 +2846,14 @@ export default function DSRDashboard({
                             <td className="px-4 py-3.5">
                               <span className="font-bold text-gray-900 block">{row.name}</span>
                             </td>
-                            <td className="px-4 py-3.5 font-mono text-gray-500">
+                            <td className="px-4 py-3.5 font-mono text-gray-500 w-32 max-w-[8rem]">
                               {row.domain ? (
                                 <a 
                                   href={`https://${row.domain}`} 
                                   target="_blank" 
                                   rel="noreferrer" 
-                                  className="text-indigo-600 hover:underline font-bold"
+                                  title={row.domain}
+                                  className="text-indigo-600 hover:underline font-bold block truncate"
                                 >
                                   {row.domain}
                                 </a>
