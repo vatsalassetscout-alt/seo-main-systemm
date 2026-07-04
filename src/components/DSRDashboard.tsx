@@ -1256,7 +1256,32 @@ export default function DSRDashboard({
       
 
 
-      {/* Sticky wrapper: holds Workspace Filters panel + Tab bar, compacts on scroll for both admin and user views */}
+      {/* Dynamic Common Search Bar - NOT sticky, scrolls away normally with the page */}
+      <div className="bg-white p-4 rounded-2xl border border-gray-150 shadow-2xs">
+        <div className="relative">
+          <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
+            <Search size={14} />
+          </span>
+          <input
+            type="text"
+            value={commonSearchTerm}
+            onChange={(e) => setCommonSearchTerm(e.target.value)}
+            placeholder="Search across project name, code, domain, location, users, task summaries..."
+            className="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-250 rounded-xl text-xs font-semibold placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 hover:bg-slate-100/50 transition cursor-text text-gray-950"
+          />
+          {commonSearchTerm && (
+            <button
+              type="button"
+              onClick={() => setCommonSearchTerm('')}
+              className="absolute inset-y-0 right-0 pr-3 flex items-center text-[10px] font-black text-indigo-600 hover:text-indigo-850"
+            >
+              Clear
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Sticky wrapper: holds Workspace Filters panel + Tab bar (search bar excluded), compacts on scroll for both admin and user views */}
       <div
         className={`sticky top-0 z-20 -mx-1 px-1 bg-slate-50/95 backdrop-blur-sm transition-all duration-200 ${
           isScrolled ? 'space-y-2 pb-2 pt-1 shadow-md' : 'space-y-3 pb-0 pt-0'
@@ -1277,29 +1302,6 @@ export default function DSRDashboard({
             >
               <X size={11} className="shrink-0" />
               Reset Filters
-            </button>
-          )}
-        </div>
-
-        {/* Dynamic Common Search Bar */}
-        <div className="relative">
-          <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
-            <Search size={14} />
-          </span>
-          <input
-            type="text"
-            value={commonSearchTerm}
-            onChange={(e) => setCommonSearchTerm(e.target.value)}
-            placeholder="Search across project name, code, domain, location, users, task summaries..."
-            className="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-250 rounded-xl text-xs font-semibold placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 hover:bg-slate-100/50 transition cursor-text text-gray-950"
-          />
-          {commonSearchTerm && (
-            <button
-              type="button"
-              onClick={() => setCommonSearchTerm('')}
-              className="absolute inset-y-0 right-0 pr-3 flex items-center text-[10px] font-black text-indigo-600 hover:text-indigo-850"
-            >
-              Clear
             </button>
           )}
         </div>
@@ -2831,7 +2833,7 @@ export default function DSRDashboard({
                         <tr>
                           <th className="px-4 py-3.5 w-16">Sr No.</th>
                           <th className="px-4 py-3.5 w-1/4">Project Name</th>
-                          <th className="px-4 py-3.5 w-32">Domain</th>
+                          <th className="px-2 py-3.5 w-24 text-left">Domain</th>
                           {isAdmin && <th className="px-4 py-3.5 text-left w-auto">User</th>}
                           {activeColumns.map((col, cIdx) => (
                             <th key={cIdx} className="px-4 py-3.5 text-center font-bold">{col.label}</th>
@@ -2846,7 +2848,7 @@ export default function DSRDashboard({
                             <td className="px-4 py-3.5">
                               <span className="font-bold text-gray-900 block">{row.name}</span>
                             </td>
-                            <td className="px-4 py-3.5 font-mono text-gray-500 w-32 max-w-[8rem]">
+                            <td className="px-2 py-3.5 font-mono text-gray-500 w-24 max-w-[6rem]">
                               {row.domain ? (
                                 <a 
                                   href={`https://${row.domain}`} 
