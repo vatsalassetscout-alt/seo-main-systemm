@@ -30,6 +30,14 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
+// Display labels for content update checklist values saved from the DSR form
+const CONTENT_UPDATE_LABELS: Record<string, string> = {
+  meta_title_desc: 'Meta Title & Description',
+  keyword_update: 'Keyword Update',
+  section_update: 'Section Update',
+  restructure: 'Restructure',
+};
+
 interface DSRLogsProps {
   entries: DSREntry[];
   projects: Project[];
@@ -67,6 +75,9 @@ export default function DSRLogs({
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
   const [userSearchTerm, setUserSearchTerm] = useState('');
+
+  // Admin-only status filter (single-select: All / Pending / Approved)
+  const [statusFilter, setStatusFilter] = useState<'all' | 'Pending' | 'Approved'>('all');
 
   // Sytem activity audit log state triggers
   const [activeLogTab, setActiveLogTab] = useState<'submissions' | 'activities'>('submissions');
@@ -303,9 +314,12 @@ export default function DSRLogs({
         return false;
       });
 
-      return matchesSearch && matchesDate && matchesProject;
+      // Admin-only status filter — Pending/Approved are mutually exclusive
+      const matchesStatus = !isAdmin || statusFilter === 'all' || (entry.status || 'Pending') === statusFilter;
+
+      return matchesSearch && matchesDate && matchesProject && matchesStatus;
     });
-  }, [visibleEntries, isAdmin, selectedUsers, searchTerm, employeeNamesMap, projects, dateFilterType, customStartDate, customEndDate, selectedProjectId]);
+  }, [visibleEntries, isAdmin, selectedUsers, searchTerm, employeeNamesMap, projects, dateFilterType, customStartDate, customEndDate, selectedProjectId, statusFilter]);
 
   // Group filtered entries by user and target date
   const flatLogs = useMemo(() => {
@@ -380,7 +394,8 @@ export default function DSRLogs({
           priority: w.priority || '',
           frequency: w.frequency || '',
           customValues: w.customValues || {},
-          selectedKeywords: w.selectedKeywords || w.customValues?.selectedKeywords || []
+          selectedKeywords: w.selectedKeywords || w.customValues?.selectedKeywords || [],
+          entryCreatedAt: entry.createdAt || null
         });
       });
     });
@@ -428,7 +443,7 @@ export default function DSRLogs({
           </button>
         </div>
 
-        <div className={`grid grid-cols-1 sm:grid-cols-2 ${isAdmin ? 'lg:grid-cols-4' : 'lg:grid-cols-3'} gap-4`}>
+        <div className={`grid grid-cols-1 sm:grid-cols-2 ${isAdmin ? 'lg:grid-cols-5' : 'lg:grid-cols-3'} gap-4`}>
           {/* Text search */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
@@ -564,6 +579,22 @@ export default function DSRLogs({
               )}
             </div>
           )}
+
+          {/* Admin-only Status filter — single select, Pending or Approved (not both) */}
+          {isAdmin && (
+            <div className="flex items-center gap-1.5 h-[40px]">
+              <ShieldCheck size={12} className="text-gray-400 shrink-0" />
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value as any)}
+                className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-950 focus:outline-none transition cursor-pointer h-[40px]"
+              >
+                <option value="all">All Status</option>
+                <option value="Pending">Pending Only</option>
+                <option value="Approved">Approved Only</option>
+              </select>
+            </div>
+          )}
         </div>
 
         {/* Custom date pickers if range chosen */}
@@ -688,6 +719,8 @@ export default function DSRLogs({
                         <span>{totalListings} List</span>
                         <span className="text-slate-300">•</span>
                         <span>{totalBlogs} Blog</span>
+                        <span className="text-slate-300">•</span>
+                        <span className="text-indigo-700">{totalListings + totalBlogs} Total</span>
                       </div>
 
                       <div className="flex items-center gap-2">
@@ -732,32 +765,53 @@ export default function DSRLogs({
                               return (
                                 <div key={work.workId || idx} className="space-y-4 pb-6 last:pb-0 border-b border-dashed border-slate-200 last:border-b-0">
                                   {/* Inner details header */}
-                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-2">
-                                    <div>
-                                      <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">
-                                        Project Assignment {item.works.length > 1 ? `#${idx + 1}` : ''}
-                                      </h4>
-                                      <p className="text-sm font-black text-slate-900 mt-1 flex items-center gap-2">
-                                        📂 {workMatchedProj?.name || work.projectName || 'Custom Project Allocation'}
-                                        {workMatchedProj?.domain && (
-                                          <span className="font-mono text-xs text-slate-500 font-bold bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-lg">
-                                            {workMatchedProj.domain}
-                                          </span>
-                                        )}
-                                      </p>
-                                    </div>
-                                    <div>
-                                      <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">Target Representation</h4>
-                                      <p className="text-xs font-extrabold text-indigo-705 bg-indigo-50/45 border border-indigo-100/50 px-3 py-1.5 rounded-xl mt-1 inline-block">
-                                        🗓️ Filled for Target Report Date: <strong className="text-indigo-900">{formattedFilledDate}</strong>
-                                      </p>
-                                    </div>
+                                  <div className="pb-2">
+                                    <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">
+                                      Project {idx + 1}
+                                    </h4>
+                                    <p className="text-sm font-black text-slate-900 mt-1 flex items-center gap-2">
+                                      📂 {workMatchedProj?.name || work.projectName || 'Custom Project Allocation'}
+                                      {workMatchedProj?.domain && (
+                                        <span className="font-mono text-xs text-slate-500 font-bold bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-lg">
+                                          {workMatchedProj.domain}
+                                        </span>
+                                      )}
+                                    </p>
+                                    {(() => {
+                                      const workDateObj = work.entryCreatedAt ? new Date(work.entryCreatedAt) : null;
+                                      const hasValidDate = workDateObj && !isNaN(workDateObj.getTime());
+                                      const workDateStr = hasValidDate
+                                        ? workDateObj!.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                                        : formattedFilledDate;
+                                      const workTimeStr = hasValidDate
+                                        ? workDateObj!.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+                                        : submittedTimeStr;
+                                      return (
+                                        <p className="text-[10.5px] text-slate-450 font-bold mt-1 flex items-center gap-1">
+                                          📅 {workDateStr} • {workTimeStr}
+                                        </p>
+                                      );
+                                    })()}
                                   </div>
 
                                   {/* SEO & Content metrics grids */}
                                   <div className="space-y-3">
-                                    <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">Achieved Quantified Metrics</h4>
-                                    
+                                    <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">Submissions</h4>
+
+                                    {work.contentUpdates && work.contentUpdates.length > 0 && (
+                                      <div className="flex flex-wrap items-center gap-1.5">
+                                        <span className="text-[9px] font-black text-purple-500 uppercase tracking-wide font-sans">Content Update:</span>
+                                        {work.contentUpdates.map((cu: string) => (
+                                          <span
+                                            key={cu}
+                                            className="bg-purple-50 border border-purple-100 text-purple-700 px-1.5 py-0.5 rounded-md text-[9.5px] font-bold font-sans"
+                                          >
+                                            {CONTENT_UPDATE_LABELS[cu] || cu}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    )}
+
                                     <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2.5">
                                       {work.listingCount > 0 && (
                                         <div className="bg-white border border-slate-150 p-2.5 rounded-xl text-center space-y-0.5 shadow-3xs">
@@ -901,9 +955,13 @@ export default function DSRLogs({
                                 
                                 <button
                                   onClick={() => {
+                                    const nextStatus = item.status === 'Approved' ? 'Pending' : 'Approved';
                                     item.entryIds.forEach((id: string) => {
-                                      onUpdateStatus(id, item.status === 'Approved' ? 'Pending' : 'Approved');
+                                      onUpdateStatus(id, nextStatus);
                                     });
+                                    if (nextStatus === 'Approved') {
+                                      setExpandedEntries(prev => ({ ...prev, [item.uniqueId]: false }));
+                                    }
                                   }}
                                   className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition cursor-pointer select-none font-sans ${
                                     item.status === 'Approved'
