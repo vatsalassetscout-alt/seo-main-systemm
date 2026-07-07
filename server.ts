@@ -13,6 +13,7 @@ import {
   getSubmissionsDb,
   saveSubmissionsBulkDb,
   appendSubmissionDb,
+  updateSubmissionStatusDb,
   deleteSubmissionDb,
   clearSubmissionsDb,
   getAlertsDb,
@@ -1115,6 +1116,35 @@ app.post("/api/submissions/append", async (req, res) => {
     return res.json({ success: true, dbSaved, list: updatedList });
   } catch (err: any) {
     console.error("POST /api/submissions/append error:", err);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// PATCH update the status of a single DSR submission/log (admin only)
+app.patch("/api/submissions/:id/status", requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body;
+  const actorEmail = String(req.headers["x-user-email"] || "unknown");
+
+  if (!id) {
+    return res.status(400).json({ error: "Missing submission id." });
+  }
+  if (!status || !["Pending", "Approved", "Needs Revision"].includes(status)) {
+    return res.status(400).json({ error: "Invalid status value." });
+  }
+
+  try {
+    const updated = await updateSubmissionStatusDb(id, status);
+    if (!updated) {
+      return res.status(500).json({ error: "Failed to update submission status in database." });
+    }
+
+    await logActivityLocally(actorEmail, "Status Update", `Marked work log submission "${id}" as ${status}.`);
+
+    const updatedList = await getSubmissionsDb();
+    return res.json({ success: true, list: updatedList });
+  } catch (err: any) {
+    console.error("PATCH /api/submissions/:id/status error:", err);
     return res.status(500).json({ error: err.message });
   }
 });
