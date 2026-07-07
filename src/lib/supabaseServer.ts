@@ -292,7 +292,8 @@ export async function getSubmissionsDb(): Promise<any[]> {
           date: s.date,
           userEmail: s.user_email,
           works: s.works || [],
-          createdAt: s.created_at
+          createdAt: s.created_at,
+          status: s.status || 'Pending'
         }));
       }
     } catch (err) {
@@ -311,7 +312,8 @@ export async function saveSubmissionsBulkDb(submissions: any[]): Promise<boolean
         date: s.date,
         user_email: s.userEmail,
         works: s.works || [],
-        created_at: s.createdAt
+        created_at: s.createdAt,
+        status: s.status || 'Pending'
       }));
 
       const { error } = await sb
@@ -339,7 +341,8 @@ export async function appendSubmissionDb(entry: any): Promise<boolean> {
         date: entry.date,
         user_email: entry.userEmail,
         works: entry.works || [],
-        created_at: entry.createdAt
+        created_at: entry.createdAt,
+        status: entry.status || 'Pending'
       };
 
       const { error } = await sb
@@ -353,6 +356,27 @@ export async function appendSubmissionDb(entry: any): Promise<boolean> {
       return true;
     } catch (err) {
       console.error("Supabase append submission exception:", err);
+    }
+  }
+  return false;
+}
+
+export async function updateSubmissionStatusDb(submissionId: string, status: string): Promise<boolean> {
+  const sb = getSupabase();
+  if (sb) {
+    try {
+      const { error } = await sb
+        .from("submissions")
+        .update({ status })
+        .eq("id", submissionId);
+
+      if (error) {
+        console.warn("Supabase update submission status failed:", error.message);
+        return false;
+      }
+      return true;
+    } catch (err) {
+      console.error("Supabase update submission status exception:", err);
     }
   }
   return false;
