@@ -784,10 +784,42 @@ export default function App() {
     }
   };
 
-  const handleUpdateDSRStatus = (id: string, status: 'Pending' | 'Approved' | 'Needs Revision') => {
+  const handleUpdateDSRStatus = async (id: string, status: 'Pending' | 'Approved' | 'Needs Revision') => {
+    const previousEntries = entries;
+
+    // Optimistic update so the admin sees the change immediately
     setEntries((prev) =>
       prev.map((e) => (e.id === id ? { ...e, status } : e))
     );
+
+    try {
+      const res = await fetch(`/api/submissions/${encodeURIComponent(id)}/status`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-email': currentUserEmail || '',
+          'x-user-role': currentUserRole || '',
+        },
+        body: JSON.stringify({ status }),
+      });
+
+      if (!res.ok) {
+        console.error(`Failed to persist status "${status}" for submission "${id}" to the database.`);
+        setEntries(previousEntries);
+        return;
+      }
+
+      const data = await res.json();
+      if (data.list && Array.isArray(data.list)) {
+        setEntries(data.list);
+        localStorage.setItem('dsr_entries', JSON.stringify(data.list));
+      }
+
+      await syncWithBackend().catch((e) => console.warn(e));
+    } catch (err) {
+      console.error('Error updating DSR status:', err);
+      setEntries(previousEntries);
+    }
   };
 
   const handleSendUserMessage = (message: string) => {
