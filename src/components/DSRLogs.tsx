@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { DSREntry, Project, ProjectWork, CustomSubmissionType, AppUser } from '../types';
 import { getUserDisplayName, isUserAdmin, doesUserMatch } from '../lib/userUtils';
 import {
@@ -42,12 +42,15 @@ interface DSRLogsProps {
   entries: DSREntry[];
   projects: Project[];
   onDeleteEntry?: (id: string) => void;
-  onUpdateStatus?: (id: string, status: 'Pending' | 'Approved' | 'Needs Revision') => void;
+  onUpdateStatus?: (id: string, status: 'Pending' | 'Approved' | 'Needs Revision' | 'Remark') => void;
+  onSendRemark?: (item: any, message: string) => void;
   isAdmin: boolean;
   customSubmissionTypes?: CustomSubmissionType[];
   allowedUsers?: AppUser[];
   currentUserEmail?: string | null;
   onFilteredCountChange?: (count: number) => void;
+  focusUniqueId?: string | null;
+  onFocusHandled?: () => void;
 }
 
 export default function DSRLogs({
@@ -55,11 +58,14 @@ export default function DSRLogs({
   projects,
   onDeleteEntry,
   onUpdateStatus,
+  onSendRemark,
   isAdmin,
   customSubmissionTypes = [],
   allowedUsers = [],
   currentUserEmail = null,
   onFilteredCountChange,
+  focusUniqueId = null,
+  onFocusHandled,
 }: DSRLogsProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedProjectId, setSelectedProjectId] = useState('all');
@@ -67,6 +73,9 @@ export default function DSRLogs({
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
   const [expandedEntries, setExpandedEntries] = useState<Record<string, boolean>>({});
+  const [remarkModalItem, setRemarkModalItem] = useState<any | null>(null);
+  const [remarkText, setRemarkText] = useState('');
+  const logItemRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   // Active Image Modal state for viewing uploaded screenshot full scale
   const [activePreviewImage, setActivePreviewImage] = useState<{ src: string; title: string } | null>(null);
@@ -77,7 +86,7 @@ export default function DSRLogs({
   const [userSearchTerm, setUserSearchTerm] = useState('');
 
   // Admin-only status filter (single-select: All / Pending / Approved)
-  const [statusFilter, setStatusFilter] = useState<'all' | 'Pending' | 'Approved'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'Pending' | 'Approved' | 'Remark'>('all');
 
   // Sytem activity audit log state triggers
   const [activeLogTab, setActiveLogTab] = useState<'submissions' | 'activities'>('submissions');
@@ -174,6 +183,21 @@ export default function DSRLogs({
       [id]: !prev[id]
     }));
   };
+
+  // When navigated here from a notification (e.g. "Check Remark"), auto-open and
+  // scroll to the specific log entry it points to.
+  useEffect(() => {
+    if (!focusUniqueId) return;
+    setExpandedEntries(prev => ({ ...prev, [focusUniqueId]: true }));
+
+    const scrollTimer = setTimeout(() => {
+      logItemRefs.current[focusUniqueId]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 250);
+
+    onFocusHandled?.();
+
+    return () => clearTimeout(scrollTimer);
+  }, [focusUniqueId]);
 
   const getLocalDateStrings = () => {
     const todayObj = new Date();
@@ -356,7 +380,7 @@ export default function DSRLogs({
         if (!groups[key].entryIds.includes(entry.id)) {
           groups[key].entryIds.push(entry.id);
         }
-        if (entry.status === 'Needs Revision' || (entry.status === 'Pending' && groups[key].status === 'Approved')) {
+        if (entry.status === 'Needs Revision' || entry.status === 'Remark' || (entry.status === 'Pending' && groups[key].status === 'Approved')) {
           groups[key].status = entry.status;
         }
       }
@@ -592,6 +616,7 @@ export default function DSRLogs({
                 <option value="all">All Status</option>
                 <option value="Pending">Pending Only</option>
                 <option value="Approved">Approved Only</option>
+                <option value="Remark">Remark Only</option>
               </select>
             </div>
           )}
@@ -674,6 +699,7 @@ export default function DSRLogs({
               return (
                 <div
                   key={item.uniqueId}
+                  ref={(el) => { logItemRefs.current[item.uniqueId] = el; }}
                   className={`bg-white rounded-2xl border transition-all duration-200 overflow-hidden ${
                     isExpanded 
                       ? 'border-indigo-400 shadow-sm shadow-indigo-100/40 ring-1 ring-indigo-400/20' 
@@ -728,9 +754,10 @@ export default function DSRLogs({
                           <span className={`text-[9.5px] uppercase font-bold px-2 py-0.5 rounded-lg border tracking-wider font-sans ${
                             item.status === 'Approved' ? 'bg-emerald-50 text-emerald-800 border-emerald-100' :
                             item.status === 'Needs Revision' ? 'bg-rose-50 text-rose-855 border-rose-100' :
+                            item.status === 'Remark' ? 'bg-violet-50 text-violet-800 border-violet-150' :
                             'bg-amber-50 text-amber-855 border-amber-100'
                           }`}>
-                            {item.status}
+                            {item.status === 'Remark' ? '💬 Remark' : item.status}
                           </span>
                         )}
 
@@ -971,6 +998,18 @@ export default function DSRLogs({
                                 >
                                   {item.status === 'Approved' ? '⚠ Pending' : '✓ Approve Task'}
                                 </button>
+
+                                {onSendRemark && (
+                                  <button
+                                    onClick={() => {
+                                      setRemarkText('');
+                                      setRemarkModalItem(item);
+                                    }}
+                                    className="px-3.5 py-1.5 rounded-xl text-xs font-black transition cursor-pointer select-none font-sans bg-violet-50 text-violet-800 hover:bg-violet-100 border border-violet-150 flex items-center gap-1"
+                                  >
+                                    💬 Remark
+                                  </button>
+                                )}
                               </div>
                             )}
                           </div>
@@ -1020,6 +1059,73 @@ export default function DSRLogs({
                   className="max-h-full max-w-full rounded-2xl object-contain shadow-sm"
                   referrerPolicy="no-referrer"
                 />
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Remark modal — admin writes a message that goes to the worker's notification bell */}
+      <AnimatePresence>
+        {remarkModalItem && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-gray-950/90 flex items-center justify-center p-4 backdrop-blur-xs"
+            onClick={() => setRemarkModalItem(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              className="bg-white rounded-3xl overflow-hidden shadow-2xl max-w-md w-full relative"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                <span className="text-xs font-black text-gray-800 uppercase tracking-wider flex items-center gap-1.5">
+                  💬 Send Remark
+                </span>
+                <button
+                  onClick={() => setRemarkModalItem(null)}
+                  className="p-1 hover:bg-gray-200 rounded-lg text-gray-500"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+              <div className="p-5 space-y-3">
+                <p className="text-xs text-gray-500 font-medium">
+                  This message will be sent to the worker's notification bell for this log.
+                </p>
+                <textarea
+                  autoFocus
+                  value={remarkText}
+                  onChange={(e) => setRemarkText(e.target.value)}
+                  placeholder="Write your remark here..."
+                  rows={4}
+                  className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-900 focus:outline-none focus:border-indigo-300 transition resize-none"
+                />
+                <div className="flex justify-end gap-2 pt-1">
+                  <button
+                    onClick={() => setRemarkModalItem(null)}
+                    className="px-4 py-2 rounded-xl text-xs font-black text-gray-500 hover:bg-gray-100 transition cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => {
+                      const trimmed = remarkText.trim();
+                      if (!trimmed || !onSendRemark) return;
+                      onSendRemark(remarkModalItem, trimmed);
+                      setRemarkModalItem(null);
+                      setRemarkText('');
+                    }}
+                    disabled={!remarkText.trim()}
+                    className="px-4 py-2 rounded-xl text-xs font-black text-white bg-violet-600 hover:bg-violet-700 transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    Send Remark
+                  </button>
+                </div>
               </div>
             </motion.div>
           </motion.div>
