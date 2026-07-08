@@ -168,6 +168,7 @@ export default function App() {
 
   const [showNotifications, setShowNotifications] = useState(false);
   const [assignmentPreFill, setAssignmentPreFill] = useState<{ projectId: string; date: string } | null>(null);
+  const [focusLogKey, setFocusLogKey] = useState<string | null>(null);
 
   const notificationsRef = useRef<HTMLDivElement>(null);
 
@@ -784,7 +785,29 @@ export default function App() {
     }
   };
 
-  const handleUpdateDSRStatus = async (id: string, status: 'Pending' | 'Approved' | 'Needs Revision') => {
+  const handleSendRemark = (item: any, message: string) => {
+    const trimmed = message.trim();
+    if (!trimmed) return;
+
+    const alert = {
+      id: `remark_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      userEmail: item.userEmail,
+      message: trimmed,
+      alertType: 'admin_remark',
+      adminEmail: currentUserEmail || 'Admin',
+      date: item.filledForDate,
+      createdAt: new Date().toISOString(),
+      read: false,
+    };
+    handleAddAlert(alert);
+
+    // Mark the log itself with a "Remark" status so it's visually distinct from Pending/Approved
+    (item.entryIds || []).forEach((id: string) => {
+      handleUpdateDSRStatus(id, 'Remark' as any);
+    });
+  };
+
+  const handleUpdateDSRStatus = async (id: string, status: 'Pending' | 'Approved' | 'Needs Revision' | 'Remark') => {
     const previousEntries = entries;
 
     // Optimistic update so the admin sees the change immediately
@@ -1049,6 +1072,7 @@ export default function App() {
                         visibleAlerts.map((alert) => {
                           const isUserMsg = alert.alertType === 'user_message';
                           const isAssignment = alert.alertType === 'project_assignment';
+                          const isRemark = alert.alertType === 'admin_remark';
                           return (
                             <div
                               key={alert.id}
@@ -1059,6 +1083,10 @@ export default function App() {
                                   {isUserMsg ? (
                                     <span className="inline-block bg-emerald-50 text-emerald-800 font-black px-2 py-0.5 rounded-lg text-[9px] uppercase tracking-wider border border-emerald-100 shadow-3xs">
                                       📬 User Note
+                                    </span>
+                                  ) : isRemark ? (
+                                    <span className="inline-block bg-violet-50 text-violet-800 font-black px-2 py-0.5 rounded-lg text-[9px] uppercase tracking-wider border border-violet-150 shadow-3xs">
+                                      💬 Message from Admin
                                     </span>
                                   ) : (
                                     <span className="inline-block bg-amber-50 text-amber-900 font-black px-2.5 py-0.5 rounded-lg text-[10px] uppercase tracking-wider border border-amber-200 shadow-3xs">
@@ -1099,6 +1127,22 @@ export default function App() {
                                       className="whitespace-nowrap px-4 py-1.5 bg-amber-600 hover:bg-amber-700 hover:scale-[1.01] active:scale-[0.99] text-white font-extrabold rounded-lg text-[11px] transition duration-75 shadow-3xs cursor-pointer inline-flex items-center gap-1"
                                     >
                                        Update on log
+                                    </button>
+                                  </div>
+                                )}
+
+                                {isRemark && (
+                                  <div className="flex items-center justify-end gap-4 pt-1">
+                                    <button
+                                      onClick={() => {
+                                        const emailLower = (alert.userEmail || '').trim().toLowerCase();
+                                        setFocusLogKey(`group-${emailLower}-${alert.date}`);
+                                        setActiveTab('logs');
+                                        setShowNotifications(false);
+                                      }}
+                                      className="whitespace-nowrap px-4 py-1.5 bg-violet-600 hover:bg-violet-700 hover:scale-[1.01] active:scale-[0.99] text-white font-extrabold rounded-lg text-[11px] transition duration-75 shadow-3xs cursor-pointer inline-flex items-center gap-1"
+                                    >
+                                      Check Remark
                                     </button>
                                   </div>
                                 )}
@@ -1296,11 +1340,14 @@ export default function App() {
                   projects={projects}
                   onDeleteEntry={isAdmin ? handleDeleteDSR : undefined}
                   onUpdateStatus={handleUpdateDSRStatus}
+                  onSendRemark={isAdmin ? handleSendRemark : undefined}
                   isAdmin={isAdmin}
                   customSubmissionTypes={customSubmissionTypes}
                   allowedUsers={allowedUsers}
                   currentUserEmail={currentUserEmail}
                   onFilteredCountChange={setFilteredLogsCount}
+                  focusUniqueId={focusLogKey}
+                  onFocusHandled={() => setFocusLogKey(null)}
                 />
               )}
 
