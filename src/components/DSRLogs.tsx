@@ -843,9 +843,20 @@ export default function DSRLogs({
                                     })()}
                                   </div>
 
-                                  {/* SEO & Content metrics grid — only rendered when the work block actually has something submitted */}
+                                  {/* Content Update — its own block, same level as Submissions, not a numerical quantity so kept separate */}
+                                  {work.contentUpdates && work.contentUpdates.length > 0 && (
+                                    <div className="space-y-1.5">
+                                      <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">Content Update</h4>
+                                      <div className="flex flex-wrap items-baseline gap-1.5">
+                                        <span className="text-[10.5px] font-bold text-slate-600 font-sans">
+                                          {work.contentUpdates.map((cu: string) => CONTENT_UPDATE_LABELS[cu] || cu).join(', ')}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {/* Submissions — only numerical quantities live here; only rendered when at least one is > 0 */}
                                   {(() => {
-                                    const hasContentUpdate = !!(work.contentUpdates && work.contentUpdates.length > 0);
                                     const hasNumericMetrics = (
                                       work.listingCount > 0 ||
                                       work.blogCount > 0 ||
@@ -858,24 +869,14 @@ export default function DSRLogs({
                                       (customSubmissionTypes || []).some((type) => Number(work.customValues?.[type.id]) > 0)
                                     );
 
-                                    if (!hasContentUpdate && !hasNumericMetrics) return null;
+                                    if (!hasNumericMetrics) return null;
 
                                     return (
                                       <div className="space-y-3">
                                         <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">Submissions</h4>
 
-                                        {hasContentUpdate && (
-                                          <div className="flex flex-wrap items-baseline gap-1.5">
-                                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-wide font-sans">Content Update:</span>
-                                            <span className="text-[10.5px] font-bold text-slate-600 font-sans">
-                                              {work.contentUpdates.map((cu: string) => CONTENT_UPDATE_LABELS[cu] || cu).join(', ')}
-                                            </span>
-                                          </div>
-                                        )}
-
-                                        {hasNumericMetrics && (
-                                          <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2.5">
-                                            {work.listingCount > 0 && (
+                                        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2.5">
+                                          {work.listingCount > 0 && (
                                               <div className="bg-white border border-slate-150 p-2.5 rounded-xl text-center space-y-0.5 shadow-3xs">
                                                 <span className="block text-[9px] font-black text-slate-400 uppercase tracking-wider font-sans">Listings Done</span>
                                                 <span className="block font-mono text-xs font-black text-slate-905">{work.listingCount}</span>
@@ -938,7 +939,6 @@ export default function DSRLogs({
                                               );
                                             })}
                                           </div>
-                                        )}
                                       </div>
                                     );
                                   })()}
