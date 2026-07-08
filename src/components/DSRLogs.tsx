@@ -736,18 +736,40 @@ export default function DSRLogs({
                     </div>
 
                     <div className="flex items-center justify-between sm:justify-end gap-2.5 mt-1 sm:mt-0 pt-2.5 sm:pt-0 border-t sm:border-t-0 border-slate-100">
-                      {/* Left Side inline counts summary */}
-                      <div className="flex flex-wrap items-center gap-1.5 text-[10px] font-mono font-black text-slate-650 bg-slate-50/60 border border-slate-150/40 px-2 py-1 rounded-lg max-w-xs sm:max-w-md truncate">
-                        <span className="text-indigo-600 font-bold truncate max-w-[150px]" title={projectNames.join(', ')}>
-                          {projectNames.join(', ') || 'Log'}
-                        </span>
-                        <span className="text-slate-300">|</span>
-                        <span>{totalListings} List</span>
-                        <span className="text-slate-300">•</span>
-                        <span>{totalBlogs} Blog</span>
-                        <span className="text-slate-300">•</span>
-                        <span className="text-indigo-700">{totalListings + totalBlogs} Total</span>
-                      </div>
+                      {/* Left Side inline submission-type counts summary (project name removed, content update excluded — it's not a submission type) */}
+                      {(() => {
+                        const countEntries: { label: string; value: number }[] = [
+                          { label: 'List', value: totalListings },
+                          { label: 'Blog', value: totalBlogs },
+                          { label: 'Forum', value: totalForums },
+                          { label: 'PDF', value: totalPdfs },
+                          { label: 'Image', value: totalImages },
+                          { label: 'Video/PPT', value: totalVideos },
+                          { label: 'Profile', value: totalProfiles },
+                          { label: 'Link', value: totalLinks },
+                          ...(customSubmissionTypes || []).map((type) => ({
+                            label: type.name,
+                            value: item.works.reduce((sum: number, w: any) => sum + (Number(w.customValues?.[type.id]) || 0), 0)
+                          }))
+                        ].filter((entry) => entry.value > 0);
+
+                        if (countEntries.length === 0) return null;
+
+                        const grandTotal = countEntries.reduce((sum, entry) => sum + entry.value, 0);
+
+                        return (
+                          <div className="flex flex-wrap items-center gap-1.5 text-[10px] font-mono font-black text-slate-650 bg-slate-50/60 border border-slate-150/40 px-2 py-1 rounded-lg max-w-xs sm:max-w-md truncate">
+                            {countEntries.map((entry, idx) => (
+                              <React.Fragment key={entry.label}>
+                                {idx > 0 && <span className="text-slate-300">•</span>}
+                                <span title={entry.label}>{entry.value} {entry.label}</span>
+                              </React.Fragment>
+                            ))}
+                            <span className="text-slate-300">|</span>
+                            <span className="text-indigo-700">{grandTotal} Total</span>
+                          </div>
+                        );
+                      })()}
 
                       <div className="flex items-center gap-2">
                         {item.status && (
