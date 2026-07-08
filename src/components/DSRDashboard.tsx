@@ -2449,8 +2449,8 @@ export default function DSRDashboard({
                                     </div>
                                   </button>
 
-                                  {/* Dropdown to switch projects if this user submitted to multiple projects */}
-                                  {isUserExpanded && userProjectIds.length > 0 && (
+                                  {/* Dropdown to switch projects if this user submitted to multiple projects (admin only) */}
+                                  {isAdmin && isUserExpanded && userProjectIds.length > 0 && (
                                     <div className="bg-slate-50/70 p-3 rounded-xl border border-slate-200/50 space-y-1.5">
                                       <label className="block text-[9px] font-black uppercase text-slate-400 tracking-wider">
                                         Select Project ({userProjectIds.length} worked)
