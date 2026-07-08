@@ -272,6 +272,7 @@ export default function DSRLogs({
         const localProjName = (work.projectName || '').toLowerCase();
         const blogText = (work.blog || '').toLowerCase();
         const summaryText = (work.workSummary || '').toLowerCase();
+        const extraWorkText = (work.extraWorkNote || '').toLowerCase();
         const pdfText = (work.pdfName || '').toLowerCase();
         const imgText = (work.imageName || '').toLowerCase();
         
@@ -288,6 +289,7 @@ export default function DSRLogs({
           fullProjCode.includes(query) ||
           blogText.includes(query) ||
           summaryText.includes(query) ||
+          extraWorkText.includes(query) ||
           pdfText.includes(query) ||
           imgText.includes(query)
         );
@@ -415,6 +417,7 @@ export default function DSRLogs({
           workSummary: w.workSummary || '',
           workTypes: w.workTypes || [],
           contentUpdates: w.contentUpdates || [],
+          extraWorkNote: w.extraWorkNote || '',
           priority: w.priority || '',
           frequency: w.frequency || '',
           customValues: w.customValues || {},
@@ -851,6 +854,16 @@ export default function DSRLogs({
                                         <span className="text-[10.5px] font-bold text-slate-600 font-sans">
                                           {work.contentUpdates.map((cu: string) => CONTENT_UPDATE_LABELS[cu] || cu).join(', ')}
                                         </span>
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {/* Extra / New Work Done — free-text note, only rendered when present */}
+                                  {work.extraWorkNote && (
+                                    <div className="space-y-1.5">
+                                      <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">Extra / New Work Done</h4>
+                                      <div className="bg-amber-50/40 p-3.5 rounded-2xl border border-amber-150 shadow-3xs text-xs text-slate-805 leading-relaxed font-semibold">
+                                        <p className="whitespace-pre-wrap">{work.extraWorkNote}</p>
                                       </div>
                                     </div>
                                   )}
