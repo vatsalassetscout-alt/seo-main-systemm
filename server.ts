@@ -1129,7 +1129,7 @@ app.patch("/api/submissions/:id/status", requireAdmin, async (req, res) => {
   if (!id) {
     return res.status(400).json({ error: "Missing submission id." });
   }
-  if (!status || !["Pending", "Approved", "Needs Revision"].includes(status)) {
+  if (!status || !["Pending", "Approved", "Needs Revision", "Remark"].includes(status)) {
     return res.status(400).json({ error: "Invalid status value." });
   }
 
