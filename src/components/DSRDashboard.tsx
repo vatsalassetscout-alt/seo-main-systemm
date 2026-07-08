@@ -2382,44 +2382,63 @@ export default function DSRDashboard({
                               }, {} as Record<string, any[]>);
 
                               const userProjectIds = Object.keys(worksByProject);
-                              const activeProjId = selectedUserProjects[userEmail] || userProjectIds[0] || '';
-                              const activeProjectWorks = worksByProject[activeProjId] || [];
 
-                              // Calculate aggregated counts for the active project
-                              let blogCount = 0;
-                              let listingCount = 0;
-                              let forumCount = 0;
-                              let pdfCount = 0;
-                              let imageCount = 0;
-                              let videoPptCount = 0;
-                              let profileCount = 0;
-                              let linkCount = 0;
-                              const customValues: Record<string, number> = {};
+                              // Build per-project detail data for ALL projects this user worked on (no dropdown needed)
+                              const projectDetails = userProjectIds.map(pId => {
+                                const projectWorks = worksByProject[pId] || [];
 
-                              activeProjectWorks.forEach(w => {
-                                blogCount += Number(w.blogCount) || 0;
-                                listingCount += Number(w.listingCount) || 0;
-                                forumCount += Number(w.forumCount) || 0;
-                                pdfCount += Number(w.pdfCount) || 0;
-                                imageCount += Number(w.imageCount) || 0;
-                                videoPptCount += Number(w.videoPptCount) || 0;
-                                profileCount += Number(w.profileCount) || 0;
-                                linkCount += Number(w.linkCount) || 0;
+                                let blogCount = 0;
+                                let listingCount = 0;
+                                let forumCount = 0;
+                                let pdfCount = 0;
+                                let imageCount = 0;
+                                let videoPptCount = 0;
+                                let profileCount = 0;
+                                let linkCount = 0;
+                                const customValues: Record<string, number> = {};
 
-                                if (w.customValues) {
-                                  Object.entries(w.customValues).forEach(([key, val]) => {
-                                    customValues[key] = (customValues[key] || 0) + (Number(val) || 0);
-                                  });
-                                }
+                                projectWorks.forEach(w => {
+                                  blogCount += Number(w.blogCount) || 0;
+                                  listingCount += Number(w.listingCount) || 0;
+                                  forumCount += Number(w.forumCount) || 0;
+                                  pdfCount += Number(w.pdfCount) || 0;
+                                  imageCount += Number(w.imageCount) || 0;
+                                  videoPptCount += Number(w.videoPptCount) || 0;
+                                  profileCount += Number(w.profileCount) || 0;
+                                  linkCount += Number(w.linkCount) || 0;
+
+                                  if (w.customValues) {
+                                    Object.entries(w.customValues).forEach(([key, val]) => {
+                                      customValues[key] = (customValues[key] || 0) + (Number(val) || 0);
+                                    });
+                                  }
+                                });
+
+                                const projObj = projects.find(p => p.id === pId);
+                                const projectName = projObj?.name || (projectWorks[0]?.projectName) || pId;
+                                const projectDomain = projObj?.domain;
+                                const summaries = projectWorks.map(w => w.workSummary).filter(Boolean);
+                                const projectContentUpdates = Array.from(new Set(projectWorks.flatMap(w => w.contentUpdates || [])));
+
+                                return {
+                                  pId,
+                                  projectName,
+                                  projectDomain,
+                                  summaries,
+                                  projectContentUpdates,
+                                  blogCount,
+                                  listingCount,
+                                  forumCount,
+                                  pdfCount,
+                                  imageCount,
+                                  videoPptCount,
+                                  profileCount,
+                                  linkCount,
+                                  customValues,
+                                };
                               });
 
-                              const activeProjObj = projects.find(p => p.id === activeProjId);
-                              const projectName = activeProjObj?.name || (activeProjectWorks[0]?.projectName) || activeProjId;
-                              const projectDomain = activeProjObj?.domain;
-
-                              const regionsInvolved = Array.from(new Set(activeProjectWorks.map(w => w.region))).filter(Boolean);
-                              const summaries = activeProjectWorks.map(w => w.workSummary).filter(Boolean);
-                              const projectContentUpdates = Array.from(new Set(activeProjectWorks.flatMap(w => w.contentUpdates || [])));
+                              const regionsInvolved = Array.from(new Set(userWorks.map(w => w.region))).filter(Boolean);
 
                               const isUserExpanded = expandedLogUser === userEmail;
 
@@ -2449,129 +2468,107 @@ export default function DSRDashboard({
                                     </div>
                                   </button>
 
-                                  {/* Dropdown to switch projects if this user submitted to multiple projects (admin only) */}
-                                  {isAdmin && isUserExpanded && userProjectIds.length > 0 && (
-                                    <div className="bg-slate-50/70 p-3 rounded-xl border border-slate-200/50 space-y-1.5">
-                                      <label className="block text-[9px] font-black uppercase text-slate-400 tracking-wider">
-                                        Select Project ({userProjectIds.length} worked)
-                                      </label>
-                                      <select
-                                        value={activeProjId}
-                                        onChange={(e) => {
-                                          setSelectedUserProjects(prev => ({
-                                            ...prev,
-                                            [userEmail]: e.target.value
-                                          }));
-                                        }}
-                                        className="w-full text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-xl px-3 py-2 cursor-pointer focus:outline-none focus:border-indigo-500 transition-colors"
-                                      >
-                                        {userProjectIds.map(pId => {
-                                          const proj = projects.find(p => p.id === pId);
-                                          const name = proj?.name || pId;
-                                          return (
-                                            <option key={pId} value={pId}>
-                                              {name}
-                                            </option>
-                                          );
-                                        })}
-                                      </select>
-                                    </div>
-                                  )}
+                                  {/* All projects this user worked on for the day - shown directly, no dropdown needed */}
+                                  {isUserExpanded && projectDetails.length > 0 && (
+                                    <div className="space-y-4 pt-1">
+                                      {projectDetails.map((pd, pdIdx) => (
+                                        <div
+                                          key={pd.pId}
+                                          className={`space-y-3 ${pdIdx > 0 ? 'pt-4 border-t border-slate-100' : ''}`}
+                                        >
+                                          <div className="flex justify-between items-center">
+                                            <div className="font-extrabold text-slate-900 flex items-center flex-wrap gap-1.5 leading-tight">
+                                              <span className="text-xs font-black text-slate-700 uppercase tracking-wide">Project:</span>
+                                              <span className="text-xs font-black text-indigo-600">{pd.projectName}</span>
+                                              {pd.projectDomain && (
+                                                <a 
+                                                  href={`https://${pd.projectDomain}`} 
+                                                  target="_blank" 
+                                                  rel="noreferrer" 
+                                                  className="text-indigo-600 hover:underline font-bold text-[10px] ml-1 inline-flex items-center"
+                                                >
+                                                  {pd.projectDomain}
+                                                </a>
+                                              )}
+                                            </div>
+                                          </div>
 
-                                  {/* Selected Project Specific Information */}
-                                  {isUserExpanded && activeProjId && (
-                                    <div className="space-y-3 pt-1">
-                                      <div className="flex justify-between items-center">
-                                        <div className="font-extrabold text-slate-900 flex items-center flex-wrap gap-1.5 leading-tight">
-                                          <span className="text-xs font-black text-slate-700 uppercase tracking-wide">Active Project:</span>
-                                          <span className="text-xs font-black text-indigo-600">{projectName}</span>
-                                          {projectDomain && (
-                                            <a 
-                                              href={`https://${projectDomain}`} 
-                                              target="_blank" 
-                                              rel="noreferrer" 
-                                              className="text-indigo-600 hover:underline font-bold text-[10px] ml-1 inline-flex items-center"
-                                            >
-                                              {projectDomain}
-                                            </a>
+                                          {pd.summaries.length > 0 && (
+                                            <div className="space-y-1.5">
+                                              {pd.summaries.map((summary, sIdx) => (
+                                                <p key={sIdx} className="text-[11px] font-medium text-slate-650 bg-slate-50 border border-slate-150 p-2.5 rounded-xl leading-relaxed">
+                                                  {summary}
+                                                </p>
+                                              ))}
+                                            </div>
+                                          )}
+
+                                          {/* Grid of backlinks count */}
+                                          <div className="grid grid-cols-4 sm:grid-cols-8 gap-1.5 text-[9px] font-black uppercase text-slate-400 tracking-tight text-center pt-1">
+                                            <div className="bg-emerald-50/20 p-1.5 rounded border border-emerald-100/40 text-emerald-700">
+                                              <span className="block text-[7px] font-bold text-emerald-400">Blogs</span>
+                                              {pd.blogCount}
+                                            </div>
+                                            <div className="bg-indigo-50/20 p-1.5 rounded border border-indigo-100/40 text-indigo-700">
+                                              <span className="block text-[7px] font-bold text-indigo-400">Listings</span>
+                                              {pd.listingCount}
+                                            </div>
+                                            <div className="bg-teal-50/20 p-1.5 rounded border border-teal-100/40 text-teal-700 font-bold">
+                                              <span className="block text-[7px] font-bold text-teal-400">Forum</span>
+                                              {pd.forumCount}
+                                            </div>
+                                            <div className="bg-amber-50/20 p-1.5 rounded border border-amber-100/40 text-amber-700">
+                                              <span className="block text-[7px] font-bold text-amber-400">PDFs</span>
+                                              {pd.pdfCount}
+                                            </div>
+                                            <div className="bg-rose-50/20 p-1.5 rounded border border-rose-100/40 text-rose-700">
+                                              <span className="block text-[7px] font-bold text-rose-455">Images</span>
+                                              {pd.imageCount}
+                                            </div>
+                                            <div className="bg-sky-50/20 p-1.5 rounded border border-sky-100/40 text-sky-700">
+                                              <span className="block text-[7px] font-bold text-sky-455">Video/PPT</span>
+                                              {pd.videoPptCount}
+                                            </div>
+                                            <div className="bg-orange-50/20 p-1.5 rounded border border-orange-100/40 text-orange-700">
+                                              <span className="block text-[7px] font-bold text-orange-455">Profile</span>
+                                              {pd.profileCount}
+                                            </div>
+                                            <div className="bg-fuchsia-50/20 p-1.5 rounded border border-fuchsia-100/40 text-fuchsia-700">
+                                              <span className="block text-[7px] font-bold text-fuchsia-455">Links</span>
+                                              {pd.linkCount}
+                                            </div>
+                                            {customSubmissionTypes.map((type) => {
+                                              const val = pd.customValues[type.id] || 0;
+                                              if (val === 0) return null;
+                                              return (
+                                                <div key={type.id} className="bg-purple-50/20 p-1.5 rounded border border-purple-100/40 text-purple-705">
+                                                  <span className="block text-[7px] font-bold text-purple-400 truncate" title={type.name}>{type.name}</span>
+                                                  {val}
+                                                </div>
+                                              );
+                                            })}
+                                          </div>
+
+                                          {/* List of active content updates displayed underneath backlinks */}
+                                          {pd.projectContentUpdates.length > 0 && (
+                                            <div className="flex flex-wrap gap-1 mt-2.5 pt-2 border-t border-slate-100">
+                                              <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tight self-center mr-1">Content Updates:</span>
+                                              {pd.projectContentUpdates.map(cu => {
+                                                let label = cu;
+                                                if (cu === 'meta_title_desc') label = 'Meta Title & Description';
+                                                if (cu === 'keyword_update') label = 'Keyword Update';
+                                                if (cu === 'section_update') label = 'Section Update';
+                                                if (cu === 'restructure') label = 'Restructure';
+                                                return (
+                                                  <span key={cu} className="text-[9px] font-extrabold bg-slate-50 text-slate-600 px-1.5 py-0.5 rounded border border-slate-200">
+                                                    {label}
+                                                  </span>
+                                                );
+                                              })}
+                                            </div>
                                           )}
                                         </div>
-                                      </div>
-
-                                      {summaries.length > 0 && (
-                                        <div className="space-y-1.5">
-                                          {summaries.map((summary, sIdx) => (
-                                            <p key={sIdx} className="text-[11px] font-medium text-slate-650 bg-slate-50 border border-slate-150 p-2.5 rounded-xl leading-relaxed">
-                                              {summary}
-                                            </p>
-                                          ))}
-                                        </div>
-                                      )}
-
-                                      {/* Grid of backlinks count */}
-                                      <div className="grid grid-cols-4 sm:grid-cols-8 gap-1.5 text-[9px] font-black uppercase text-slate-400 tracking-tight text-center pt-1">
-                                        <div className="bg-emerald-50/20 p-1.5 rounded border border-emerald-100/40 text-emerald-700">
-                                          <span className="block text-[7px] font-bold text-emerald-400">Blogs</span>
-                                          {blogCount}
-                                        </div>
-                                        <div className="bg-indigo-50/20 p-1.5 rounded border border-indigo-100/40 text-indigo-700">
-                                          <span className="block text-[7px] font-bold text-indigo-400">Listings</span>
-                                          {listingCount}
-                                        </div>
-                                        <div className="bg-teal-50/20 p-1.5 rounded border border-teal-100/40 text-teal-700 font-bold">
-                                          <span className="block text-[7px] font-bold text-teal-400">Forum</span>
-                                          {forumCount}
-                                        </div>
-                                        <div className="bg-amber-50/20 p-1.5 rounded border border-amber-100/40 text-amber-700">
-                                          <span className="block text-[7px] font-bold text-amber-400">PDFs</span>
-                                          {pdfCount}
-                                        </div>
-                                        <div className="bg-rose-50/20 p-1.5 rounded border border-rose-100/40 text-rose-700">
-                                          <span className="block text-[7px] font-bold text-rose-455">Images</span>
-                                          {imageCount}
-                                        </div>
-                                        <div className="bg-sky-50/20 p-1.5 rounded border border-sky-100/40 text-sky-700">
-                                          <span className="block text-[7px] font-bold text-sky-455">Video/PPT</span>
-                                          {videoPptCount}
-                                        </div>
-                                        <div className="bg-orange-50/20 p-1.5 rounded border border-orange-100/40 text-orange-700">
-                                          <span className="block text-[7px] font-bold text-orange-455">Profile</span>
-                                          {profileCount}
-                                        </div>
-                                        <div className="bg-fuchsia-50/20 p-1.5 rounded border border-fuchsia-100/40 text-fuchsia-700">
-                                          <span className="block text-[7px] font-bold text-fuchsia-455">Links</span>
-                                          {linkCount}
-                                        </div>
-                                        {customSubmissionTypes.map((type) => {
-                                          const val = customValues[type.id] || 0;
-                                          if (val === 0) return null;
-                                          return (
-                                            <div key={type.id} className="bg-purple-50/20 p-1.5 rounded border border-purple-100/40 text-purple-705">
-                                              <span className="block text-[7px] font-bold text-purple-400 truncate" title={type.name}>{type.name}</span>
-                                              {val}
-                                            </div>
-                                          );
-                                        })}
-                                      </div>
-
-                                      {/* List of active content updates displayed underneath backlinks */}
-                                      {projectContentUpdates.length > 0 && (
-                                        <div className="flex flex-wrap gap-1 mt-2.5 pt-2 border-t border-slate-100">
-                                          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tight self-center mr-1">Content Updates:</span>
-                                          {projectContentUpdates.map(cu => {
-                                            let label = cu;
-                                            if (cu === 'meta_title_desc') label = 'Meta Title & Description';
-                                            if (cu === 'keyword_update') label = 'Keyword Update';
-                                            if (cu === 'section_update') label = 'Section Update';
-                                            if (cu === 'restructure') label = 'Restructure';
-                                            return (
-                                              <span key={cu} className="text-[9px] font-extrabold bg-slate-50 text-slate-600 px-1.5 py-0.5 rounded border border-slate-200">
-                                                {label}
-                                              </span>
-                                            );
-                                          })}
-                                        </div>
-                                      )}
+                                      ))}
                                     </div>
                                   )}
                                 </div>
