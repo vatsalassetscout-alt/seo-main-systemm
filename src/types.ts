@@ -35,6 +35,7 @@ export interface ProjectWork {
   contentUpdates?: string[]; // e.g. ["meta_title_desc", "keyword_update", "section_update", "restructure"]
   selectedKeywords?: string[]; // Array of project keyword selections
   workSummary?: string; // Work Type note / summary
+  extraWorkNote?: string; // Free-text note for "Extra / New Work Done" work type
 }
 
 export interface CustomSubmissionType {
