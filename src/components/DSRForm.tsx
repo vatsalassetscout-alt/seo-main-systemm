@@ -69,7 +69,6 @@ export default function DSRForm({
       contentUpdates: [],
       selectedKeywords: [],
       workSummary: '',
-      extraWorkNote: '',
     }
   ]);
 
@@ -121,7 +120,6 @@ export default function DSRForm({
           contentUpdates: [],
           selectedKeywords: [],
           workSummary: '',
-          extraWorkNote: '',
         }]);
       }
       if (onClearPreFill) {
@@ -169,7 +167,6 @@ export default function DSRForm({
         contentUpdates: [],
         selectedKeywords: [],
         workSummary: '',
-        extraWorkNote: '',
       }
     ]);
     setIsSuccess(false);
@@ -199,13 +196,12 @@ export default function DSRForm({
 
     const workTypes = work.workTypes || [];
     if (workTypes.length === 0) {
-      setValidationError('Please select at least one Work Type (SEO Backlink, Content Update, and/or Extra / New Work Done).');
+      setValidationError('Please select at least one Work Type (SEO Backlink and/or Content Update).');
       return;
     }
 
     const hasSEO = workTypes.includes('seo_backlink');
     const hasContentUpdate = workTypes.includes('content_update');
-    const hasExtraWork = workTypes.includes('extra_work');
 
     const parseVal = (val: any) => {
       if (val === undefined || val === null || val === '') return 0;
@@ -243,11 +239,6 @@ export default function DSRForm({
 
     if (hasContentUpdate && (!work.contentUpdates || work.contentUpdates.length === 0)) {
       setValidationError('Please select at least one content update option (check box).');
-      return;
-    }
-
-    if (hasExtraWork && (!work.extraWorkNote || !work.extraWorkNote.trim())) {
-      setValidationError('Please describe the Extra / New Work Done, or unselect that option.');
       return;
     }
 
@@ -292,7 +283,6 @@ export default function DSRForm({
         contentUpdates: work.contentUpdates || [],
         selectedKeywords: work.selectedKeywords || [],
         workSummary: work.workSummary || '',
-        extraWorkNote: hasExtraWork ? (work.extraWorkNote || '').trim() : '',
       }
     ];
 
@@ -877,56 +867,6 @@ export default function DSRForm({
                                   <span className="text-xs font-bold text-gray-800">Restructure</span>
                                 </label>
                               </div>
-                            </motion.div>
-                          )}
-                        </div>
-
-                        {/* 3. Extra / New Work Done block */}
-                        <div className="space-y-3">
-                          {/* Extra / New Work Done Option Card */}
-                          <label
-                            className={`relative flex items-start gap-3.5 p-4.5 rounded-2xl border cursor-pointer select-none transition ${
-                              (work.workTypes || []).includes('extra_work')
-                                ? 'border-indigo-600 bg-indigo-50/20 ring-1 ring-indigo-600'
-                                : 'border-gray-200 bg-white hover:bg-gray-50'
-                            }`}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={(work.workTypes || []).includes('extra_work')}
-                              onChange={() => {
-                                const current = work.workTypes || [];
-                                const next = current.includes('extra_work')
-                                  ? current.filter((t: string) => t !== 'extra_work')
-                                  : [...current, 'extra_work'];
-                                handleUpdateWorkBlock(idx, { workTypes: next });
-                              }}
-                              className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 mt-1 cursor-pointer"
-                            />
-                            <div className="space-y-0.5">
-                              <span className="block text-xs font-bold text-gray-900">Extra / New Work Done</span>
-                              <span className="block text-[10px] text-gray-400 font-medium">Describe any additional or one-off work that doesn't fit the categories above.</span>
-                            </div>
-                          </label>
-
-                          {/* Dynamic Content Panel 3: Extra / New Work Done writing area */}
-                          {(work.workTypes || []).includes('extra_work') && (
-                            <motion.div
-                              initial={{ opacity: 0, scale: 0.98 }}
-                              animate={{ opacity: 1, scale: 1 }}
-                              className="border border-amber-100 bg-amber-50/10 rounded-2xl p-5 space-y-3"
-                            >
-                              <span className="block text-[10px] font-extrabold text-amber-950 uppercase tracking-widest">
-                                🆕 Extra / New Work Details
-                              </span>
-                              <textarea
-                                id={`extra-work-note-${idx}`}
-                                rows={4}
-                                value={work.extraWorkNote || ''}
-                                placeholder="Describe the extra or new work done for this domain..."
-                                onChange={(e) => handleUpdateWorkBlock(idx, { extraWorkNote: e.target.value })}
-                                className="w-full px-4 py-3 bg-white border border-gray-200 focus:border-indigo-600 rounded-xl text-xs text-gray-950 font-medium placeholder-gray-400 focus:outline-none transition leading-relaxed"
-                              />
                             </motion.div>
                           )}
                         </div>
