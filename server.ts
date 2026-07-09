@@ -556,6 +556,7 @@ async function syncSubmissionsFromGoogleSheet(): Promise<any[] | null> {
       const videoPptCount = parseInt(row[16], 10) || 0;
       const profileCount = parseInt(row[17], 10) || 0;
       const linkCount = parseInt(row[18], 10) || 0;
+      const extraWorkNote = row[19] || "";
 
       const workItem = {
         id: subBlockId,
@@ -574,7 +575,8 @@ async function syncSubmissionsFromGoogleSheet(): Promise<any[] | null> {
         workTypes,
         contentUpdates,
         selectedKeywords: (customValues as any)?.selectedKeywords || [],
-        workSummary
+        workSummary,
+        extraWorkNote
       };
 
       if (!groupedEntries[dsrParentId]) {
@@ -684,7 +686,7 @@ async function appendSubmissionToGoogleSheet(works: any[], date: string, userEma
 
   const cleanId = spreadsheetId.trim();
   const sheetName = "DSR_Logs"; 
-  const range = encodeURIComponent(`${sheetName}!A1:S1`);
+  const range = encodeURIComponent(`${sheetName}!A1:T1`);
   const url = `https://sheets.googleapis.com/v4/spreadsheets/${cleanId}/values/${range}:append?valueInputOption=USER_ENTERED`;
 
   const headers = [
@@ -706,7 +708,8 @@ async function appendSubmissionToGoogleSheet(works: any[], date: string, userEma
     "Forum Count",
     "Video PPT Count",
     "Profile Count",
-    "Link Count"
+    "Link Count",
+    "Extra Work Note"
   ];
 
   try {
@@ -760,7 +763,8 @@ async function appendSubmissionToGoogleSheet(works: any[], date: string, userEma
         (work.forumCount ?? 0).toString(),
         (work.videoPptCount ?? 0).toString(),
         (work.profileCount ?? 0).toString(),
-        (work.linkCount ?? 0).toString()
+        (work.linkCount ?? 0).toString(),
+        work.extraWorkNote || ""
       ];
     });
 
