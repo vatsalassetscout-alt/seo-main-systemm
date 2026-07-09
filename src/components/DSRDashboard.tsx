@@ -2171,7 +2171,7 @@ export default function DSRDashboard({
 
                     const totalUpdates = dayWorks.length;
                     const uniqueProjectsCount = new Set(dayWorks.map(w => w.projectId)).size;
-                    const totalBacklinks = dayWorks.reduce((sum, w) => sum + (Number(w.listingCount) || 0) + (Number(w.blogCount) || 0) + (Number(w.forumCount) || 0) + (Number(w.pdfCount) || 0) + (Number(w.imageCount) || 0) + (Number(w.videoPptCount) || 0) + (Number(w.profileCount) || 0) + (Number(w.linkCount) || 0), 0);
+                    const totalBacklinks = dayWorks.reduce((sum, w) => sum + (Number(w.linkCount) || 0), 0);
 
                     // Assign premium indigo contributions heatmap colors based on task density
                     // 9-tier graduated scale (plus "no work") for finer-grained intensity.
@@ -2348,7 +2348,7 @@ export default function DSRDashboard({
                             <div className="text-center bg-white border border-slate-150 py-2 px-3 rounded-xl flex-1 shadow-3xs">
                               <span className="block text-[8px] font-black uppercase text-indigo-600 tracking-wider">Backlinks</span>
                               <span className="text-sm font-black text-indigo-700">
-                                {dayWorks.reduce((sum, w) => sum + (Number(w.listingCount) || 0) + (Number(w.blogCount) || 0) + (Number(w.forumCount) || 0) + (Number(w.pdfCount) || 0) + (Number(w.imageCount) || 0) + (Number(w.videoPptCount) || 0) + (Number(w.profileCount) || 0) + (Number(w.linkCount) || 0), 0)}
+                                {dayWorks.reduce((sum, w) => sum + (Number(w.linkCount) || 0), 0)}
                               </span>
                             </div>
                           </div>
@@ -2624,7 +2624,7 @@ export default function DSRDashboard({
                               {enrichedWorks.filter(w => {
                                 const [y, m] = w.date.split('-');
                                 return Number(y) === heatmapYear && (Number(m) - 1) === heatmapMonth;
-                              }).reduce((sum, w) => sum + (Number(w.listingCount) || 0) + (Number(w.blogCount) || 0) + (Number(w.forumCount) || 0) + (Number(w.pdfCount) || 0) + (Number(w.imageCount) || 0) + (Number(w.videoPptCount) || 0) + (Number(w.profileCount) || 0) + (Number(w.linkCount) || 0), 0)}
+                              }).reduce((sum, w) => sum + (Number(w.linkCount) || 0), 0)}
                             </span>
                           </div>
                         </div>
