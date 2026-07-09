@@ -192,19 +192,20 @@ export default function DSRForm({
 
     // Validate the work entry
     const work = worksList[0];
-    if (!work.projectId) {
-      setValidationError(`Please select a project.`);
+    const extraWorkNoteTrimmed = (work.extraWorkNote || '').trim();
+    const isDomainBlockUsed = !!work.projectId;
+
+    // Either the Domain block or the Extra/New Work Done block must be filled — not both required
+    if (!isDomainBlockUsed && !extraWorkNoteTrimmed) {
+      setValidationError('Please either select a domain (and fill its details) or write something under "Extra / New Work Done".');
       return;
     }
 
-    const workTypes = work.workTypes || [];
-    if (workTypes.length === 0) {
-      setValidationError('Please select at least one Work Type (SEO Backlink and/or Content Update).');
-      return;
-    }
-
-    const hasSEO = workTypes.includes('seo_backlink');
-    const hasContentUpdate = workTypes.includes('content_update');
+    let workTypes: string[] = [];
+    let hasSEO = false;
+    let hasContentUpdate = false;
+    let listingCount = 0, blogCount = 0, forumCount = 0, pdfCount = 0, imageCount = 0, videoPptCount = 0, profileCount = 0, linkCount = 0;
+    const cleanCustomValues: Record<string, any> = {};
 
     const parseVal = (val: any) => {
       if (val === undefined || val === null || val === '') return 0;
@@ -215,71 +216,82 @@ export default function DSRForm({
       return num;
     };
 
-    const listingCount = hasSEO ? parseVal(work.listingCount) : 0;
-    const blogCount = hasSEO ? parseVal(work.blogCount) : 0;
-    const forumCount = hasSEO ? parseVal(work.forumCount) : 0;
-    const pdfCount = hasSEO ? parseVal(work.pdfCount) : 0;
-    const imageCount = hasSEO ? parseVal(work.imageCount) : 0;
-    const videoPptCount = hasSEO ? parseVal(work.videoPptCount) : 0;
-    const profileCount = hasSEO ? parseVal(work.profileCount) : 0;
-    const linkCount = hasSEO ? parseVal(work.linkCount) : 0;
-
-    if (hasSEO && (
-      isNaN(listingCount) || isNaN(blogCount) || isNaN(forumCount) || isNaN(pdfCount) ||
-      isNaN(imageCount) || isNaN(videoPptCount) || isNaN(profileCount) || isNaN(linkCount)
-    )) {
-      setValidationError('Please enter a valid number for all count inputs under SEO Backlink Submission.');
-      return;
-    }
-
-    if (hasSEO && (
-      listingCount < 0 || blogCount < 0 || forumCount < 0 || pdfCount < 0 ||
-      imageCount < 0 || videoPptCount < 0 || profileCount < 0 || linkCount < 0
-    )) {
-      setValidationError('Negative numbers are strictly not allowed for count inputs under SEO Backlink Submission.');
-      return;
-    }
-
-    if (hasContentUpdate && (!work.contentUpdates || work.contentUpdates.length === 0)) {
-      setValidationError('Please select at least one content update option (check box).');
-      return;
-    }
-
-    // Keyword selection is mandatory whenever the selected domain has keywords configured
-    const selectedProjForKeywords = projects.find((p) => p.id === work.projectId);
-    const availableKeywords = (selectedProjForKeywords?.keywords || []).filter(Boolean);
-    if (availableKeywords.length > 0 && (!work.selectedKeywords || work.selectedKeywords.length === 0)) {
-      setValidationError('Please select at least one keyword for the chosen domain.');
-      return;
-    }
-
-    // Parse and validate custom submission types
-    const cleanCustomValues: Record<string, any> = {};
-    if (hasSEO) {
-      for (const cType of customSubmissionTypes) {
-        const rawVal = work.customValues?.[cType.id];
-        const parsed = parseVal(rawVal);
-        if (isNaN(parsed)) {
-          setValidationError(`Please enter a valid number for "${cType.name}".`);
-          return;
-        }
-        if (parsed < 0) {
-          setValidationError(`Negative values are not allowed for "${cType.name}".`);
-          return;
-        }
-        cleanCustomValues[cType.id] = parsed;
+    // Only run the Domain-block-specific validations when the user actually chose a domain
+    if (isDomainBlockUsed) {
+      workTypes = work.workTypes || [];
+      if (workTypes.length === 0) {
+        setValidationError('Please select at least one Work Type (SEO Backlink and/or Content Update).');
+        return;
       }
-    }
 
-    // Put selectedKeywords inside customValues for flexible sheets storage if chosen
-    if (work.selectedKeywords && work.selectedKeywords.length > 0) {
-      cleanCustomValues['selectedKeywords'] = work.selectedKeywords;
+      hasSEO = workTypes.includes('seo_backlink');
+      hasContentUpdate = workTypes.includes('content_update');
+
+      listingCount = hasSEO ? parseVal(work.listingCount) : 0;
+      blogCount = hasSEO ? parseVal(work.blogCount) : 0;
+      forumCount = hasSEO ? parseVal(work.forumCount) : 0;
+      pdfCount = hasSEO ? parseVal(work.pdfCount) : 0;
+      imageCount = hasSEO ? parseVal(work.imageCount) : 0;
+      videoPptCount = hasSEO ? parseVal(work.videoPptCount) : 0;
+      profileCount = hasSEO ? parseVal(work.profileCount) : 0;
+      linkCount = hasSEO ? parseVal(work.linkCount) : 0;
+
+      if (hasSEO && (
+        isNaN(listingCount) || isNaN(blogCount) || isNaN(forumCount) || isNaN(pdfCount) ||
+        isNaN(imageCount) || isNaN(videoPptCount) || isNaN(profileCount) || isNaN(linkCount)
+      )) {
+        setValidationError('Please enter a valid number for all count inputs under SEO Backlink Submission.');
+        return;
+      }
+
+      if (hasSEO && (
+        listingCount < 0 || blogCount < 0 || forumCount < 0 || pdfCount < 0 ||
+        imageCount < 0 || videoPptCount < 0 || profileCount < 0 || linkCount < 0
+      )) {
+        setValidationError('Negative numbers are strictly not allowed for count inputs under SEO Backlink Submission.');
+        return;
+      }
+
+      if (hasContentUpdate && (!work.contentUpdates || work.contentUpdates.length === 0)) {
+        setValidationError('Please select at least one content update option (check box).');
+        return;
+      }
+
+      // Keyword selection is mandatory whenever the selected domain has keywords configured
+      const selectedProjForKeywords = projects.find((p) => p.id === work.projectId);
+      const availableKeywords = (selectedProjForKeywords?.keywords || []).filter(Boolean);
+      if (availableKeywords.length > 0 && (!work.selectedKeywords || work.selectedKeywords.length === 0)) {
+        setValidationError('Please select at least one keyword for the chosen domain.');
+        return;
+      }
+
+      // Parse and validate custom submission types
+      if (hasSEO) {
+        for (const cType of customSubmissionTypes) {
+          const rawVal = work.customValues?.[cType.id];
+          const parsed = parseVal(rawVal);
+          if (isNaN(parsed)) {
+            setValidationError(`Please enter a valid number for "${cType.name}".`);
+            return;
+          }
+          if (parsed < 0) {
+            setValidationError(`Negative values are not allowed for "${cType.name}".`);
+            return;
+          }
+          cleanCustomValues[cType.id] = parsed;
+        }
+      }
+
+      // Put selectedKeywords inside customValues for flexible sheets storage if chosen
+      if (work.selectedKeywords && work.selectedKeywords.length > 0) {
+        cleanCustomValues['selectedKeywords'] = work.selectedKeywords;
+      }
     }
 
     const cleanWorksList: Omit<ProjectWork, 'id'>[] = [
       {
-        projectId: work.projectId,
-        projectName: work.projectName,
+        projectId: work.projectId || '',
+        projectName: work.projectName || '',
         listingCount,
         blogCount,
         forumCount,
@@ -294,7 +306,7 @@ export default function DSRForm({
         contentUpdates: work.contentUpdates || [],
         selectedKeywords: work.selectedKeywords || [],
         workSummary: work.workSummary || '',
-        extraWorkNote: (work.extraWorkNote || '').trim(),
+        extraWorkNote: extraWorkNoteTrimmed,
       }
     ];
 
@@ -591,7 +603,7 @@ export default function DSRForm({
                               className="border border-indigo-100 bg-indigo-50/10 rounded-2xl p-5 space-y-4"
                             >
                               <span className="block text-[10px] font-extrabold text-indigo-950 uppercase tracking-widest">
-                                 SEO Submission Quantities
+                                🚀 SEO Submission Quantities
                               </span>
                                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                                 {/* 1. Blogs / Articles count */}
@@ -912,17 +924,18 @@ export default function DSRForm({
                 </span>
                 <div>
                   <h4 className="font-bold text-gray-900 text-sm">Extra / New Work Done</h4>
-                  
+         
                 </div>
               </div>
               <div className="px-6 sm:px-8 pb-6 sm:pb-8 pt-3 space-y-2">
                 <label htmlFor="extra-work-note" className="block text-xs font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1.5">
+                  
                 </label>
                 <textarea
                   id="extra-work-note"
                   rows={3}
                   value={worksList[0]?.extraWorkNote || ''}
-                  placeholder="describe any extra or new work done ..."
+                  placeholder="describe any extra or new work done..."
                   onChange={(e) => handleUpdateWorkBlock(0, { extraWorkNote: e.target.value })}
                   className="w-full px-4 py-3 bg-gray-50 border border-gray-200 focus:border-indigo-600 focus:bg-white rounded-xl text-xs text-gray-950 font-medium placeholder-gray-400 focus:outline-none transition leading-relaxed"
                 />
@@ -943,7 +956,7 @@ export default function DSRForm({
                 className="px-8 py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs transition shadow-sm hover:shadow-md flex items-center gap-2 cursor-pointer grow sm:grow-0 justify-center"
               >
                 <CheckCircle2 size={16} />
-                Submit
+                Submit Work Log
               </button>
             </div>
           </form>
