@@ -878,6 +878,7 @@ export default function DSRLogs({
                                       work.imageCount > 0 ||
                                       work.videoPptCount > 0 ||
                                       work.profileCount > 0 ||
+                                      work.linkCount > 0 ||
                                       (customSubmissionTypes || []).some((type) => Number(work.customValues?.[type.id]) > 0)
                                     );
 
@@ -928,6 +929,12 @@ export default function DSRLogs({
                                               <div className="bg-white border border-slate-150 p-2.5 rounded-xl text-center space-y-0.5 shadow-3xs">
                                                 <span className="block text-[9px] font-black text-slate-400 uppercase tracking-wider font-sans">Profiles Created</span>
                                                 <span className="block font-mono text-xs font-black text-slate-905">{work.profileCount}</span>
+                                              </div>
+                                            )}
+                                            {work.linkCount > 0 && (
+                                              <div className="bg-white border border-slate-150 p-2.5 rounded-xl text-center space-y-0.5 shadow-3xs">
+                                                <span className="block text-[9px] font-black text-slate-400 uppercase tracking-wider font-sans">Links</span>
+                                                <span className="block font-mono text-xs font-black text-slate-905">{work.linkCount}</span>
                                               </div>
                                             )}
 
