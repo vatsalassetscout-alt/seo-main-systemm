@@ -69,6 +69,7 @@ export default function DSRForm({
       contentUpdates: [],
       selectedKeywords: [],
       workSummary: '',
+      extraWorkNote: '',
     }
   ]);
 
@@ -120,6 +121,7 @@ export default function DSRForm({
           contentUpdates: [],
           selectedKeywords: [],
           workSummary: '',
+          extraWorkNote: '',
         }]);
       }
       if (onClearPreFill) {
@@ -167,6 +169,7 @@ export default function DSRForm({
         contentUpdates: [],
         selectedKeywords: [],
         workSummary: '',
+        extraWorkNote: '',
       }
     ]);
     setIsSuccess(false);
@@ -242,6 +245,14 @@ export default function DSRForm({
       return;
     }
 
+    // Keyword selection is mandatory whenever the selected domain has keywords configured
+    const selectedProjForKeywords = projects.find((p) => p.id === work.projectId);
+    const availableKeywords = (selectedProjForKeywords?.keywords || []).filter(Boolean);
+    if (availableKeywords.length > 0 && (!work.selectedKeywords || work.selectedKeywords.length === 0)) {
+      setValidationError('Please select at least one keyword for the chosen domain.');
+      return;
+    }
+
     // Parse and validate custom submission types
     const cleanCustomValues: Record<string, any> = {};
     if (hasSEO) {
@@ -283,6 +294,7 @@ export default function DSRForm({
         contentUpdates: work.contentUpdates || [],
         selectedKeywords: work.selectedKeywords || [],
         workSummary: work.workSummary || '',
+        extraWorkNote: (work.extraWorkNote || '').trim(),
       }
     ];
 
@@ -491,7 +503,7 @@ export default function DSRForm({
                         return (
                           <div id="keywords-selector-container" className="space-y-2 p-4 bg-slate-50/50 rounded-2xl border border-gray-150 shadow-3xs">
                             <span className="block text-[10px] font-black text-slate-500 uppercase tracking-wider">
-                              Select Keywords
+                              Select Keywords <span className="text-rose-500">*</span>
                             </span>
                             <div className="flex flex-wrap gap-2">
                               {kws.map((kw) => {
@@ -579,7 +591,7 @@ export default function DSRForm({
                               className="border border-indigo-100 bg-indigo-50/10 rounded-2xl p-5 space-y-4"
                             >
                               <span className="block text-[10px] font-extrabold text-indigo-950 uppercase tracking-widest">
-                                🚀 SEO Submission Quantities
+                                 SEO Submission Quantities
                               </span>
                                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                                 {/* 1. Blogs / Articles count */}
@@ -818,7 +830,7 @@ export default function DSRForm({
                             >
                               <div className="space-y-0.5">
                                 <span className="block text-[10px] font-extrabold text-purple-950 uppercase tracking-widest">
-                                  ✍️ Content Update Checklist
+                                   Content Update Checklist
                                 </span>
                               </div>
 
@@ -874,7 +886,7 @@ export default function DSRForm({
                       </div>
                       <div className="space-y-2">
                         <label htmlFor={`work-summary-${idx}`} className="block text-xs font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1.5">
-                          📝 Work Notes / Summary
+                           Work Notes / Summary
                         </label>
                         <textarea
                           id={`work-summary-${idx}`}
@@ -890,6 +902,32 @@ export default function DSRForm({
                   </div>
                 </div>
               ))}
+            </div>
+
+            {/* Extra / New Work Done — separate, optional block (not tied to domain selection) */}
+            <div className="bg-white rounded-3xl border border-gray-150 shadow-xs overflow-hidden">
+              <div className="bg-gray-50/50 px-6 py-4 border-b border-gray-100 flex items-center gap-3">
+                <span className="w-8 h-8 rounded-lg bg-amber-50 text-amber-700 font-extrabold text-xs flex items-center justify-center">
+                  ＋
+                </span>
+                <div>
+                  <h4 className="font-bold text-gray-900 text-sm">Extra / New Work Done</h4>
+                  <p className="text-[10px] text-gray-400 font-medium">Optional — anything you worked on outside the domain above.</p>
+                </div>
+              </div>
+              <div className="p-6 sm:p-8 space-y-2">
+                <label htmlFor="extra-work-note" className="block text-xs font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1.5">
+                   Details
+                </label>
+                <textarea
+                  id="extra-work-note"
+                  rows={3}
+                  value={worksList[0]?.extraWorkNote || ''}
+                  placeholder="Optional — describe any extra or new work done outside the domain selected above..."
+                  onChange={(e) => handleUpdateWorkBlock(0, { extraWorkNote: e.target.value })}
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 focus:border-indigo-600 focus:bg-white rounded-xl text-xs text-gray-950 font-medium placeholder-gray-400 focus:outline-none transition leading-relaxed"
+                />
+              </div>
             </div>
 
             {validationError && (
