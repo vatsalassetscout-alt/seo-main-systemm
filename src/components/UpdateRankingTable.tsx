@@ -5,7 +5,7 @@
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Project } from '../types';
-import { Plus, X, ArrowUpDown, Palette, Search, Save, Check, Loader2 } from 'lucide-react';
+import { Plus, X, ArrowUpDown, Palette, Search, Save, Check, Loader2, ChevronDown } from 'lucide-react';
 
 interface RankingColumn {
   id: string;
@@ -25,15 +25,32 @@ interface UpdateRankingTableProps {
 
 const EMPTY_GRID: ManualRankingGrid = { columns: [], values: {}, rowColors: {} };
 
-// Palette offered for the row color-tagging filter
+// Full color palette offered for the row color-tagging filter (24 presets)
 const COLOR_SWATCHES = [
   { label: 'Green', value: '#d1fae5' },
-  { label: 'Yellow', value: '#fef9c3' },
-  { label: 'Orange', value: '#ffedd5' },
-  { label: 'Red', value: '#fee2e2' },
+  { label: 'Emerald', value: '#a7f3d0' },
+  { label: 'Teal', value: '#ccfbf1' },
+  { label: 'Cyan', value: '#cffafe' },
+  { label: 'Sky', value: '#e0f2fe' },
   { label: 'Blue', value: '#dbeafe' },
-  { label: 'Purple', value: '#ede9fe' },
+  { label: 'Indigo', value: '#e0e7ff' },
+  { label: 'Violet', value: '#ede9fe' },
+  { label: 'Purple', value: '#f3e8ff' },
+  { label: 'Fuchsia', value: '#fae8ff' },
+  { label: 'Pink', value: '#fce7f3' },
+  { label: 'Rose', value: '#ffe4e6' },
+  { label: 'Red', value: '#fee2e2' },
+  { label: 'Orange', value: '#ffedd5' },
+  { label: 'Amber', value: '#fef3c7' },
+  { label: 'Yellow', value: '#fef9c3' },
+  { label: 'Lime', value: '#ecfccb' },
   { label: 'Gray', value: '#e5e7eb' },
+  { label: 'Slate', value: '#e2e8f0' },
+  { label: 'Stone', value: '#e7e5e4' },
+  { label: 'Dark Green', value: '#86efac' },
+  { label: 'Dark Blue', value: '#93c5fd' },
+  { label: 'Dark Red', value: '#fca5a5' },
+  { label: 'Dark Purple', value: '#d8b4fe' },
 ];
 
 // Only digits and commas allowed while typing ranking values
@@ -54,18 +71,20 @@ export default function UpdateRankingTable({ projects, isAdmin = false }: Update
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Sort filter (High to Low / Low to High on a chosen dynamic column)
+  // Sort filter (High to Low / Low to High) applied to one chosen column
   const [sortColumnId, setSortColumnId] = useState<string>('');
   const [sortDirection, setSortDirection] = useState<'desc' | 'asc'>('desc');
+  const [sortPanelOpen, setSortPanelOpen] = useState(false);
 
   // Color-tagging filter mode
   const [colorModeOn, setColorModeOn] = useState(false);
   const [selectedRowIds, setSelectedRowIds] = useState<Record<string, boolean>>({});
+  const [customColor, setCustomColor] = useState('#c7d2fe');
 
   const skipNextAutoSave = useRef(true);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Load saved grid on mount
+  // Load saved grid on mount (data lives only in the Supabase "manual_rankings" table)
   useEffect(() => {
     (async () => {
       try {
@@ -79,7 +98,7 @@ export default function UpdateRankingTable({ projects, isAdmin = false }: Update
           });
         }
       } catch (e) {
-        console.error('Failed to load Update Ranking grid:', e);
+        console.error('Failed to load Update Ranking data:', e);
       } finally {
         setIsLoading(false);
       }
@@ -87,6 +106,8 @@ export default function UpdateRankingTable({ projects, isAdmin = false }: Update
   }, []);
 
   // Debounced auto-save whenever the grid changes (skip the very first load)
+  // Debounce shortened to 400ms for a snappier feel; typing updates the UI
+  // instantly (optimistic) while the save happens quietly in the background.
   useEffect(() => {
     if (skipNextAutoSave.current) {
       skipNextAutoSave.current = false;
@@ -103,10 +124,10 @@ export default function UpdateRankingTable({ projects, isAdmin = false }: Update
         });
         setSaveState(res.ok ? 'saved' : 'error');
       } catch (e) {
-        console.error('Failed to save Update Ranking grid:', e);
+        console.error('Failed to save Update Ranking data:', e);
         setSaveState('error');
       }
-    }, 700);
+    }, 400);
     return () => {
       if (saveTimer.current) clearTimeout(saveTimer.current);
     };
@@ -160,6 +181,11 @@ export default function UpdateRankingTable({ projects, isAdmin = false }: Update
     }));
   };
 
+  // Checking a column in the sort panel makes that the active sort column immediately
+  const chooseSortColumn = (colId: string) => {
+    setSortColumnId(prev => (prev === colId ? '' : colId));
+  };
+
   const applyColorToSelected = (color: string) => {
     setGrid(prev => {
       const nextColors = { ...prev.rowColors };
@@ -200,6 +226,7 @@ export default function UpdateRankingTable({ projects, isAdmin = false }: Update
   }, [projects, searchTerm, sortColumnId, sortDirection, grid.values]);
 
   const selectedCount = Object.values(selectedRowIds).filter(Boolean).length;
+  const activeSortColumnName = grid.columns.find(c => c.id === sortColumnId)?.name;
 
   return (
     <div>
@@ -212,7 +239,7 @@ export default function UpdateRankingTable({ projects, isAdmin = false }: Update
           </p>
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap relative">
           {/* Save status */}
           <div className="flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1.5 rounded-lg bg-white border border-gray-200">
             {saveState === 'saving' && <><Loader2 size={11} className="animate-spin text-indigo-500" /> Saving…</>}
@@ -234,69 +261,130 @@ export default function UpdateRankingTable({ projects, isAdmin = false }: Update
             />
           </div>
 
-          {isAdmin && (
-            <>
-              {/* Sort filter (High to Low / Low to High) */}
-              <select
-                value={sortColumnId}
-                onChange={(e) => setSortColumnId(e.target.value)}
-                className="text-xs font-bold border border-gray-200 rounded-xl px-2.5 py-2 bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-500"
-              >
-                <option value="">Sort: None</option>
-                {grid.columns.map(c => (
-                  <option key={c.id} value={c.id}>Sort by "{c.name}"</option>
-                ))}
-              </select>
-              {sortColumnId && (
-                <button
-                  onClick={() => setSortDirection(d => d === 'desc' ? 'asc' : 'desc')}
-                  className="flex items-center gap-1 text-xs font-bold border border-gray-200 rounded-xl px-2.5 py-2 bg-white hover:bg-gray-50 cursor-pointer"
-                  title="Toggle sort direction"
-                >
-                  <ArrowUpDown size={12} />
-                  {sortDirection === 'desc' ? 'High → Low' : 'Low → High'}
-                </button>
-              )}
+          {/* Sort filter: High to Low / Low to High, applied to a chosen column */}
+          <div className="relative">
+            <button
+              onClick={() => setSortPanelOpen(v => !v)}
+              className={`flex items-center gap-1.5 text-xs font-bold border rounded-xl px-2.5 py-2 cursor-pointer transition ${
+                sortColumnId ? 'bg-indigo-600 border-indigo-700 text-white' : 'bg-white border-gray-200 hover:bg-gray-50 text-gray-700'
+              }`}
+            >
+              <ArrowUpDown size={12} />
+              {sortColumnId ? `${activeSortColumnName}: ${sortDirection === 'desc' ? 'High → Low' : 'Low → High'}` : 'Sort'}
+              <ChevronDown size={12} />
+            </button>
 
-              {/* Color tagging filter */}
-              <button
-                onClick={() => { setColorModeOn(v => !v); setSelectedRowIds({}); }}
-                className={`flex items-center gap-1.5 text-xs font-bold border rounded-xl px-2.5 py-2 cursor-pointer transition ${
-                  colorModeOn ? 'bg-indigo-600 border-indigo-700 text-white' : 'bg-white border-gray-200 hover:bg-gray-50 text-gray-700'
-                }`}
-              >
-                <Palette size={12} />
-                Color Tag {colorModeOn ? 'On' : ''}
-              </button>
-            </>
-          )}
+            {sortPanelOpen && (
+              <div className="absolute right-0 sm:left-0 top-full mt-1.5 w-64 bg-white border border-gray-200 rounded-xl shadow-lg z-30 p-3">
+                <p className="text-[10px] font-black text-gray-500 uppercase tracking-wider mb-2">Sort direction</p>
+                <div className="flex gap-2 mb-3">
+                  <button
+                    onClick={() => setSortDirection('desc')}
+                    className={`flex-1 text-xs font-bold rounded-lg px-2 py-1.5 border cursor-pointer transition ${
+                      sortDirection === 'desc' ? 'bg-indigo-600 text-white border-indigo-700' : 'bg-white border-gray-200 hover:bg-gray-50'
+                    }`}
+                  >
+                    High → Low
+                  </button>
+                  <button
+                    onClick={() => setSortDirection('asc')}
+                    className={`flex-1 text-xs font-bold rounded-lg px-2 py-1.5 border cursor-pointer transition ${
+                      sortDirection === 'asc' ? 'bg-indigo-600 text-white border-indigo-700' : 'bg-white border-gray-200 hover:bg-gray-50'
+                    }`}
+                  >
+                    Low → High
+                  </button>
+                </div>
+
+                <p className="text-[10px] font-black text-gray-500 uppercase tracking-wider mb-2">Apply to column</p>
+                {grid.columns.length === 0 ? (
+                  <p className="text-[11px] text-gray-400 font-semibold">Add a ranking column first.</p>
+                ) : (
+                  <div className="flex flex-col gap-1.5 max-h-48 overflow-y-auto">
+                    {grid.columns.map(col => (
+                      <label key={col.id} className="flex items-center gap-2 text-xs font-semibold text-gray-700 cursor-pointer hover:bg-gray-50 rounded-lg px-1.5 py-1">
+                        <input
+                          type="checkbox"
+                          checked={sortColumnId === col.id}
+                          onChange={() => chooseSortColumn(col.id)}
+                          className="cursor-pointer"
+                        />
+                        {col.name}
+                      </label>
+                    ))}
+                  </div>
+                )}
+
+                {sortColumnId && (
+                  <button
+                    onClick={() => { setSortColumnId(''); }}
+                    className="mt-2 text-[10px] font-bold text-gray-500 hover:text-rose-600 cursor-pointer"
+                  >
+                    Clear sort
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Color tagging filter */}
+          <button
+            onClick={() => { setColorModeOn(v => !v); setSelectedRowIds({}); }}
+            className={`flex items-center gap-1.5 text-xs font-bold border rounded-xl px-2.5 py-2 cursor-pointer transition ${
+              colorModeOn ? 'bg-indigo-600 border-indigo-700 text-white' : 'bg-white border-gray-200 hover:bg-gray-50 text-gray-700'
+            }`}
+          >
+            <Palette size={12} />
+            Color Tag {colorModeOn ? 'On' : ''}
+          </button>
         </div>
       </div>
 
       {/* Color palette bar - shown once rows are checked in color mode */}
       {colorModeOn && selectedCount > 0 && (
-        <div className="mx-4 mt-3 p-2.5 bg-indigo-50 border border-indigo-150 rounded-xl flex items-center gap-2 flex-wrap">
-          <span className="text-[10px] font-bold text-indigo-800">{selectedCount} row{selectedCount > 1 ? 's' : ''} selected —</span>
-          {COLOR_SWATCHES.map(sw => (
+        <div className="mx-4 mt-3 p-3 bg-indigo-50 border border-indigo-150 rounded-xl">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[10px] font-bold text-indigo-800">{selectedCount} row{selectedCount > 1 ? 's' : ''} selected</span>
             <button
-              key={sw.value}
-              title={sw.label}
-              onClick={() => applyColorToSelected(sw.value)}
-              className="w-6 h-6 rounded-full border-2 border-white shadow-2xs cursor-pointer hover:scale-110 transition"
-              style={{ backgroundColor: sw.value }}
-            />
-          ))}
-          <button
-            onClick={clearColorFromSelected}
-            className="text-[10px] font-bold text-gray-600 hover:text-rose-600 px-2 py-1 rounded-lg hover:bg-white transition cursor-pointer"
-          >
-            Clear color
-          </button>
+              onClick={clearColorFromSelected}
+              className="text-[10px] font-bold text-gray-600 hover:text-rose-600 px-2 py-1 rounded-lg hover:bg-white transition cursor-pointer"
+            >
+              Clear color
+            </button>
+          </div>
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {COLOR_SWATCHES.map(sw => (
+              <button
+                key={sw.value}
+                title={sw.label}
+                onClick={() => applyColorToSelected(sw.value)}
+                className="w-6 h-6 rounded-full border-2 border-white shadow-2xs cursor-pointer hover:scale-110 transition"
+                style={{ backgroundColor: sw.value }}
+              />
+            ))}
+
+            {/* Custom color picker - pick any color beyond the presets */}
+            <div className="flex items-center gap-1 ml-1 pl-2 border-l border-indigo-200">
+              <input
+                type="color"
+                value={customColor}
+                onChange={(e) => setCustomColor(e.target.value)}
+                title="Pick a custom color"
+                className="w-6 h-6 rounded-full border-2 border-white shadow-2xs cursor-pointer overflow-hidden p-0"
+              />
+              <button
+                onClick={() => applyColorToSelected(customColor)}
+                className="text-[10px] font-bold text-indigo-700 hover:text-indigo-900 px-2 py-1 rounded-lg hover:bg-white transition cursor-pointer"
+              >
+                Apply
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
       {isLoading ? (
-        <div className="p-12 text-center text-xs text-gray-500 font-bold">Loading ranking sheet...</div>
+        <div className="p-12 text-center text-xs text-gray-500 font-bold">Loading ranking data...</div>
       ) : visibleProjects.length === 0 ? (
         <div className="p-12 text-center text-xs text-gray-500 font-bold bg-slate-50/40 rounded-b-2xl border-t border-slate-150">
           No projects found matching the search criteria.
