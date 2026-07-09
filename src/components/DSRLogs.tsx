@@ -696,7 +696,7 @@ export default function DSRLogs({
               // Unique project names submitted
               const projectNames = Array.from(new Set(item.works.map((w: any) => {
                 const p = projects.find(proj => proj.id === w.projectId);
-                return p ? p.name : (w.projectName || 'Custom Project');
+                return p ? p.name : (w.projectName || 'Extra / New Work Done');
               })));
 
               return (
@@ -814,15 +814,16 @@ export default function DSRLogs({
                           <div className="space-y-6">
                             {item.works.map((work: any, idx: number) => {
                               const workMatchedProj = projects.find(p => p.id === work.projectId);
+                              const hasDomain = !!work.projectId;
                               return (
                                 <div key={work.workId || idx} className="space-y-4 pb-6 last:pb-0 border-b border-dashed border-slate-200 last:border-b-0">
                                   {/* Inner details header */}
                                   <div className="pb-2">
                                     <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">
-                                      Project {idx + 1}
+                                      {hasDomain ? `Project ${idx + 1}` : 'New Work'}
                                     </h4>
                                     <p className="text-sm font-black text-slate-900 mt-1 flex items-center gap-2">
-                                      📂 {workMatchedProj?.name || work.projectName || 'Custom Project Allocation'}
+                                      📂 {hasDomain ? (workMatchedProj?.name || work.projectName || 'Extra / New Work Done') : 'Extra / New Work Done'}
                                       {workMatchedProj?.domain && (
                                         <span className="font-mono text-xs text-slate-500 font-bold bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-lg">
                                           {workMatchedProj.domain}
@@ -858,10 +859,9 @@ export default function DSRLogs({
                                     </div>
                                   )}
 
-                                  {/* Extra / New Work Done — free-text note, only rendered when present */}
+                                  {/* Extra / New Work Done — free-text note content only; heading already shown above (Project header / 📂 label) */}
                                   {work.extraWorkNote && (
                                     <div className="space-y-1.5">
-                                      <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">Extra / New Work Done</h4>
                                       <div className="bg-amber-50/40 p-3.5 rounded-2xl border border-amber-150 shadow-3xs text-xs text-slate-805 leading-relaxed font-semibold">
                                         <p className="whitespace-pre-wrap">{work.extraWorkNote}</p>
                                       </div>
@@ -974,34 +974,36 @@ export default function DSRLogs({
                                     </div>
                                   )}
 
-                                  {/* Work summary descriptive report block */}
-                                  <div className="space-y-1.5">
-                                    <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">Summary</h4>
-                                    <div className="bg-white p-3.5 rounded-2xl border border-slate-150 shadow-3xs text-xs text-slate-805 leading-relaxed font-semibold">
-                                      {work.workSummary ? (
-                                        <p className="whitespace-pre-wrap">{work.workSummary}</p>
-                                      ) : (
-                                        <p className="text-slate-404 italic">No summary description provided for this log block.</p>
-                                      )}
+                                  {/* Work summary descriptive report block — only shown for real domain/project entries, not standalone Extra/New Work */}
+                                  {hasDomain && (
+                                    <div className="space-y-1.5">
+                                      <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">Summary</h4>
+                                      <div className="bg-white p-3.5 rounded-2xl border border-slate-150 shadow-3xs text-xs text-slate-805 leading-relaxed font-semibold">
+                                        {work.workSummary ? (
+                                          <p className="whitespace-pre-wrap">{work.workSummary}</p>
+                                        ) : (
+                                          <p className="text-slate-404 italic">No summary description provided for this log block.</p>
+                                        )}
 
-                                      {/* Keywords attached logs */}
-                                      {((work.selectedKeywords && work.selectedKeywords.length > 0) || (work.customValues?.selectedKeywords && Array.isArray(work.customValues.selectedKeywords) && work.customValues.selectedKeywords.length > 0)) && (
-                                        <div className="mt-3.5 pt-3 border-t border-slate-150 flex flex-wrap items-center gap-2">
-                                          <span className="text-[9.5px] font-black text-slate-405 uppercase tracking-wide font-sans">Target Keywords:</span>
-                                          <div className="flex flex-wrap gap-1.5">
-                                            {(((work.selectedKeywords || work.customValues?.selectedKeywords || []) as string[]).filter(Boolean)).map((kw: string, idx: number) => (
-                                              <span key={kw} className="bg-amber-100/50 border border-amber-205 text-amber-900 px-2 py-0.5 rounded-md font-sans text-[10px] font-black flex items-center gap-1.5">
-                                                <span className="bg-amber-500 text-white w-3.5 h-3.5 rounded-full flex items-center justify-center text-[8px] font-bold shrink-0 font-mono leading-none">
-                                                  {idx + 1}
+                                        {/* Keywords attached logs */}
+                                        {((work.selectedKeywords && work.selectedKeywords.length > 0) || (work.customValues?.selectedKeywords && Array.isArray(work.customValues.selectedKeywords) && work.customValues.selectedKeywords.length > 0)) && (
+                                          <div className="mt-3.5 pt-3 border-t border-slate-150 flex flex-wrap items-center gap-2">
+                                            <span className="text-[9.5px] font-black text-slate-405 uppercase tracking-wide font-sans">Target Keywords:</span>
+                                            <div className="flex flex-wrap gap-1.5">
+                                              {(((work.selectedKeywords || work.customValues?.selectedKeywords || []) as string[]).filter(Boolean)).map((kw: string, idx: number) => (
+                                                <span key={kw} className="bg-amber-100/50 border border-amber-205 text-amber-900 px-2 py-0.5 rounded-md font-sans text-[10px] font-black flex items-center gap-1.5">
+                                                  <span className="bg-amber-500 text-white w-3.5 h-3.5 rounded-full flex items-center justify-center text-[8px] font-bold shrink-0 font-mono leading-none">
+                                                    {idx + 1}
+                                                  </span>
+                                                  {kw}
                                                 </span>
-                                                {kw}
-                                              </span>
-                                            ))}
+                                              ))}
+                                            </div>
                                           </div>
-                                        </div>
-                                      )}
+                                        )}
+                                      </div>
                                     </div>
-                                  </div>
+                                  )}
                                 </div>
                               );
                             })}
