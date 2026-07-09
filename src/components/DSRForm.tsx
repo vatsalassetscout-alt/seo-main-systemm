@@ -817,7 +817,7 @@ export default function DSRForm({
                             />
                             <div className="space-y-0.5">
                               <span className="block text-xs font-bold text-gray-900">Content Update</span>
-                              <span className="block text-[10px] text-gray-400 font-medium">Select multiple checkboxes such as meta tags, keywords, restructure logs.</span>
+                              <span className="block text-[10px] text-gray-400 font-medium">Select checkboxes such as meta tags, keywords, restructure logs.</span>
                             </div>
                           </label>
 
@@ -912,18 +912,17 @@ export default function DSRForm({
                 </span>
                 <div>
                   <h4 className="font-bold text-gray-900 text-sm">Extra / New Work Done</h4>
-                  <p className="text-[10px] text-gray-400 font-medium">Optional — anything you worked on outside the domain above.</p>
+                  
                 </div>
               </div>
               <div className="p-6 sm:p-8 space-y-2">
                 <label htmlFor="extra-work-note" className="block text-xs font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1.5">
-                   Details
                 </label>
                 <textarea
                   id="extra-work-note"
                   rows={3}
                   value={worksList[0]?.extraWorkNote || ''}
-                  placeholder="Optional — describe any extra or new work done outside the domain selected above..."
+                  placeholder="describe any extra or new work done ..."
                   onChange={(e) => handleUpdateWorkBlock(0, { extraWorkNote: e.target.value })}
                   className="w-full px-4 py-3 bg-gray-50 border border-gray-200 focus:border-indigo-600 focus:bg-white rounded-xl text-xs text-gray-950 font-medium placeholder-gray-400 focus:outline-none transition leading-relaxed"
                 />
@@ -944,7 +943,7 @@ export default function DSRForm({
                 className="px-8 py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs transition shadow-sm hover:shadow-md flex items-center gap-2 cursor-pointer grow sm:grow-0 justify-center"
               >
                 <CheckCircle2 size={16} />
-                Submit Work Log
+                Submit
               </button>
             </div>
           </form>
