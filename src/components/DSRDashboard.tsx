@@ -6,6 +6,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { DSREntry, Project, AppUser, ProjectLocation, CustomSubmissionType } from '../types';
 import { getUserDisplayName, isUserAdmin, doesUserMatch } from '../lib/userUtils';
+import UpdateRankingTable from './UpdateRankingTable';
 import { 
   Calendar, 
   ClipboardCheck, 
@@ -29,7 +30,8 @@ import {
   Award,
   BookOpen,
   Search,
-  Save
+  Save,
+  Table
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -45,8 +47,8 @@ interface DSRDashboardProps {
   onAddAlert?: (alert: any) => void;
   onUpdateProject?: (updatedProject: Project) => void;
   adminEmails?: string[];
-  activeSubTab?: 'project_table' | 'frequency' | 'activity' | 'backlinks' | 'unworked_project' | 'keyword_section';
-  onSubTabChange?: (tab: 'project_table' | 'frequency' | 'activity' | 'backlinks' | 'unworked_project' | 'keyword_section') => void;
+  activeSubTab?: 'project_table' | 'frequency' | 'activity' | 'backlinks' | 'unworked_project' | 'keyword_section' | 'update_ranking';
+  onSubTabChange?: (tab: 'project_table' | 'frequency' | 'activity' | 'backlinks' | 'unworked_project' | 'keyword_section' | 'update_ranking') => void;
 }
 
 export default function DSRDashboard({ 
@@ -81,7 +83,7 @@ export default function DSRDashboard({
   const [freqFilterType, setFreqFilterType] = useState<'daily' | 'weekly' | 'monthly'>('weekly');
 
   // Navigation for the 5 horizontal buttons
-  const [localActiveTab, setLocalActiveTab] = useState<'project_table' | 'frequency' | 'activity' | 'backlinks' | 'unworked_project' | 'keyword_section'>('project_table');
+  const [localActiveTab, setLocalActiveTab] = useState<'project_table' | 'frequency' | 'activity' | 'backlinks' | 'unworked_project' | 'keyword_section' | 'update_ranking'>('project_table');
   const activeTab = activeSubTab !== undefined ? activeSubTab : localActiveTab;
   const setActiveTab = onSubTabChange !== undefined ? onSubTabChange : setLocalActiveTab;
 
@@ -1237,7 +1239,8 @@ export default function DSRDashboard({
     { id: 'activity' as const, label: isAdmin ? 'Team Activity' : 'Activity', icon: Calendar },
     { id: 'backlinks' as const, label: 'Backlinks', icon: Percent },
     { id: 'unworked_project' as const, label: 'Idle Projects', icon: FolderOpen },
-    { id: 'keyword_section' as const, label: 'Ranking', icon: Tag }
+    { id: 'keyword_section' as const, label: 'Ranking', icon: Tag },
+    { id: 'update_ranking' as const, label: 'Update Ranking', icon: Table }
   ];
 
   return (
@@ -3347,6 +3350,10 @@ export default function DSRDashboard({
               </div>
             )}
           </div>
+        )}
+
+        {activeTab === 'update_ranking' && (
+          <UpdateRankingTable projects={projects} isAdmin={isAdmin} />
         )}
 
         {/* Admin Recovery Plan Modal PopUp */}
