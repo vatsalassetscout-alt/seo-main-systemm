@@ -915,7 +915,7 @@ export default function DSRForm({
                   
                 </div>
               </div>
-              <div className="p-6 sm:p-8 space-y-2">
+              <div className="px-6 sm:px-8 pb-6 sm:pb-8 pt-3 space-y-2">
                 <label htmlFor="extra-work-note" className="block text-xs font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1.5">
                 </label>
                 <textarea
