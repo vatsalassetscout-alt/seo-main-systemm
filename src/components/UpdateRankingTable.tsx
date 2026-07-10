@@ -81,9 +81,9 @@ const columnWidth = (name: string): number => {
 // like frozen panes in Google Sheets. Name+Domain+Location = 370px total.
 const CHECKBOX_COL_WIDTH = 40;   // color-mode checkbox column
 const SR_NO_COL_WIDTH = 56;      // "Sr No." column
-const NAME_COL_WIDTH = 145;
-const DOMAIN_COL_WIDTH = 130;
-const LOCATION_COL_WIDTH = 95;   // 145 + 130 + 95 = 370px
+const NAME_COL_WIDTH = 220;      // widened to fit full project names
+const DOMAIN_COL_WIDTH = 220;    // widened to fit full domain URLs
+const LOCATION_COL_WIDTH = 140;  // widened to fit full location names // 145 + 130 + 95 = 370px
 
 export default function UpdateRankingTable({ projects, isAdmin = false, grid, setGrid, isLoading }: UpdateRankingTableProps) {
   // Permissions are intentionally flipped from "isAdmin": admin can only VIEW
