@@ -7,12 +7,12 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Project } from '../types';
 import { Plus, X, ArrowUpDown, Palette, Search, Check, Loader2, ChevronDown } from 'lucide-react';
 
-interface RankingColumn {
+export interface RankingColumn {
   id: string;
   name: string;
 }
 
-interface ManualRankingGrid {
+export interface ManualRankingGrid {
   columns: RankingColumn[];
   values: Record<string, Record<string, string>>; // projectId -> columnId -> numeric string
   rowColors: Record<string, string>; // legacy field, kept for backward compatibility with saved data
@@ -21,6 +21,9 @@ interface ManualRankingGrid {
 interface UpdateRankingTableProps {
   projects: Project[];
   isAdmin?: boolean;
+  grid: ManualRankingGrid;
+  setGrid: React.Dispatch<React.SetStateAction<ManualRankingGrid>>;
+  isLoading: boolean;
 }
 
 const EMPTY_GRID: ManualRankingGrid = { columns: [], values: {}, rowColors: {} };
@@ -72,13 +75,11 @@ const columnWidth = (name: string): number => {
   return Math.min(180, Math.max(76, px));
 };
 
-export default function UpdateRankingTable({ projects, isAdmin = false }: UpdateRankingTableProps) {
+export default function UpdateRankingTable({ projects, isAdmin = false, grid, setGrid, isLoading }: UpdateRankingTableProps) {
   // Permissions are intentionally flipped from "isAdmin": admin can only VIEW
   // this section (plus use the sort filter), while regular users get full
   // editing rights (values, add/rename/delete columns, color tagging).
   const canEdit = !isAdmin;
-  const [grid, setGrid] = useState<ManualRankingGrid>(EMPTY_GRID);
-  const [isLoading, setIsLoading] = useState(true);
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -98,26 +99,9 @@ export default function UpdateRankingTable({ projects, isAdmin = false }: Update
   const skipNextAutoSave = useRef(true);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Load saved grid on mount (data lives only in the Supabase "manual_rankings" table)
-  useEffect(() => {
-    (async () => {
-      try {
-        const res = await fetch('/api/manual-rankings');
-        if (res.ok) {
-          const data = await res.json();
-          setGrid({
-            columns: Array.isArray(data.columns) ? data.columns : [],
-            values: data.values && typeof data.values === 'object' ? data.values : {},
-            rowColors: data.rowColors && typeof data.rowColors === 'object' ? data.rowColors : {}
-          });
-        }
-      } catch (e) {
-        console.error('Failed to load Manual Ranking data:', e);
-      } finally {
-        setIsLoading(false);
-      }
-    })();
-  }, []);
+  // Grid data is now fetched once, up front, by the parent DSRDashboard
+  // (alongside projects/rankings) and handed down as a prop, so switching
+  // into this tab no longer triggers its own network request or spinner.
 
   // Debounced auto-save whenever the grid changes (skip the very first load)
   // Debounce shortened to 400ms for a snappier feel; typing updates the UI
