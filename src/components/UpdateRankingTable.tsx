@@ -449,13 +449,13 @@ export default function UpdateRankingTable({ projects, isAdmin = false, grid, se
                 {colorModeOn && <th className="px-3 py-3 w-10 sticky left-0 bg-slate-50/95 z-20"></th>}
                 <th className={`px-3 py-3 w-14 text-center sticky bg-slate-50/95 z-20 ${colorModeOn ? 'left-10' : 'left-0'}`}>Sr No.</th>
                 <th
-                  className="px-2.5 py-3 sticky bg-slate-50/95 z-20 truncate"
+                  className="px-1.5 py-3 sticky bg-slate-50/95 z-20 truncate"
                   style={{ left: colorModeOn ? '104px' : '64px', width: nameColWidth, minWidth: nameColWidth, maxWidth: nameColWidth }}
                 >
                   Project Name
                 </th>
-                <th className="px-2.5 py-3 truncate" style={{ width: domainColWidth, minWidth: domainColWidth, maxWidth: domainColWidth }}>Domain</th>
-                <th className="px-2.5 py-3 truncate" style={{ width: locationColWidth, minWidth: locationColWidth, maxWidth: locationColWidth }}>Location</th>
+                <th className="px-1.5 py-3 truncate" style={{ width: domainColWidth, minWidth: domainColWidth, maxWidth: domainColWidth }}>Domain</th>
+                <th className="px-21.5 py-3 truncate" style={{ width: locationColWidth, minWidth: locationColWidth, maxWidth: locationColWidth }}>Location</th>
 
                 {grid.columns.map(col => {
                   const w = columnWidth(col.name);
