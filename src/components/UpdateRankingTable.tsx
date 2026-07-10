@@ -554,11 +554,11 @@ export default function UpdateRankingTable({ projects, isAdmin = false, grid, se
                       {proj.location || '—'}
                     </td>
 
-                  {grid.columns.map(col => {
+                {grid.columns.map(col => {
                     const w = columnWidth(col.name);
                     const cellValue = grid.values[proj.id]?.[col.id] || '';
                     return (
-                      <td key={col.id} className="px-2.5 py-2" style={{ width: w, minWidth: w, maxWidth: w }}>
+                      <td key={col.id} className="p-0" style={{ width: w, minWidth: w, maxWidth: w }}>
                         {canEdit ? (
                           <input
                             type="text"
@@ -566,10 +566,10 @@ export default function UpdateRankingTable({ projects, isAdmin = false, grid, se
                             value={cellValue}
                             onChange={(e) => updateCell(proj.id, col.id, e.target.value)}
                             placeholder="—"
-                            className="w-full text-xs font-bold text-gray-800 px-2 py-1.5 border border-transparent hover:border-gray-200 focus:border-indigo-400 rounded-lg focus:outline-hidden bg-transparent focus:bg-white transition"
+                            className="w-full text-xs font-bold text-gray-800 px-2.5 py-2.5 border border-transparent hover:border-gray-200 focus:border-indigo-400 rounded-lg focus:outline-hidden bg-transparent focus:bg-white transition"
                           />
                         ) : (
-                          <span className="block px-2 py-1.5 text-xs font-bold text-gray-800 truncate">
+                          <span className="block px-2.5 py-2.5 text-xs font-bold text-gray-800 truncate">
                             {cellValue || '—'}
                           </span>
                         )}
