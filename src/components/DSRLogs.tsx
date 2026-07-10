@@ -812,15 +812,30 @@ export default function DSRLogs({
                           
                           {/* Inner list of submitted project works */}
                           <div className="space-y-6">
-                            {item.works.map((work: any, idx: number) => {
+                            {(() => {
+                              // Show Work Note entries first (no projectId), then
+                              // domain/project entries in their original submitted
+                              // order - even if the note was filled in last on the
+                              // form. Sort is stable so same-group order is preserved.
+                              const orderedWorks = item.works
+                                .map((w: any, originalIdx: number) => ({ w, originalIdx }))
+                                .sort((a: any, b: any) => {
+                                  const aHasDomain = !!a.w.projectId;
+                                  const bHasDomain = !!b.w.projectId;
+                                  if (aHasDomain === bHasDomain) return a.originalIdx - b.originalIdx;
+                                  return aHasDomain ? 1 : -1;
+                                });
+                              let domainCounter = 0;
+                              return orderedWorks.map(({ w: work, originalIdx }: any) => {
                               const workMatchedProj = projects.find(p => p.id === work.projectId);
                               const hasDomain = !!work.projectId;
+                              const projectDisplayNumber = hasDomain ? ++domainCounter : 0;
                               return (
-                                <div key={work.workId || idx} className="space-y-4 pb-6 last:pb-0 border-b border-dashed border-slate-200 last:border-b-0">
+                                <div key={work.workId || originalIdx} className="space-y-4 pb-6 last:pb-0 border-b border-dashed border-slate-200 last:border-b-0">
                                   {/* Inner details header */}
                                   <div className="pb-2">
                                     <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">
-                                      {hasDomain ? `Project ${idx + 1}` : 'Note'}
+                                      {hasDomain ? `Project ${projectDisplayNumber}` : 'Note'}
                                     </h4>
                                     <p className="text-sm font-black text-slate-900 mt-1 flex items-center gap-2">
                                       📂 {hasDomain ? (workMatchedProj?.name || work.projectName || 'Work Note') : 'Work Note'}
@@ -1006,7 +1021,8 @@ export default function DSRLogs({
                                   )}
                                 </div>
                               );
-                            })}
+                              });
+                            })()}
                           </div>
 
                           {/* Inline control actions – approve/revision or delete */}
