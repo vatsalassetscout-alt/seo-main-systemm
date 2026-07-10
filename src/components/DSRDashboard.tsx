@@ -1240,7 +1240,7 @@ export default function DSRDashboard({
     { id: 'backlinks' as const, label: 'Backlinks', icon: Percent },
     { id: 'unworked_project' as const, label: 'Idle Projects', icon: FolderOpen },
     { id: 'keyword_section' as const, label: 'Ranking', icon: Tag },
-    { id: 'update_ranking' as const, label: 'Manual Ranking', icon: Table }
+    { id: 'update_ranking' as const, label: isAdmin ? 'Manual Ranking' : 'Update Ranking', icon: Table }
   ];
 
   return (
