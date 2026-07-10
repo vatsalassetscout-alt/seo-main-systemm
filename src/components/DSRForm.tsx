@@ -898,7 +898,7 @@ export default function DSRForm({
                       </div>
                       <div className="space-y-2">
                         <label htmlFor={`work-summary-${idx}`} className="block text-xs font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1.5">
-                           Work Notes / Summary
+                            Notes
                         </label>
                         <textarea
                           id={`work-summary-${idx}`}
@@ -923,7 +923,7 @@ export default function DSRForm({
                   ＋
                 </span>
                 <div>
-                  <h4 className="font-bold text-gray-900 text-sm">Extra / New Work Done</h4>
+                  <h4 className="font-bold text-gray-900 text-sm">Work Note</h4>
          
                 </div>
               </div>
