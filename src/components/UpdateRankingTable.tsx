@@ -435,7 +435,7 @@ export default function UpdateRankingTable({ projects, isAdmin = false, grid, se
         </div>
       ) : (
         <div className="overflow-x-auto rounded-b-2xl mt-1">
-          <table className="text-left text-xs border-collapse w-full">
+          <table className="text-left text-xs border-collapse" style={{ tableLayout: 'fixed' }}>
             <thead className="bg-slate-50/70 text-slate-500 font-extrabold text-[10px] uppercase border-b border-gray-150">
               <tr>
                 {colorModeOn && <th className="px-3 py-3 sticky left-0 bg-slate-50/95 z-20" style={{ width: CHECKBOX_COL_WIDTH, minWidth: CHECKBOX_COL_WIDTH, maxWidth: CHECKBOX_COL_WIDTH }}></th>}
