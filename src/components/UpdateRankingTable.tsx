@@ -446,7 +446,7 @@ export default function UpdateRankingTable({ projects, isAdmin = false, grid, se
                   Sr No.
                 </th>
                 <th
-                  className="px-2.5 py-3 sticky bg-slate-50/95 z-20 truncate"
+                  className="px-1.5 py-3 sticky bg-slate-50/95 z-20 truncate"
                   style={{ left: nameLeft, width: NAME_COL_WIDTH, minWidth: NAME_COL_WIDTH, maxWidth: NAME_COL_WIDTH }}
                 >
                   Project Name
