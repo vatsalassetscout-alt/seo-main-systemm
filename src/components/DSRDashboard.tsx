@@ -1793,9 +1793,9 @@ export default function DSRDashboard({
               </div>
             </div>
 
-            <div className="overflow-x-auto">
+            <div className="overflow-auto max-h-[70vh]">
               <table className="w-full text-left text-xs min-w-[700px]">
-                <thead className="bg-slate-50/55 text-slate-500 font-extrabold text-[10px] uppercase border-b border-gray-150">
+                <thead className="sticky top-0 z-20 bg-slate-50/95 backdrop-blur-sm text-slate-500 font-extrabold text-[10px] uppercase border-b border-gray-150">
                   <tr>
                     <th className="px-4 py-3 w-14">Sr No.</th>
                     <th className="px-4 py-3">Project Name</th>
@@ -1990,9 +1990,9 @@ export default function DSRDashboard({
               </div>
             </div>
             
-            <div className="overflow-x-auto">
+            <div className="overflow-auto max-h-[70vh]">
               <table className="w-full text-left text-xs min-w-[750px]">
-                <thead className="bg-slate-50/55 text-slate-500 font-extrabold text-[10px] uppercase border-b border-gray-150">
+                <thead className="sticky top-0 z-20 bg-slate-50/95 backdrop-blur-sm text-slate-500 font-extrabold text-[10px] uppercase border-b border-gray-150">
                   <tr>
                     <th className="px-4 py-3 w-14">Sr No.</th>
                     <th className="px-4 py-3">Project</th>
@@ -2982,9 +2982,9 @@ export default function DSRDashboard({
                 <p>No projects found.</p>
               </div>
             ) : (
-              <div className="overflow-x-auto">
+              <div className="overflow-auto max-h-[70vh]">
                 <table className="w-full text-left text-xs min-w-[650px] border-collapse">
-                  <thead className="bg-slate-50/55 text-slate-500 font-extrabold text-[10px] uppercase border-b border-gray-150">
+                  <thead className="sticky top-0 z-20 bg-slate-50/95 backdrop-blur-sm text-slate-500 font-extrabold text-[10px] uppercase border-b border-gray-150">
                     <tr>
                       <th className="px-4 py-3 w-14 text-center">Sr No.</th>
                       <th className="px-4 py-3">Project Name</th>
@@ -3143,9 +3143,9 @@ export default function DSRDashboard({
                 <p>No projects found matching the search criteria.</p>
               </div>
             ) : (
-              <div className="overflow-x-auto">
+              <div className="overflow-auto max-h-[70vh]">
                 <table className="w-full text-left text-xs min-w-[700px] border-collapse">
-                  <thead className="bg-slate-50/55 text-slate-500 font-extrabold text-[10px] uppercase border-b border-gray-150">
+                  <thead className="sticky top-0 z-20 bg-slate-50/95 backdrop-blur-sm text-slate-500 font-extrabold text-[10px] uppercase border-b border-gray-150">
                     <tr>
                       <th className="px-4 py-3 w-14 text-center">Sr No.</th>
                       <th className="px-4 py-3">Project Name</th>
