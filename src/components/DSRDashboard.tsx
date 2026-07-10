@@ -1240,7 +1240,7 @@ export default function DSRDashboard({
     { id: 'backlinks' as const, label: 'Backlinks', icon: Percent },
     { id: 'unworked_project' as const, label: 'Idle Projects', icon: FolderOpen },
     { id: 'keyword_section' as const, label: 'Ranking', icon: Tag },
-    { id: 'update_ranking' as const, label: 'Update Ranking', icon: Table }
+    { id: 'update_ranking' as const, label: 'Manual Ranking', icon: Table }
   ];
 
   return (
@@ -1682,7 +1682,7 @@ export default function DSRDashboard({
       </div>
 
       {/* Content Section corresponding to Selected Tab */}
-      <div className="bg-white rounded-2xl border border-gray-150 shadow-3xs overflow-hidden">
+      <div className={`bg-white rounded-2xl border border-gray-150 shadow-3xs ${activeTab === 'update_ranking' ? 'overflow-visible' : 'overflow-hidden'}`}>
         
         {activeTab === 'project_table' && (
           <div>
@@ -3369,7 +3369,7 @@ export default function DSRDashboard({
                 <div className="p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50/80">
                   <div>
                     <h3 className="font-extrabold text-sm text-gray-900 uppercase tracking-wider flex items-center gap-1.5">
-                      🚨 Setup Recovery Plan
+                       Setup Recovery Plan
                     </h3>
                     <p className="text-[10px] text-gray-500 font-bold font-mono mt-0.5">
                       PROJECT: {selectedPlanProject.name}
@@ -3434,7 +3434,7 @@ export default function DSRDashboard({
                     disabled={!planMessage.trim()}
                     className="px-4 py-2 text-xs font-black bg-indigo-600 border border-indigo-700 hover:bg-indigo-700 text-white rounded-xl shadow-2xs cursor-pointer transition disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    🚀 Publish Alert Plan
+                     Publish Alert Plan
                   </button>
                 </div>
               </motion.div>
