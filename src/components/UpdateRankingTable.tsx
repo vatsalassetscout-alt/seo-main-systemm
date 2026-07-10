@@ -434,31 +434,31 @@ export default function UpdateRankingTable({ projects, isAdmin = false, grid, se
           No projects found matching the search criteria.
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-b-2xl mt-1">
+        <div className="overflow-auto rounded-b-2xl mt-1 max-h-[70vh]">
           <table className="text-left text-xs border-collapse w-full" style={{ tableLayout: 'fixed' }}>
             <thead className="bg-slate-50/70 text-slate-500 font-extrabold text-[10px] uppercase border-b border-gray-150">
               <tr>
-                {colorModeOn && <th className="px-3 py-3 sticky left-0 bg-slate-50/95 z-20" style={{ width: CHECKBOX_COL_WIDTH, minWidth: CHECKBOX_COL_WIDTH, maxWidth: CHECKBOX_COL_WIDTH }}></th>}
+                {colorModeOn && <th className="px-3 py-3 sticky top-0 left-0 bg-slate-50/95 z-30" style={{ width: CHECKBOX_COL_WIDTH, minWidth: CHECKBOX_COL_WIDTH, maxWidth: CHECKBOX_COL_WIDTH }}></th>}
                 <th
-                  className="px-3 py-3 text-center sticky bg-slate-50/95 z-20"
+                  className="px-3 py-3 text-center sticky top-0 bg-slate-50/95 z-30"
                   style={{ left: srNoLeft, width: SR_NO_COL_WIDTH, minWidth: SR_NO_COL_WIDTH, maxWidth: SR_NO_COL_WIDTH }}
                 >
                   Sr No.
                 </th>
                 <th
-                  className="px-1.5 py-3 sticky bg-slate-50/95 z-20 truncate"
+                  className="px-1.5 py-3 sticky top-0 bg-slate-50/95 z-30 truncate"
                   style={{ left: nameLeft, width: NAME_COL_WIDTH, minWidth: NAME_COL_WIDTH, maxWidth: NAME_COL_WIDTH }}
                 >
                   Project Name
                 </th>
                 <th
-                  className="px-1.5 py-3 sticky bg-slate-50/95 z-20 truncate"
+                  className="px-1.5 py-3 sticky top-0 bg-slate-50/95 z-30 truncate"
                   style={{ left: domainLeft, width: DOMAIN_COL_WIDTH, minWidth: DOMAIN_COL_WIDTH, maxWidth: DOMAIN_COL_WIDTH }}
                 >
                   Domain
                 </th>
                 <th
-                  className="px-1.5 py-3 sticky bg-slate-50/95 z-20 truncate"
+                  className="px-1.5 py-3 sticky top-0 bg-slate-50/95 z-30 truncate"
                   style={{ left: locationLeft, width: LOCATION_COL_WIDTH, minWidth: LOCATION_COL_WIDTH, maxWidth: LOCATION_COL_WIDTH }}
                 >
                   Location
@@ -467,7 +467,7 @@ export default function UpdateRankingTable({ projects, isAdmin = false, grid, se
                 {grid.columns.map(col => {
                   const w = columnWidth(col.name);
                   return (
-                    <th key={col.id} className="px-2.5 py-3 group/col relative" style={{ width: w, minWidth: w, maxWidth: w }}>
+                    <th key={col.id} className="px-2.5 py-3 group/col relative sticky top-0 z-20 bg-slate-50/95" style={{ width: w, minWidth: w, maxWidth: w }}>
                       <div className="flex items-center justify-between gap-1">
                         {canEdit ? (
                           <button
@@ -495,7 +495,7 @@ export default function UpdateRankingTable({ projects, isAdmin = false, grid, se
                 })}
 
                 {canEdit && (
-                  <th className="px-3 py-3 w-12">
+                  <th className="px-3 py-3 w-12 sticky top-0 z-20 bg-slate-50/95">
                     <button
                       onClick={addColumn}
                       title="Add a new ranking column"
@@ -509,7 +509,7 @@ export default function UpdateRankingTable({ projects, isAdmin = false, grid, se
                     horizontal space. Lets a colored row's background extend
                     all the way to the right edge instead of stopping at the
                     last data column. */}
-                <th className="w-full"></th>
+                <th className="w-full sticky top-0 z-20 bg-slate-50/95"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-150">
