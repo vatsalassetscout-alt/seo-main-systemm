@@ -6,7 +6,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { DSREntry, Project, AppUser, ProjectLocation, CustomSubmissionType } from '../types';
 import { getUserDisplayName, isUserAdmin, doesUserMatch } from '../lib/userUtils';
-import UpdateRankingTable from './UpdateRankingTable';
+import UpdateRankingTable, { ManualRankingGrid } from './UpdateRankingTable';
 import { 
   Calendar, 
   ClipboardCheck, 
@@ -209,6 +209,33 @@ export default function DSRDashboard({
       }
     };
     fetchRankings();
+  }, []);
+
+  // Manual/Update Ranking grid - fetched once up front (same as rankings above)
+  // instead of inside UpdateRankingTable, so that tab shows data instantly
+  // instead of showing its own loading spinner every time it's opened.
+  const [manualRankingGrid, setManualRankingGrid] = useState<ManualRankingGrid>({ columns: [], values: {}, rowColors: {} });
+  const [manualRankingLoading, setManualRankingLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchManualRankings = async () => {
+      try {
+        const res = await fetch('/api/manual-rankings');
+        if (res.ok) {
+          const data = await res.json();
+          setManualRankingGrid({
+            columns: Array.isArray(data.columns) ? data.columns : [],
+            values: data.values && typeof data.values === 'object' ? data.values : {},
+            rowColors: data.rowColors && typeof data.rowColors === 'object' ? data.rowColors : {}
+          });
+        }
+      } catch (e) {
+        console.error('Failed to load ranking data:', e);
+      } finally {
+        setManualRankingLoading(false);
+      }
+    };
+    fetchManualRankings();
   }, []);
 
   // Employee lookup details
@@ -3353,7 +3380,13 @@ export default function DSRDashboard({
         )}
 
         {activeTab === 'update_ranking' && (
-          <UpdateRankingTable projects={projects} isAdmin={isAdmin} />
+          <UpdateRankingTable
+            projects={projects}
+            isAdmin={isAdmin}
+            grid={manualRankingGrid}
+            setGrid={setManualRankingGrid}
+            isLoading={manualRankingLoading}
+          />
         )}
 
         {/* Admin Recovery Plan Modal PopUp */}
