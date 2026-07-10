@@ -3381,7 +3381,7 @@ export default function DSRDashboard({
 
         {activeTab === 'update_ranking' && (
           <UpdateRankingTable
-            projects={projects}
+            projects={userProjects}
             isAdmin={isAdmin}
             grid={manualRankingGrid}
             setGrid={setManualRankingGrid}
