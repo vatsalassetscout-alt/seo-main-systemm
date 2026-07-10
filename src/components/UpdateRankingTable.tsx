@@ -5,7 +5,7 @@
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Project } from '../types';
-import { Plus, X, ArrowUpDown, Search, Check, Loader2, ChevronDown } from 'lucide-react';
+import { Plus, X, ArrowUpDown, Palette, Search, Check, Loader2, ChevronDown } from 'lucide-react';
 
 interface RankingColumn {
   id: string;
@@ -24,6 +24,34 @@ interface UpdateRankingTableProps {
 }
 
 const EMPTY_GRID: ManualRankingGrid = { columns: [], values: {}, rowColors: {} };
+
+// Full color palette offered for the row color-tagging filter (24 presets)
+const COLOR_SWATCHES = [
+  { label: 'Green', value: '#d1fae5' },
+  { label: 'Emerald', value: '#a7f3d0' },
+  { label: 'Teal', value: '#ccfbf1' },
+  { label: 'Cyan', value: '#cffafe' },
+  { label: 'Sky', value: '#e0f2fe' },
+  { label: 'Blue', value: '#dbeafe' },
+  { label: 'Indigo', value: '#e0e7ff' },
+  { label: 'Violet', value: '#ede9fe' },
+  { label: 'Purple', value: '#f3e8ff' },
+  { label: 'Fuchsia', value: '#fae8ff' },
+  { label: 'Pink', value: '#fce7f3' },
+  { label: 'Rose', value: '#ffe4e6' },
+  { label: 'Red', value: '#fee2e2' },
+  { label: 'Orange', value: '#ffedd5' },
+  { label: 'Amber', value: '#fef3c7' },
+  { label: 'Yellow', value: '#fef9c3' },
+  { label: 'Lime', value: '#ecfccb' },
+  { label: 'Gray', value: '#e5e7eb' },
+  { label: 'Slate', value: '#e2e8f0' },
+  { label: 'Stone', value: '#e7e5e4' },
+  { label: 'Dark Green', value: '#86efac' },
+  { label: 'Dark Blue', value: '#93c5fd' },
+  { label: 'Dark Red', value: '#fca5a5' },
+  { label: 'Dark Purple', value: '#d8b4fe' },
+];
 
 // Only digits and commas allowed while typing ranking values
 const sanitizeNumericInput = (raw: string) => raw.replace(/[^0-9,]/g, '');
@@ -57,6 +85,11 @@ export default function UpdateRankingTable({ projects, isAdmin = false }: Update
   const [sortDirection, setSortDirection] = useState<'desc' | 'asc'>('desc');
   const [sortPanelOpen, setSortPanelOpen] = useState(false);
   const sortPanelRef = useRef<HTMLDivElement | null>(null);
+
+  // Color-tagging filter mode - available to admin and user alike
+  const [colorModeOn, setColorModeOn] = useState(false);
+  const [selectedRowIds, setSelectedRowIds] = useState<Record<string, boolean>>({});
+  const [customColor, setCustomColor] = useState('#c7d2fe');
 
   const skipNextAutoSave = useRef(true);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -179,6 +212,28 @@ export default function UpdateRankingTable({ projects, isAdmin = false }: Update
     setSortColumnId(prev => (prev === colId ? '' : colId));
   };
 
+  const applyColorToSelected = (color: string) => {
+    setGrid(prev => {
+      const nextColors = { ...prev.rowColors };
+      Object.keys(selectedRowIds).forEach(pid => {
+        if (selectedRowIds[pid]) nextColors[pid] = color;
+      });
+      return { ...prev, rowColors: nextColors };
+    });
+    setSelectedRowIds({});
+  };
+
+  const clearColorFromSelected = () => {
+    setGrid(prev => {
+      const nextColors = { ...prev.rowColors };
+      Object.keys(selectedRowIds).forEach(pid => {
+        if (selectedRowIds[pid]) delete nextColors[pid];
+      });
+      return { ...prev, rowColors: nextColors };
+    });
+    setSelectedRowIds({});
+  };
+
   const visibleProjects = useMemo(() => {
     let list = projects.filter(p => {
       if (!searchTerm.trim()) return true;
@@ -196,6 +251,7 @@ export default function UpdateRankingTable({ projects, isAdmin = false }: Update
     return list;
   }, [projects, searchTerm, sortColumnId, sortDirection, grid.values]);
 
+  const selectedCount = Object.values(selectedRowIds).filter(Boolean).length;
   const activeSortColumnName = grid.columns.find(c => c.id === sortColumnId)?.name;
 
   return (
@@ -302,8 +358,62 @@ export default function UpdateRankingTable({ projects, isAdmin = false }: Update
               </div>
             )}
           </div>
+
+          {/* Color tagging filter - available to admin and user */}
+          <button
+            onClick={() => { setColorModeOn(v => !v); setSelectedRowIds({}); }}
+            className={`flex items-center gap-1.5 text-xs font-bold border rounded-xl px-2.5 py-2 cursor-pointer transition ${
+              colorModeOn ? 'bg-indigo-600 border-indigo-700 text-white' : 'bg-white border-gray-200 hover:bg-gray-50 text-gray-700'
+            }`}
+          >
+            <Palette size={12} />
+            Color Tag {colorModeOn ? 'On' : ''}
+          </button>
         </div>
       </div>
+
+      {/* Color palette bar - shown once rows are checked in color mode */}
+      {colorModeOn && selectedCount > 0 && (
+        <div className="mx-4 mt-3 p-3 bg-indigo-50 border border-indigo-150 rounded-xl">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[10px] font-bold text-indigo-800">{selectedCount} row{selectedCount > 1 ? 's' : ''} selected</span>
+            <button
+              onClick={clearColorFromSelected}
+              className="text-[10px] font-bold text-gray-600 hover:text-rose-600 px-2 py-1 rounded-lg hover:bg-white transition cursor-pointer"
+            >
+              Clear color
+            </button>
+          </div>
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {COLOR_SWATCHES.map(sw => (
+              <button
+                key={sw.value}
+                title={sw.label}
+                onClick={() => applyColorToSelected(sw.value)}
+                className="w-6 h-6 rounded-full border-2 border-white shadow-2xs cursor-pointer hover:scale-110 transition"
+                style={{ backgroundColor: sw.value }}
+              />
+            ))}
+
+            {/* Custom color picker - pick any color beyond the presets */}
+            <div className="flex items-center gap-1 ml-1 pl-2 border-l border-indigo-200">
+              <input
+                type="color"
+                value={customColor}
+                onChange={(e) => setCustomColor(e.target.value)}
+                title="Pick a custom color"
+                className="w-6 h-6 rounded-full border-2 border-white shadow-2xs cursor-pointer overflow-hidden p-0"
+              />
+              <button
+                onClick={() => applyColorToSelected(customColor)}
+                className="text-[10px] font-bold text-indigo-700 hover:text-indigo-900 px-2 py-1 rounded-lg hover:bg-white transition cursor-pointer"
+              >
+                Apply
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {isLoading ? (
         <div className="p-12 text-center text-xs text-gray-500 font-bold">Loading ranking data...</div>
@@ -316,8 +426,9 @@ export default function UpdateRankingTable({ projects, isAdmin = false }: Update
           <table className="text-left text-xs border-collapse w-full">
             <thead className="bg-slate-50/70 text-slate-500 font-extrabold text-[10px] uppercase border-b border-gray-150">
               <tr>
-                <th className="px-3 py-3 w-14 text-center sticky left-0 bg-slate-50/95 z-20">Sr No.</th>
-                <th className="px-4 py-3 min-w-[180px] sticky bg-slate-50/95 z-20" style={{ left: '64px' }}>Project Name</th>
+                {colorModeOn && <th className="px-3 py-3 w-10 sticky left-0 bg-slate-50/95 z-20"></th>}
+                <th className={`px-3 py-3 w-14 text-center sticky bg-slate-50/95 z-20 ${colorModeOn ? 'left-10' : 'left-0'}`}>Sr No.</th>
+                <th className="px-4 py-3 min-w-[180px] sticky bg-slate-50/95 z-20" style={{ left: colorModeOn ? '104px' : '64px' }}>Project Name</th>
                 <th className="px-4 py-3 min-w-[160px]">Domain</th>
                 <th className="px-4 py-3 min-w-[140px]">Location</th>
 
@@ -365,16 +476,29 @@ export default function UpdateRankingTable({ projects, isAdmin = false }: Update
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-150">
-              {visibleProjects.map((proj, idx) => (
-                <tr key={proj.id} className="hover:bg-slate-50/60 transition">
-                  <td className="px-3 py-2.5 text-center font-bold text-gray-500 sticky left-0 z-10 bg-white">
-                    {idx + 1}
-                  </td>
-                  <td className="px-4 py-2.5 font-bold text-gray-800 sticky z-10 bg-white" style={{ left: '64px' }}>
-                    {proj.name}
-                  </td>
-                  <td className="px-4 py-2.5 text-gray-600 font-semibold">{proj.domain || '—'}</td>
-                  <td className="px-4 py-2.5 text-gray-600 font-semibold">{proj.location || '—'}</td>
+              {visibleProjects.map((proj, idx) => {
+                const rowColor = grid.rowColors[proj.id];
+                const isChecked = !!selectedRowIds[proj.id];
+                return (
+                  <tr key={proj.id} style={rowColor ? { backgroundColor: rowColor } : undefined} className="hover:bg-slate-50/60 transition">
+                    {colorModeOn && (
+                      <td className="px-3 py-2.5 sticky left-0 z-10" style={{ backgroundColor: rowColor || '#fff' }}>
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={(e) => setSelectedRowIds(prev => ({ ...prev, [proj.id]: e.target.checked }))}
+                          className="cursor-pointer"
+                        />
+                      </td>
+                    )}
+                    <td className={`px-3 py-2.5 text-center font-bold text-gray-500 sticky z-10 ${colorModeOn ? 'left-10' : 'left-0'}`} style={{ backgroundColor: rowColor || '#fff' }}>
+                      {idx + 1}
+                    </td>
+                    <td className="px-4 py-2.5 font-bold text-gray-800 sticky z-10" style={{ left: colorModeOn ? '104px' : '64px', backgroundColor: rowColor || '#fff' }}>
+                      {proj.name}
+                    </td>
+                    <td className="px-4 py-2.5 text-gray-600 font-semibold">{proj.domain || '—'}</td>
+                    <td className="px-4 py-2.5 text-gray-600 font-semibold">{proj.location || '—'}</td>
 
                   {grid.columns.map(col => {
                     const w = columnWidth(col.name);
@@ -401,7 +525,8 @@ export default function UpdateRankingTable({ projects, isAdmin = false }: Update
 
                   {isAdmin && <td></td>}
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>
