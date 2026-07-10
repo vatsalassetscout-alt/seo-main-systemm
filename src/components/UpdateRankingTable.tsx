@@ -73,6 +73,10 @@ const columnWidth = (name: string): number => {
 };
 
 export default function UpdateRankingTable({ projects, isAdmin = false }: UpdateRankingTableProps) {
+  // Permissions are intentionally flipped from "isAdmin": admin can only VIEW
+  // this section (plus use the sort filter), while regular users get full
+  // editing rights (values, add/rename/delete columns, color tagging).
+  const canEdit = !isAdmin;
   const [grid, setGrid] = useState<ManualRankingGrid>(EMPTY_GRID);
   const [isLoading, setIsLoading] = useState(true);
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
@@ -157,7 +161,7 @@ export default function UpdateRankingTable({ projects, isAdmin = false }: Update
   }, [sortPanelOpen]);
 
   const addColumn = () => {
-    if (!isAdmin) return;
+    if (!canEdit) return;
     const name = window.prompt('Name this new ranking column (e.g. "Week 1", "July Check"):');
     if (!name || !name.trim()) return;
     const newCol: RankingColumn = {
@@ -168,7 +172,7 @@ export default function UpdateRankingTable({ projects, isAdmin = false }: Update
   };
 
   const renameColumn = (colId: string) => {
-    if (!isAdmin) return;
+    if (!canEdit) return;
     const current = grid.columns.find(c => c.id === colId);
     const name = window.prompt('Rename column:', current?.name || '');
     if (!name || !name.trim()) return;
@@ -179,7 +183,7 @@ export default function UpdateRankingTable({ projects, isAdmin = false }: Update
   };
 
   const deleteColumn = (colId: string) => {
-    if (!isAdmin) return;
+    if (!canEdit) return;
     if (!window.confirm('Remove this column and all its filled data? This cannot be undone.')) return;
     setGrid(prev => ({
       ...prev,
@@ -196,7 +200,7 @@ export default function UpdateRankingTable({ projects, isAdmin = false }: Update
   };
 
   const updateCell = (projectId: string, colId: string, raw: string) => {
-    if (!isAdmin) return;
+    if (!canEdit) return;
     const value = sanitizeNumericInput(raw);
     setGrid(prev => ({
       ...prev,
@@ -259,9 +263,11 @@ export default function UpdateRankingTable({ projects, isAdmin = false }: Update
       {/* Toolbar */}
       <div className="p-4 bg-gray-50/50 border-b border-gray-150 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h3 className="text-xs font-black text-gray-900 uppercase tracking-wider">Manual Ranking</h3>
+          <h3 className="text-xs font-black text-gray-900 uppercase tracking-wider">
+            {isAdmin ? 'Manual Ranking' : 'Update Ranking'}
+          </h3>
           <p className="text-[10px] text-gray-500 font-semibold mt-0.5">
-            {isAdmin
+            {canEdit
               ? 'Manually track ranking numbers per project across as many columns as you need.'
               : 'View ranking numbers per project. Sort and search freely.'}
           </p>
@@ -329,7 +335,7 @@ export default function UpdateRankingTable({ projects, isAdmin = false }: Update
                 <p className="text-[10px] font-black text-gray-500 uppercase tracking-wider mb-2">Apply to column</p>
                 {grid.columns.length === 0 ? (
                   <p className="text-[11px] text-gray-400 font-semibold">
-                    {isAdmin ? 'Add a ranking column first.' : 'No ranking columns yet.'}
+                    {canEdit ? 'Add a ranking column first.' : 'No ranking columns yet.'}
                   </p>
                 ) : (
                   <div className="flex flex-col gap-1.5">
@@ -359,21 +365,23 @@ export default function UpdateRankingTable({ projects, isAdmin = false }: Update
             )}
           </div>
 
-          {/* Color tagging filter - available to admin and user */}
-          <button
-            onClick={() => { setColorModeOn(v => !v); setSelectedRowIds({}); }}
-            className={`flex items-center gap-1.5 text-xs font-bold border rounded-xl px-2.5 py-2 cursor-pointer transition ${
-              colorModeOn ? 'bg-indigo-600 border-indigo-700 text-white' : 'bg-white border-gray-200 hover:bg-gray-50 text-gray-700'
-            }`}
-          >
-            <Palette size={12} />
-            Color Tag {colorModeOn ? 'On' : ''}
-          </button>
+          {/* Color tagging filter - users only; admin is view-only here */}
+          {canEdit && (
+            <button
+              onClick={() => { setColorModeOn(v => !v); setSelectedRowIds({}); }}
+              className={`flex items-center gap-1.5 text-xs font-bold border rounded-xl px-2.5 py-2 cursor-pointer transition ${
+                colorModeOn ? 'bg-indigo-600 border-indigo-700 text-white' : 'bg-white border-gray-200 hover:bg-gray-50 text-gray-700'
+              }`}
+            >
+              <Palette size={12} />
+              Color Tag {colorModeOn ? 'On' : ''}
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Color palette bar - shown once rows are checked in color mode */}
-      {colorModeOn && selectedCount > 0 && (
+      {/* Color palette bar - shown once rows are checked in color mode (users only) */}
+      {canEdit && colorModeOn && selectedCount > 0 && (
         <div className="mx-4 mt-3 p-3 bg-indigo-50 border border-indigo-150 rounded-xl">
           <div className="flex items-center justify-between mb-2">
             <span className="text-[10px] font-bold text-indigo-800">{selectedCount} row{selectedCount > 1 ? 's' : ''} selected</span>
@@ -437,7 +445,7 @@ export default function UpdateRankingTable({ projects, isAdmin = false }: Update
                   return (
                     <th key={col.id} className="px-2.5 py-3 group/col relative" style={{ width: w, minWidth: w, maxWidth: w }}>
                       <div className="flex items-center justify-between gap-1">
-                        {isAdmin ? (
+                        {canEdit ? (
                           <button
                             onClick={() => renameColumn(col.id)}
                             className="truncate text-left hover:text-indigo-600 cursor-pointer"
@@ -448,7 +456,7 @@ export default function UpdateRankingTable({ projects, isAdmin = false }: Update
                         ) : (
                           <span className="truncate" title={col.name}>{col.name}</span>
                         )}
-                        {isAdmin && (
+                        {canEdit && (
                           <button
                             onClick={() => deleteColumn(col.id)}
                             className="opacity-0 group-hover/col:opacity-100 text-gray-400 hover:text-rose-600 transition cursor-pointer shrink-0"
@@ -462,7 +470,7 @@ export default function UpdateRankingTable({ projects, isAdmin = false }: Update
                   );
                 })}
 
-                {isAdmin && (
+                {canEdit && (
                   <th className="px-3 py-3 w-12">
                     <button
                       onClick={addColumn}
@@ -505,7 +513,7 @@ export default function UpdateRankingTable({ projects, isAdmin = false }: Update
                     const cellValue = grid.values[proj.id]?.[col.id] || '';
                     return (
                       <td key={col.id} className="px-2.5 py-2" style={{ width: w, minWidth: w, maxWidth: w }}>
-                        {isAdmin ? (
+                        {canEdit ? (
                           <input
                             type="text"
                             inputMode="numeric"
@@ -523,7 +531,7 @@ export default function UpdateRankingTable({ projects, isAdmin = false }: Update
                     );
                   })}
 
-                  {isAdmin && <td></td>}
+                  {canEdit && <td></td>}
                 </tr>
                 );
               })}
