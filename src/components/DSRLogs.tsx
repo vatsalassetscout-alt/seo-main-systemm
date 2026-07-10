@@ -696,7 +696,7 @@ export default function DSRLogs({
               // Unique project names submitted
               const projectNames = Array.from(new Set(item.works.map((w: any) => {
                 const p = projects.find(proj => proj.id === w.projectId);
-                return p ? p.name : (w.projectName || 'Extra / New Work Done');
+                return p ? p.name : (w.projectName || 'Work Note');
               })));
 
               return (
@@ -820,10 +820,10 @@ export default function DSRLogs({
                                   {/* Inner details header */}
                                   <div className="pb-2">
                                     <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">
-                                      {hasDomain ? `Project ${idx + 1}` : 'New Work'}
+                                      {hasDomain ? `Project ${idx + 1}` : 'Note'}
                                     </h4>
                                     <p className="text-sm font-black text-slate-900 mt-1 flex items-center gap-2">
-                                      📂 {hasDomain ? (workMatchedProj?.name || work.projectName || 'Extra / New Work Done') : 'Extra / New Work Done'}
+                                      📂 {hasDomain ? (workMatchedProj?.name || work.projectName || 'Work Note') : 'Work Note'}
                                       {workMatchedProj?.domain && (
                                         <span className="font-mono text-xs text-slate-500 font-bold bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-lg">
                                           {workMatchedProj.domain}
@@ -977,12 +977,12 @@ export default function DSRLogs({
                                   {/* Work summary descriptive report block — only shown for real domain/project entries, not standalone Extra/New Work */}
                                   {hasDomain && (
                                     <div className="space-y-1.5">
-                                      <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">Summary</h4>
+                                      <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">Note</h4>
                                       <div className="bg-white p-3.5 rounded-2xl border border-slate-150 shadow-3xs text-xs text-slate-805 leading-relaxed font-semibold">
                                         {work.workSummary ? (
                                           <p className="whitespace-pre-wrap">{work.workSummary}</p>
                                         ) : (
-                                          <p className="text-slate-404 italic">No summary description provided for this log block.</p>
+                                          <p className="text-slate-404 italic">No Note for this log block.</p>
                                         )}
 
                                         {/* Keywords attached logs */}
@@ -1060,7 +1060,7 @@ export default function DSRLogs({
                                     }}
                                     className="px-3.5 py-1.5 rounded-xl text-xs font-black transition cursor-pointer select-none font-sans bg-violet-50 text-violet-800 hover:bg-violet-100 border border-violet-150 flex items-center gap-1"
                                   >
-                                    💬 Remark
+                                     Remark
                                   </button>
                                 )}
                               </div>
