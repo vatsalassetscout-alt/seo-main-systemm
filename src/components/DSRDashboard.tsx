@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { DSREntry, Project, AppUser, ProjectLocation, CustomSubmissionType } from '../types';
 import { getUserDisplayName, isUserAdmin, doesUserMatch } from '../lib/userUtils';
 import UpdateRankingTable, { ManualRankingGrid } from './UpdateRankingTable';
@@ -214,8 +214,32 @@ export default function DSRDashboard({
   // Manual/Update Ranking grid - fetched once up front (same as rankings above)
   // instead of inside UpdateRankingTable, so that tab shows data instantly
   // instead of showing its own loading spinner every time it's opened.
-  const [manualRankingGrid, setManualRankingGrid] = useState<ManualRankingGrid>({ columns: [], values: {}, rowColors: {} });
-  const [manualRankingLoading, setManualRankingLoading] = useState(true);
+  //
+  // Same localStorage-first pattern used for `projects` etc. in App.tsx:
+  // read the last-cached grid synchronously on mount (instant paint, no
+  // spinner), then let the useEffect below fetch the live Supabase copy
+  // and silently replace it. Supabase remains the source of truth - the
+  // cache just avoids a blank/loading screen while that fetch is in flight.
+  const [manualRankingGrid, setManualRankingGrid] = useState<ManualRankingGrid>(() => {
+    try {
+      const saved = localStorage.getItem('dsr_manual_ranking_grid');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return {
+          columns: Array.isArray(parsed.columns) ? parsed.columns : [],
+          values: parsed.values && typeof parsed.values === 'object' ? parsed.values : {},
+          rowColors: parsed.rowColors && typeof parsed.rowColors === 'object' ? parsed.rowColors : {}
+        };
+      }
+    } catch (e) {
+      console.error('Failed to parse cached ranking data:', e);
+    }
+    return { columns: [], values: {}, rowColors: {} };
+  });
+  // Only show the loading state if we had nothing cached to paint immediately.
+  const [manualRankingLoading, setManualRankingLoading] = useState(() => {
+    return !localStorage.getItem('dsr_manual_ranking_grid');
+  });
 
   useEffect(() => {
     const fetchManualRankings = async () => {
@@ -223,11 +247,17 @@ export default function DSRDashboard({
         const res = await fetch('/api/manual-rankings');
         if (res.ok) {
           const data = await res.json();
-          setManualRankingGrid({
+          const nextGrid: ManualRankingGrid = {
             columns: Array.isArray(data.columns) ? data.columns : [],
             values: data.values && typeof data.values === 'object' ? data.values : {},
             rowColors: data.rowColors && typeof data.rowColors === 'object' ? data.rowColors : {}
-          });
+          };
+          setManualRankingGrid(nextGrid);
+          try {
+            localStorage.setItem('dsr_manual_ranking_grid', JSON.stringify(nextGrid));
+          } catch (e) {
+            console.error('Failed to cache ranking data:', e);
+          }
         }
       } catch (e) {
         console.error('Failed to load ranking data:', e);
@@ -237,6 +267,22 @@ export default function DSRDashboard({
     };
     fetchManualRankings();
   }, []);
+
+  // Keep the cache in sync with any local edits (typing values, adding
+  // columns, color-tagging) so a refresh right after editing still shows
+  // the latest state instantly instead of momentarily reverting.
+  const skipManualRankingCacheWrite = useRef(true);
+  useEffect(() => {
+    if (skipManualRankingCacheWrite.current) {
+      skipManualRankingCacheWrite.current = false;
+      return;
+    }
+    try {
+      localStorage.setItem('dsr_manual_ranking_grid', JSON.stringify(manualRankingGrid));
+    } catch (e) {
+      console.error('Failed to cache ranking data:', e);
+    }
+  }, [manualRankingGrid]);
 
   // Employee lookup details
   const employeeEmailToNameMap = useMemo(() => {
