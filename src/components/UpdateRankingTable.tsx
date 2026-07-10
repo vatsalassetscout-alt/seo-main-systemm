@@ -78,12 +78,12 @@ const columnWidth = (name: string): number => {
 // Frozen (sticky) left-side columns - Sr No / Project Name / Domain / Location
 // always sit at these exact widths, no matter what's in them or how many
 // ranking columns get added. Only the ranking columns scroll horizontally,
-// like frozen panes in Google Sheets. Name+Domain+Location = 370px total.
+// like frozen panes in Google Sheets.
 const CHECKBOX_COL_WIDTH = 40;   // color-mode checkbox column
 const SR_NO_COL_WIDTH = 56;      // "Sr No." column
 const NAME_COL_WIDTH = 220;      // widened to fit full project names
 const DOMAIN_COL_WIDTH = 220;    // widened to fit full domain URLs
-const LOCATION_COL_WIDTH = 140;  // widened to fit full location names // 145 + 130 + 95 = 370px
+const LOCATION_COL_WIDTH = 140;  // widened to fit full location names
 
 export default function UpdateRankingTable({ projects, isAdmin = false, grid, setGrid, isLoading }: UpdateRankingTableProps) {
   // Permissions are intentionally flipped from "isAdmin": admin can only VIEW
@@ -252,8 +252,8 @@ export default function UpdateRankingTable({ projects, isAdmin = false, grid, se
   const selectedCount = Object.values(selectedRowIds).filter(Boolean).length;
 
   // Frozen pane: Sr No / Project Name / Domain / Location stay pinned at
-  // fixed widths (370px combined for Name+Domain+Location) no matter what
-  // ranking columns get added - only the ranking columns scroll horizontally.
+  // fixed widths no matter what ranking columns get added - only the ranking
+  // columns scroll horizontally.
   const srNoLeft = colorModeOn ? CHECKBOX_COL_WIDTH : 0;
   const nameLeft = srNoLeft + SR_NO_COL_WIDTH;
   const domainLeft = nameLeft + NAME_COL_WIDTH;
@@ -435,7 +435,7 @@ export default function UpdateRankingTable({ projects, isAdmin = false, grid, se
         </div>
       ) : (
         <div className="overflow-x-auto rounded-b-2xl mt-1">
-          <table className="text-left text-xs border-collapse" style={{ tableLayout: 'fixed' }}>
+          <table className="text-left text-xs border-collapse w-full" style={{ tableLayout: 'fixed' }}>
             <thead className="bg-slate-50/70 text-slate-500 font-extrabold text-[10px] uppercase border-b border-gray-150">
               <tr>
                 {colorModeOn && <th className="px-3 py-3 sticky left-0 bg-slate-50/95 z-20" style={{ width: CHECKBOX_COL_WIDTH, minWidth: CHECKBOX_COL_WIDTH, maxWidth: CHECKBOX_COL_WIDTH }}></th>}
@@ -505,6 +505,11 @@ export default function UpdateRankingTable({ projects, isAdmin = false, grid, se
                     </button>
                   </th>
                 )}
+                {/* Filler column: no fixed width, so it soaks up all remaining
+                    horizontal space. Lets a colored row's background extend
+                    all the way to the right edge instead of stopping at the
+                    last data column. */}
+                <th className="w-full"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-150">
@@ -554,31 +559,34 @@ export default function UpdateRankingTable({ projects, isAdmin = false, grid, se
                       {proj.location || '—'}
                     </td>
 
-                {grid.columns.map(col => {
-                    const w = columnWidth(col.name);
-                    const cellValue = grid.values[proj.id]?.[col.id] || '';
-                    return (
-                      <td key={col.id} className="p-0" style={{ width: w, minWidth: w, maxWidth: w }}>
-                        {canEdit ? (
-                          <input
-                            type="text"
-                            inputMode="numeric"
-                            value={cellValue}
-                            onChange={(e) => updateCell(proj.id, col.id, e.target.value)}
-                            placeholder="—"
-                            className="w-full text-xs font-bold text-gray-800 px-2.5 py-2.5 border border-transparent hover:border-gray-200 focus:border-indigo-400 rounded-lg focus:outline-hidden bg-transparent focus:bg-white transition"
-                          />
-                        ) : (
-                          <span className="block px-2.5 py-2.5 text-xs font-bold text-gray-800 truncate">
-                            {cellValue || '—'}
-                          </span>
-                        )}
-                      </td>
-                    );
-                  })}
+                    {grid.columns.map(col => {
+                      const w = columnWidth(col.name);
+                      const cellValue = grid.values[proj.id]?.[col.id] || '';
+                      return (
+                        <td key={col.id} className="p-0" style={{ width: w, minWidth: w, maxWidth: w }}>
+                          {canEdit ? (
+                            <input
+                              type="text"
+                              inputMode="numeric"
+                              value={cellValue}
+                              onChange={(e) => updateCell(proj.id, col.id, e.target.value)}
+                              placeholder="—"
+                              className="w-full text-xs font-bold text-gray-800 px-2.5 py-2.5 border border-transparent hover:border-gray-200 focus:border-indigo-400 rounded-lg focus:outline-hidden bg-transparent focus:bg-white transition"
+                            />
+                          ) : (
+                            <span className="block px-2.5 py-2.5 text-xs font-bold text-gray-800 truncate">
+                              {cellValue || '—'}
+                            </span>
+                          )}
+                        </td>
+                      );
+                    })}
 
-                  {canEdit && <td></td>}
-                </tr>
+                    {canEdit && <td></td>}
+                    {/* Filler cell: carries the row color out to the full
+                        width of the table, matching the header filler <th>. */}
+                    <td className="w-full" style={{ backgroundColor: rowColor || '#fff' }}></td>
+                  </tr>
                 );
               })}
             </tbody>
