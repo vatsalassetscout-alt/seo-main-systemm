@@ -81,9 +81,9 @@ const columnWidth = (name: string): number => {
 // like frozen panes in Google Sheets. Name+Domain+Location = 370px total.
 const CHECKBOX_COL_WIDTH = 40;   // color-mode checkbox column
 const SR_NO_COL_WIDTH = 56;      // "Sr No." column
-const NAME_COL_WIDTH = 160;
+const NAME_COL_WIDTH = 145;
 const DOMAIN_COL_WIDTH = 130;
-const LOCATION_COL_WIDTH = 80;   // 160 + 130 + 80 = 370px
+const LOCATION_COL_WIDTH = 95;   // 145 + 130 + 95 = 370px
 
 export default function UpdateRankingTable({ projects, isAdmin = false, grid, setGrid, isLoading }: UpdateRankingTableProps) {
   // Permissions are intentionally flipped from "isAdmin": admin can only VIEW
@@ -452,13 +452,13 @@ export default function UpdateRankingTable({ projects, isAdmin = false, grid, se
                   Project Name
                 </th>
                 <th
-                  className="px-2.5 py-3 sticky bg-slate-50/95 z-20 truncate"
+                  className="px-1.5 py-3 sticky bg-slate-50/95 z-20 truncate"
                   style={{ left: domainLeft, width: DOMAIN_COL_WIDTH, minWidth: DOMAIN_COL_WIDTH, maxWidth: DOMAIN_COL_WIDTH }}
                 >
                   Domain
                 </th>
                 <th
-                  className="px-2.5 py-3 sticky bg-slate-50/95 z-20 truncate border-r-2 border-slate-200"
+                  className="px-1.5 py-3 sticky bg-slate-50/95 z-20 truncate"
                   style={{ left: locationLeft, width: LOCATION_COL_WIDTH, minWidth: LOCATION_COL_WIDTH, maxWidth: LOCATION_COL_WIDTH }}
                 >
                   Location
@@ -533,21 +533,21 @@ export default function UpdateRankingTable({ projects, isAdmin = false, grid, se
                       {idx + 1}
                     </td>
                     <td
-                      className="px-2.5 py-2.5 font-bold text-gray-800 sticky z-10 truncate"
+                      className="px-1.5 py-2.5 font-bold text-gray-800 sticky z-10 truncate"
                       style={{ left: nameLeft, width: NAME_COL_WIDTH, minWidth: NAME_COL_WIDTH, maxWidth: NAME_COL_WIDTH, backgroundColor: rowColor || '#fff' }}
                       title={proj.name}
                     >
                       {proj.name}
                     </td>
                     <td
-                      className="px-2.5 py-2.5 text-gray-600 font-semibold sticky z-10 truncate"
+                      className="px-1.5 py-2.5 text-gray-600 font-semibold sticky z-10 truncate"
                       style={{ left: domainLeft, width: DOMAIN_COL_WIDTH, minWidth: DOMAIN_COL_WIDTH, maxWidth: DOMAIN_COL_WIDTH, backgroundColor: rowColor || '#fff' }}
                       title={proj.domain || ''}
                     >
                       {proj.domain || '—'}
                     </td>
                     <td
-                      className="px-2.5 py-2.5 text-gray-600 font-semibold sticky z-10 truncate border-r-2 border-slate-150"
+                      className="px-1.5 py-2.5 text-gray-600 font-semibold sticky z-10 truncate"
                       style={{ left: locationLeft, width: LOCATION_COL_WIDTH, minWidth: LOCATION_COL_WIDTH, maxWidth: LOCATION_COL_WIDTH, backgroundColor: rowColor || '#fff' }}
                       title={proj.location || ''}
                     >
