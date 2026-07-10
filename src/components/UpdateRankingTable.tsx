@@ -75,6 +75,14 @@ const columnWidth = (name: string): number => {
   return Math.min(180, Math.max(76, px));
 };
 
+// Sizes a text column (Project Name / Domain / Location) based on the longest
+// value actually present, instead of a fixed width - short content stays
+// compact and the freed-up space goes to the ranking columns.
+const textColumnWidth = (maxChars: number, min: number, max: number): number => {
+  const px = 48 + maxChars * 7;
+  return Math.min(max, Math.max(min, px));
+};
+
 export default function UpdateRankingTable({ projects, isAdmin = false, grid, setGrid, isLoading }: UpdateRankingTableProps) {
   // Permissions are intentionally flipped from "isAdmin": admin can only VIEW
   // this section (plus use the sort filter), while regular users get full
@@ -240,6 +248,25 @@ export default function UpdateRankingTable({ projects, isAdmin = false, grid, se
   }, [projects, searchTerm, sortColumnId, sortDirection, grid.values]);
 
   const selectedCount = Object.values(selectedRowIds).filter(Boolean).length;
+
+  // Project Name / Domain / Location columns now size to fit their longest
+  // value instead of a fixed width, so short content stays compact and the
+  // freed-up space goes to the ranking columns.
+  const { nameColWidth, domainColWidth, locationColWidth } = useMemo(() => {
+    let maxName = 'Project Name'.length;
+    let maxDomain = 'Domain'.length;
+    let maxLocation = 'Location'.length;
+    projects.forEach(p => {
+      maxName = Math.max(maxName, (p.name || '').length);
+      maxDomain = Math.max(maxDomain, (p.domain || '').length);
+      maxLocation = Math.max(maxLocation, (p.location || '').length);
+    });
+    return {
+      nameColWidth: textColumnWidth(maxName, 140, 320),
+      domainColWidth: textColumnWidth(maxDomain, 110, 260),
+      locationColWidth: textColumnWidth(maxLocation, 100, 220)
+    };
+  }, [projects]);
   const activeSortColumnName = grid.columns.find(c => c.id === sortColumnId)?.name;
 
   return (
@@ -364,9 +391,10 @@ export default function UpdateRankingTable({ projects, isAdmin = false, grid, se
         </div>
       </div>
 
-      {/* Color palette bar - shown once rows are checked in color mode (users only) */}
+      {/* Color palette bar - shown once rows are checked in color mode (users only).
+          Sticky so it stays fixed in view instead of scrolling away with the table. */}
       {canEdit && colorModeOn && selectedCount > 0 && (
-        <div className="mx-4 mt-3 p-3 bg-indigo-50 border border-indigo-150 rounded-xl">
+        <div className="sticky top-0 z-40 mx-4 mt-3 p-3 bg-indigo-50 border border-indigo-150 rounded-xl shadow-md">
           <div className="flex items-center justify-between mb-2">
             <span className="text-[10px] font-bold text-indigo-800">{selectedCount} row{selectedCount > 1 ? 's' : ''} selected</span>
             <button
@@ -420,9 +448,14 @@ export default function UpdateRankingTable({ projects, isAdmin = false, grid, se
               <tr>
                 {colorModeOn && <th className="px-3 py-3 w-10 sticky left-0 bg-slate-50/95 z-20"></th>}
                 <th className={`px-3 py-3 w-14 text-center sticky bg-slate-50/95 z-20 ${colorModeOn ? 'left-10' : 'left-0'}`}>Sr No.</th>
-                <th className="px-4 py-3 min-w-[180px] sticky bg-slate-50/95 z-20" style={{ left: colorModeOn ? '104px' : '64px' }}>Project Name</th>
-                <th className="px-4 py-3 min-w-[160px]">Domain</th>
-                <th className="px-4 py-3 min-w-[140px]">Location</th>
+                <th
+                  className="px-4 py-3 sticky bg-slate-50/95 z-20 truncate"
+                  style={{ left: colorModeOn ? '104px' : '64px', width: nameColWidth, minWidth: nameColWidth, maxWidth: nameColWidth }}
+                >
+                  Project Name
+                </th>
+                <th className="px-4 py-3 truncate" style={{ width: domainColWidth, minWidth: domainColWidth, maxWidth: domainColWidth }}>Domain</th>
+                <th className="px-4 py-3 truncate" style={{ width: locationColWidth, minWidth: locationColWidth, maxWidth: locationColWidth }}>Location</th>
 
                 {grid.columns.map(col => {
                   const w = columnWidth(col.name);
@@ -486,11 +519,27 @@ export default function UpdateRankingTable({ projects, isAdmin = false, grid, se
                     <td className={`px-3 py-2.5 text-center font-bold text-gray-500 sticky z-10 ${colorModeOn ? 'left-10' : 'left-0'}`} style={{ backgroundColor: rowColor || '#fff' }}>
                       {idx + 1}
                     </td>
-                    <td className="px-4 py-2.5 font-bold text-gray-800 sticky z-10" style={{ left: colorModeOn ? '104px' : '64px', backgroundColor: rowColor || '#fff' }}>
+                    <td
+                      className="px-4 py-2.5 font-bold text-gray-800 sticky z-10 truncate"
+                      style={{ left: colorModeOn ? '104px' : '64px', width: nameColWidth, minWidth: nameColWidth, maxWidth: nameColWidth, backgroundColor: rowColor || '#fff' }}
+                      title={proj.name}
+                    >
                       {proj.name}
                     </td>
-                    <td className="px-4 py-2.5 text-gray-600 font-semibold">{proj.domain || '—'}</td>
-                    <td className="px-4 py-2.5 text-gray-600 font-semibold">{proj.location || '—'}</td>
+                    <td
+                      className="px-4 py-2.5 text-gray-600 font-semibold truncate"
+                      style={{ width: domainColWidth, minWidth: domainColWidth, maxWidth: domainColWidth }}
+                      title={proj.domain || ''}
+                    >
+                      {proj.domain || '—'}
+                    </td>
+                    <td
+                      className="px-4 py-2.5 text-gray-600 font-semibold truncate"
+                      style={{ width: locationColWidth, minWidth: locationColWidth, maxWidth: locationColWidth }}
+                      title={proj.location || ''}
+                    >
+                      {proj.location || '—'}
+                    </td>
 
                   {grid.columns.map(col => {
                     const w = columnWidth(col.name);
