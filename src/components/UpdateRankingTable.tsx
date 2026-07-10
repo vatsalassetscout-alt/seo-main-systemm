@@ -79,7 +79,7 @@ const columnWidth = (name: string): number => {
 // value actually present, instead of a fixed width - short content stays
 // compact and the freed-up space goes to the ranking columns.
 const textColumnWidth = (maxChars: number, min: number, max: number): number => {
-  const px = 48 + maxChars * 7;
+  const px = 36 + maxChars * 7;
   return Math.min(max, Math.max(min, px));
 };
 
@@ -449,13 +449,13 @@ export default function UpdateRankingTable({ projects, isAdmin = false, grid, se
                 {colorModeOn && <th className="px-3 py-3 w-10 sticky left-0 bg-slate-50/95 z-20"></th>}
                 <th className={`px-3 py-3 w-14 text-center sticky bg-slate-50/95 z-20 ${colorModeOn ? 'left-10' : 'left-0'}`}>Sr No.</th>
                 <th
-                  className="px-4 py-3 sticky bg-slate-50/95 z-20 truncate"
+                  className="px-2.5 py-3 sticky bg-slate-50/95 z-20 truncate"
                   style={{ left: colorModeOn ? '104px' : '64px', width: nameColWidth, minWidth: nameColWidth, maxWidth: nameColWidth }}
                 >
                   Project Name
                 </th>
-                <th className="px-4 py-3 truncate" style={{ width: domainColWidth, minWidth: domainColWidth, maxWidth: domainColWidth }}>Domain</th>
-                <th className="px-4 py-3 truncate" style={{ width: locationColWidth, minWidth: locationColWidth, maxWidth: locationColWidth }}>Location</th>
+                <th className="px-2.5 py-3 truncate" style={{ width: domainColWidth, minWidth: domainColWidth, maxWidth: domainColWidth }}>Domain</th>
+                <th className="px-2.5 py-3 truncate" style={{ width: locationColWidth, minWidth: locationColWidth, maxWidth: locationColWidth }}>Location</th>
 
                 {grid.columns.map(col => {
                   const w = columnWidth(col.name);
@@ -520,21 +520,21 @@ export default function UpdateRankingTable({ projects, isAdmin = false, grid, se
                       {idx + 1}
                     </td>
                     <td
-                      className="px-4 py-2.5 font-bold text-gray-800 sticky z-10 truncate"
+                      className="px-2.5 py-2.5 font-bold text-gray-800 sticky z-10 truncate"
                       style={{ left: colorModeOn ? '104px' : '64px', width: nameColWidth, minWidth: nameColWidth, maxWidth: nameColWidth, backgroundColor: rowColor || '#fff' }}
                       title={proj.name}
                     >
                       {proj.name}
                     </td>
                     <td
-                      className="px-4 py-2.5 text-gray-600 font-semibold truncate"
+                      className="px-2.5 py-2.5 text-gray-600 font-semibold truncate"
                       style={{ width: domainColWidth, minWidth: domainColWidth, maxWidth: domainColWidth }}
                       title={proj.domain || ''}
                     >
                       {proj.domain || '—'}
                     </td>
                     <td
-                      className="px-4 py-2.5 text-gray-600 font-semibold truncate"
+                      className="px-2.5 py-2.5 text-gray-600 font-semibold truncate"
                       style={{ width: locationColWidth, minWidth: locationColWidth, maxWidth: locationColWidth }}
                       title={proj.location || ''}
                     >
