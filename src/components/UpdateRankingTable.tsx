@@ -109,6 +109,11 @@ export default function UpdateRankingTable({ projects, isAdmin = false, grid, se
   const skipNextAutoSave = useRef(true);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Always-current copy of the grid, readable from cleanup/unmount handlers
+  // without a stale-closure problem.
+  const gridRef = useRef(grid);
+  useEffect(() => { gridRef.current = grid; }, [grid]);
+
   // Grid data is now fetched once, up front, by the parent DSRDashboard
   // (alongside projects/rankings) and handed down as a prop, so switching
   // into this tab no longer triggers its own network request or spinner.
@@ -124,6 +129,7 @@ export default function UpdateRankingTable({ projects, isAdmin = false, grid, se
     if (saveTimer.current) clearTimeout(saveTimer.current);
     setSaveState('saving');
     saveTimer.current = setTimeout(async () => {
+      saveTimer.current = null;
       try {
         const res = await fetch('/api/manual-rankings', {
           method: 'POST',
@@ -132,15 +138,45 @@ export default function UpdateRankingTable({ projects, isAdmin = false, grid, se
         });
         setSaveState(res.ok ? 'saved' : 'error');
       } catch (e) {
-        console.error('Failed to save Manual Ranking data:', e);
+        console.error('Failed to save Manual Ranking data to Supabase:', e);
         setSaveState('error');
       }
     }, 400);
+    // This only cancels the timer to reset the debounce window when the
+    // grid changes again (normal debounce behavior) - it does NOT lose data
+    // because the effect re-runs right after with the newer grid value.
     return () => {
       if (saveTimer.current) clearTimeout(saveTimer.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [grid]);
+
+  // FIX: this tab (UpdateRankingTable) fully unmounts whenever the user
+  // switches to any other dashboard tab. Previously, if you tagged a color
+  // or edited a cell and switched tabs within the 400ms debounce window,
+  // the cleanup above cancelled the pending save and it was silently lost -
+  // never reaching Supabase. That's the "I colored it but it's not there"
+  // bug. This effect's cleanup runs ONLY on true unmount (empty deps array)
+  // and flushes any still-pending save immediately, using `keepalive: true`
+  // so the request survives past the component being torn down.
+  useEffect(() => {
+    return () => {
+      if (saveTimer.current) {
+        clearTimeout(saveTimer.current);
+        saveTimer.current = null;
+        try {
+          fetch('/api/manual-rankings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(gridRef.current),
+            keepalive: true
+          }).catch((e) => console.error('Failed to flush pending save to Supabase on unmount:', e));
+        } catch (e) {
+          console.error('Failed to flush pending save to Supabase on unmount:', e);
+        }
+      }
+    };
+  }, []);
 
   // Close the sort panel when clicking outside of it
   useEffect(() => {
