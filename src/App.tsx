@@ -544,12 +544,32 @@ export default function App() {
     });
   }, [alerts, entries, currentUserEmail, allowedUsers]);
 
-  // Filter alerts by role: admins see user notes and admin notes, users only see admin notes.
-  // Assignment alerts are automatically filtered out for the user if they are already fulfilled.
+  // Filter alerts by role & ownership:
+  // - Admins can see EVERY alert raised in the system (all users' notifications).
+  // - A regular user can only ever see the alerts/notifications addressed to THEM.
+  //   (Assignment alerts are additionally auto-hidden once the user has fulfilled them.)
   const visibleAlerts = useMemo(() => {
     if (!currentUserEmail) return [];
-    
+
     return alerts.filter(alert => {
+      // Admins can view all users' alerts — no restriction for them.
+      if (isAdmin) {
+        if (alert.alertType === 'project_assignment') {
+          // Still hide fulfilled assignment alerts even for admins, since they're just noise once done.
+          const isFulfilled = entries.some(entry => {
+            const matchesDate = entry.date === alert.date;
+            const hasProject = (entry.works || []).some(w => String(w.projectId) === String(alert.projectId));
+            const matchesAssignedUser = doesUserMatch((entry.userEmail || '').trim().toLowerCase(), (alert.userEmail || '').trim().toLowerCase(), allowedUsers);
+            const isAfterAssignment = new Date(entry.createdAt) >= new Date(alert.createdAt);
+            return matchesAssignedUser && matchesDate && hasProject && isAfterAssignment;
+          });
+          return !isFulfilled;
+        }
+        return true;
+      }
+
+      // --- Non-admin (regular user) restrictions below ---
+
       if (alert.alertType === 'project_assignment') {
         const lowerEmail = (alert.userEmail || '').trim().toLowerCase();
         if (!doesUserMatch(lowerEmail, currentUserEmail, allowedUsers)) return false;
@@ -564,9 +584,15 @@ export default function App() {
         });
         return !isFulfilled;
       }
-      
-      const isUserMsg = alert.alertType === 'user_message';
-      return isAdmin ? true : !isUserMsg;
+
+      // "user_message" alerts are messages a user sent TO the admin — never shown back to any user.
+      if (alert.alertType === 'user_message') return false;
+
+      // "admin_remark" (and any other user-targeted alert type) — only visible to the exact
+      // user it was addressed to. This is the key fix: a user must NEVER see another user's alert.
+      const lowerEmail = (alert.userEmail || '').trim().toLowerCase();
+      if (!lowerEmail) return false; // no owner on the alert → don't leak it to everyone
+      return doesUserMatch(lowerEmail, currentUserEmail, allowedUsers);
     });
   }, [alerts, entries, currentUserEmail, isAdmin, allowedUsers]);
 
@@ -1052,7 +1078,7 @@ export default function App() {
                     <div className="px-5 pb-3 flex justify-between items-center">
                       <span className="font-extrabold text-sm text-gray-900 uppercase tracking-wider flex items-center gap-1.5 font-sans">
                         <Bell size={16} className="text-indigo-600 animate-pulse" />
-                        Admin Alerts &amp; Tasks
+                        {isAdmin ? 'All Users\u2019 Alerts & Tasks' : 'Your Alerts & Tasks'}
                       </span>
                       <button
                         onClick={() => setShowNotifications(false)}
