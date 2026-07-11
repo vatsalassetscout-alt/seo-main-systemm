@@ -75,6 +75,12 @@ export default function DSRLogs({
   const [expandedEntries, setExpandedEntries] = useState<Record<string, boolean>>({});
   const [remarkModalItem, setRemarkModalItem] = useState<any | null>(null);
   const [remarkText, setRemarkText] = useState('');
+
+  // Delete Log modal — instead of nuking every entry for the day in one shot,
+  // admin gets a checklist of each individual submission for that date, all
+  // pre-checked, and can uncheck the ones they want to KEEP before confirming.
+  const [deleteModalItem, setDeleteModalItem] = useState<any | null>(null);
+  const [deleteSelectedIds, setDeleteSelectedIds] = useState<Record<string, boolean>>({});
   const logItemRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   // Active Image Modal state for viewing uploaded screenshot full scale
@@ -1031,11 +1037,12 @@ export default function DSRLogs({
                             {onDeleteEntry ? (
                               <button
                                 onClick={() => {
-                                  if (confirm("Are you sure you want to permanently delete all task logs for this date? This will modify the Google Sheets records.")) {
-                                    item.entryIds.forEach((id: string) => {
-                                      onDeleteEntry(id);
-                                    });
-                                  }
+                                  // Pre-check every entry for this date by default — admin can uncheck
+                                  // any they want to KEEP before confirming the delete.
+                                  const initial: Record<string, boolean> = {};
+                                  item.entryIds.forEach((id: string) => { initial[id] = true; });
+                                  setDeleteSelectedIds(initial);
+                                  setDeleteModalItem(item);
                                 }}
                                 className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 hover:text-rose-800 rounded-xl text-xs font-black transition flex items-center gap-1.5 cursor-pointer font-sans"
                               >
@@ -1199,6 +1206,125 @@ export default function DSRLogs({
             </motion.div>
           </motion.div>
         )}
+      </AnimatePresence>
+
+      {/* Delete Log modal — admin picks exactly which submissions of that day to remove */}
+      <AnimatePresence>
+        {deleteModalItem && (() => {
+          const idsForDay: string[] = deleteModalItem.entryIds || [];
+          const selectedCount = idsForDay.filter((id) => deleteSelectedIds[id]).length;
+          const allSelected = idsForDay.length > 0 && selectedCount === idsForDay.length;
+
+          return (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 bg-gray-950/90 flex items-center justify-center p-4 backdrop-blur-xs"
+              onClick={() => setDeleteModalItem(null)}
+            >
+              <motion.div
+                initial={{ scale: 0.9, y: 20 }}
+                animate={{ scale: 1, y: 0 }}
+                exit={{ scale: 0.9, y: 20 }}
+                className="bg-white rounded-3xl overflow-hidden shadow-2xl max-w-lg w-full relative max-h-[85vh] flex flex-col"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50 shrink-0">
+                  <span className="text-xs font-black text-gray-800 uppercase tracking-wider flex items-center gap-1.5">
+                    <Trash2 size={14} className="text-rose-600" />
+                    Delete Log — {deleteModalItem.filledForDate}
+                  </span>
+                  <button
+                    onClick={() => setDeleteModalItem(null)}
+                    className="p-1 hover:bg-gray-200 rounded-lg text-gray-500"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+
+                <div className="p-5 space-y-3 overflow-y-auto">
+                  <p className="text-xs text-gray-500 font-medium">
+                    All submissions for this date are selected by default. Uncheck any entry you want to
+                    <span className="font-black text-gray-700"> keep</span> — only the checked ones below will be permanently deleted.
+                  </p>
+
+                  <div className="flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const next: Record<string, boolean> = {};
+                        idsForDay.forEach((id) => { next[id] = !allSelected; });
+                        setDeleteSelectedIds(next);
+                      }}
+                      className="px-2.5 py-1 text-[10px] font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition cursor-pointer"
+                    >
+                      {allSelected ? 'Uncheck All' : 'Check All'}
+                    </button>
+                  </div>
+
+                  <div className="space-y-2">
+                    {idsForDay.map((id) => {
+                      const entry = entries.find((e) => e.id === id);
+                      const projectNames = Array.from(
+                        new Set((entry?.works || []).map((w: any) => w.projectName).filter(Boolean))
+                      );
+                      const isChecked = !!deleteSelectedIds[id];
+                      return (
+                        <label
+                          key={id}
+                          className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition ${isChecked ? 'border-rose-200 bg-rose-50/40' : 'border-gray-150 bg-gray-50/40'}`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={(e) => setDeleteSelectedIds((prev) => ({ ...prev, [id]: e.target.checked }))}
+                            className="mt-0.5 w-4 h-4 accent-rose-600 cursor-pointer shrink-0"
+                          />
+                          <div className="space-y-0.5">
+                            <p className="text-xs font-bold text-gray-800">
+                              {projectNames.length > 0 ? projectNames.join(', ') : 'Extra / New Work'}
+                            </p>
+                            <p className="text-[10px] text-gray-400 font-mono uppercase">
+                              Submitted {entry?.createdAt ? new Date(entry.createdAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Unknown time'}
+                            </p>
+                          </div>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-2 p-4 border-t border-gray-100 shrink-0">
+                  <button
+                    onClick={() => setDeleteModalItem(null)}
+                    className="px-4 py-2 rounded-xl text-xs font-black text-gray-500 hover:bg-gray-100 transition cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (!onDeleteEntry) return;
+                      const idsToDelete = idsForDay.filter((id) => deleteSelectedIds[id]);
+                      if (idsToDelete.length === 0) {
+                        setDeleteModalItem(null);
+                        return;
+                      }
+                      if (window.confirm(`Delete ${idsToDelete.length} selected log(s) for ${deleteModalItem.filledForDate}? This will modify the Google Sheets records.`)) {
+                        idsToDelete.forEach((id) => onDeleteEntry(id));
+                        setDeleteModalItem(null);
+                      }
+                    }}
+                    disabled={selectedCount === 0}
+                    className="px-4 py-2 rounded-xl text-xs font-black text-white bg-rose-600 hover:bg-rose-700 transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    Delete Selected ({selectedCount})
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          );
+        })()}
       </AnimatePresence>
     </div>
   );
