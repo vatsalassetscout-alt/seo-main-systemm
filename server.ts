@@ -1299,8 +1299,28 @@ const readRankings = async (): Promise<Record<string, Record<string, { ranking: 
   return await getRankingsDb();
 };
 
-const writeRankings = async (rankings: Record<string, Record<string, { ranking: string; lastChecked: string }>>) => {
-  await saveRankingsDb(rankings);
+// FIX: this used to `await saveRankingsDb(rankings)` and throw the result away.
+// saveRankingsDb() returns `false` (and logs a console.warn) whenever the
+// Supabase upsert actually fails — e.g. the `rankings` table/columns are
+// missing, RLS is blocking the write, or the key is wrong. Because that
+// boolean was discarded, the /api/rankings/check endpoint below always
+// responded as if the save worked, even when it silently didn't. The
+// checked number would show up immediately (it was just returned from
+// this same request's in-memory object), but the very next GET
+// /api/rankings reads fresh from Supabase, finds nothing was ever written,
+// and the value disappears — which is exactly the "vanishing after
+// checking" symptom. Now the real success/failure is returned so callers
+// can know and report it, the same way appendSubmissionDb/saveAlertDb already do.
+const writeRankings = async (rankings: Record<string, Record<string, { ranking: string; lastChecked: string }>>): Promise<boolean> => {
+  const dbSaved = await saveRankingsDb(rankings);
+  if (!dbSaved) {
+    console.error(
+      "Rankings were NOT saved to Supabase — check server logs above for the underlying database error " +
+      "(missing 'rankings' table, missing columns, RLS policy, or bad SUPABASE_URL/SUPABASE_KEY). " +
+      "The checked value will only exist in this request's response and will vanish on next reload."
+    );
+  }
+  return dbSaved;
 };
 
 // =========================================================================
@@ -1585,8 +1605,8 @@ app.post("/api/rankings/check", async (req, res) => {
         ranking: rank,
         lastChecked: timestamp
       };
-      await writeRankings(rankings);
-      return res.json({ projectId, keyword, ranking: rankings[projectId][keyword] });
+      const dbSaved = await writeRankings(rankings);
+      return res.json({ projectId, keyword, ranking: rankings[projectId][keyword], dbSaved });
     } else {
       let projectKeywords: string[] = [];
       try {
@@ -1639,8 +1659,8 @@ app.post("/api/rankings/check", async (req, res) => {
         }
       }
 
-      await writeRankings(rankings);
-      return res.json({ projectId, results });
+      const dbSaved = await writeRankings(rankings);
+      return res.json({ projectId, results, dbSaved });
     }
   } catch (err: any) {
     console.error("Error in POST /api/rankings/check:", err);
