@@ -1303,15 +1303,37 @@ const writeRankings = async (rankings: Record<string, Record<string, { ranking: 
   await saveRankingsDb(rankings);
 };
 
-async function checkSerpRanking(keyword: string, domain: string): Promise<string> {
-  const apiKey = (process.env.SERP_API_KEY || "").trim();
-  let apiUrl = (process.env.SERP_API_URL || "https://serpapi.com/search.json").trim();
-
-  if (!apiKey) {
-    console.warn("⚠️ SERP_API_KEY is not configured in environment.");
-    return "NA";
+// -------------------------------------------------------------------------
+// SERP API KEY POOL
+// -------------------------------------------------------------------------
+// Add as many keys as you want by setting SERP_API_KEYS to a comma-separated
+// list in your environment, e.g.:
+//   SERP_API_KEYS=key_one,key_two,key_three,...,key_twenty
+// To add a 21st key later, just append it to that list - no code change
+// needed. SERP_API_KEY (singular) still works as a one-key fallback if
+// SERP_API_KEYS isn't set.
+function getSerpApiKeyPool(): string[] {
+  const multi = (process.env.SERP_API_KEYS || "").trim();
+  if (multi) {
+    return multi.split(",").map((k) => k.trim()).filter(Boolean);
   }
+  const single = (process.env.SERP_API_KEY || "").trim();
+  return single ? [single] : [];
+}
 
+// Round-robin cursor kept in memory across requests, so successive checks
+// spread evenly across every key in the pool. Once it reaches the last key
+// it wraps back around to the first key and keeps going - it never "runs
+// out", it just loops forever through whatever keys are configured.
+let serpKeyCursor = 0;
+function nextSerpApiKey(pool: string[]): string {
+  const key = pool[serpKeyCursor % pool.length];
+  serpKeyCursor = (serpKeyCursor + 1) % pool.length;
+  return key;
+}
+
+function normalizeSerpApiUrl(): string {
+  let apiUrl = (process.env.SERP_API_URL || "https://serpapi.com/search.json").trim();
   if (apiUrl.includes("serpapi.com") && !apiUrl.includes("/search")) {
     apiUrl = "https://serpapi.com/search.json";
   } else if (apiUrl.includes("valueserp.com") && !apiUrl.includes("/search")) {
@@ -1323,62 +1345,111 @@ async function checkSerpRanking(keyword: string, domain: string): Promise<string
   } else if (apiUrl.includes("serpstack.com") && !apiUrl.includes("/search")) {
     apiUrl = "http://api.serpstack.com/search";
   }
-
   if (!apiUrl.startsWith("http://") && !apiUrl.startsWith("https://")) {
     apiUrl = "https://serpapi.com/search.json";
   }
+  return apiUrl;
+}
+
+// `start` is the Google-style result offset: 0 = page 1, 10 = page 2,
+// 20 = page 3, etc. Used to page through results beyond the first ~10.
+function buildSerpFetchUrl(apiUrl: string, keyword: string, apiKey: string, start: number): string {
+  if (apiUrl.includes("serpapi.com")) {
+    return `${apiUrl}?q=${encodeURIComponent(keyword)}&api_key=${apiKey}&engine=google&num=10&start=${start}&gl=in&hl=en`;
+  } else if (apiUrl.includes("valueserp.com") || apiUrl.includes("scaleserp.com")) {
+    return `${apiUrl}?q=${encodeURIComponent(keyword)}&api_key=${apiKey}&num=10&start=${start}&gl=in&hl=en`;
+  } else if (apiUrl.includes("searchapi.io")) {
+    return `${apiUrl}?q=${encodeURIComponent(keyword)}&api_key=${apiKey}&engine=google&num=10&start=${start}&gl=in&hl=en`;
+  } else if (apiUrl.includes("serpstack.com")) {
+    // serpstack paginates via "page" (1-indexed) rather than a result offset
+    const page = Math.floor(start / 10) + 1;
+    return `${apiUrl}?query=${encodeURIComponent(keyword)}&access_key=${apiKey}&num=10&page=${page}&gl=in&hl=en`;
+  } else {
+    const separator = apiUrl.includes("?") ? "&" : "?";
+    return `${apiUrl}${separator}q=${encodeURIComponent(keyword)}&api_key=${apiKey}&key=${apiKey}&query=${encodeURIComponent(keyword)}&num=10&start=${start}&gl=in&hl=en`;
+  }
+}
+
+// Fetches a single results page, trying keys from the pool (round-robin) if
+// one fails or reports it's out of quota, up to `pool.length` attempts.
+async function fetchSerpPage(apiUrl: string, keyword: string, start: number, pool: string[]): Promise<any[] | null> {
+  for (let attempt = 0; attempt < pool.length; attempt++) {
+    const apiKey = nextSerpApiKey(pool);
+    try {
+      const fetchUrl = buildSerpFetchUrl(apiUrl, keyword, apiKey, start);
+      const response = await fetch(fetchUrl, { method: "GET", headers: { "Accept": "application/json" } });
+      const responseText = await response.text();
+
+      if (!response.ok) {
+        console.warn(`SERP key ...${apiKey.slice(-4)} returned status ${response.status} (page start=${start}), trying next key`);
+        continue;
+      }
+
+      let data: any;
+      try {
+        data = JSON.parse(responseText);
+      } catch {
+        console.warn(`SERP key ...${apiKey.slice(-4)} returned invalid JSON, trying next key`);
+        continue;
+      }
+
+      // Many providers return HTTP 200 even when a key is out of quota, with
+      // an error field instead - treat that as a failed key too.
+      if (data && (data.error || data.error_message)) {
+        console.warn(`SERP key ...${apiKey.slice(-4)} reported: ${data.error || data.error_message}, trying next key`);
+        continue;
+      }
+
+      return data.organic_results || data.organic || data.results || [];
+    } catch (err) {
+      console.error(`SERP key ...${apiKey.slice(-4)} fetch failed, trying next key:`, err);
+      continue;
+    }
+  }
+  // Every key in the pool failed for this page.
+  return null;
+}
+
+// Checks up to this many pages (10 results each) before giving up, i.e. up
+// to the top ~60 results instead of just the first ~10.
+const SERP_PAGES_TO_CHECK = 6;
+const SERP_RESULTS_PER_PAGE = 10;
+
+async function checkSerpRanking(keyword: string, domain: string): Promise<string> {
+  const pool = getSerpApiKeyPool();
+  if (pool.length === 0) {
+    console.warn("⚠️ No SERP API key configured. Set SERP_API_KEYS (comma-separated) or SERP_API_KEY.");
+    return "NA";
+  }
+
+  const apiUrl = normalizeSerpApiUrl();
+  const cleanDomain = domain.toLowerCase().replace(/^(https?:\/\/)?(www\.)?/, "").split('/')[0].trim();
 
   try {
-    const cleanDomain = domain.toLowerCase().replace(/^(https?:\/\/)?(www\.)?/, "").split('/')[0].trim();
-    let fetchUrl = "";
-    
-    if (apiUrl.includes("serpapi.com")) {
-      fetchUrl = `${apiUrl}?q=${encodeURIComponent(keyword)}&api_key=${apiKey}&engine=google&num=100&gl=in&hl=en`;
-    } else if (apiUrl.includes("valueserp.com") || apiUrl.includes("scaleserp.com")) {
-      fetchUrl = `${apiUrl}?q=${encodeURIComponent(keyword)}&api_key=${apiKey}&num=100&gl=in&hl=en`;
-    } else if (apiUrl.includes("searchapi.io")) {
-      fetchUrl = `${apiUrl}?q=${encodeURIComponent(keyword)}&api_key=${apiKey}&engine=google&num=100&gl=in&hl=en`;
-    } else if (apiUrl.includes("serpstack.com")) {
-      fetchUrl = `${apiUrl}?query=${encodeURIComponent(keyword)}&access_key=${apiKey}&num=100&gl=in&hl=en`;
-    } else {
-      const separator = apiUrl.includes("?") ? "&" : "?";
-      fetchUrl = `${apiUrl}${separator}q=${encodeURIComponent(keyword)}&api_key=${apiKey}&key=${apiKey}&query=${encodeURIComponent(keyword)}&num=100&gl=in&hl=en`;
-    }
+    for (let page = 0; page < SERP_PAGES_TO_CHECK; page++) {
+      const start = page * SERP_RESULTS_PER_PAGE;
+      const results = await fetchSerpPage(apiUrl, keyword, start, pool);
 
-    const response = await fetch(fetchUrl, {
-      method: "GET",
-      headers: {
-        "Accept": "application/json"
+      if (results === null) {
+        // Every key in the pool failed on this page - no point continuing.
+        console.error(`All ${pool.length} SERP key(s) failed on page ${page + 1}; stopping.`);
+        break;
       }
-    });
-
-    const responseText = await response.text();
-
-    if (!response.ok) {
-      console.error(`SERP API returned status ${response.status}`);
-      return "NA";
-    }
-
-    let data: any;
-    try {
-      data = JSON.parse(responseText);
-    } catch {
-      return "NA";
-    }
-
-    const results = data.organic_results || data.organic || data.results || [];
-    
-    if (!Array.isArray(results) || results.length === 0) {
-      return "NA";
-    }
-
-    for (let i = 0; i < results.length; i++) {
-      const item = results[i];
-      const link = item.link || item.url || item.formatted_url || "";
-      if (link && link.toLowerCase().includes(cleanDomain)) {
-        const position = item.position !== undefined ? String(item.position) : String(i + 1);
-        return position;
+      if (!Array.isArray(results) || results.length === 0) {
+        // No more results to page through - stop.
+        break;
       }
+
+      for (let i = 0; i < results.length; i++) {
+        const item = results[i];
+        const link = item.link || item.url || item.formatted_url || "";
+        if (link && link.toLowerCase().includes(cleanDomain)) {
+          const position = item.position !== undefined ? Number(item.position) : (start + i + 1);
+          return String(position);
+        }
+      }
+      // Not found on this page - loop continues to the next page with a
+      // freshly-rotated key.
     }
 
     return "100+";
