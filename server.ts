@@ -1303,15 +1303,38 @@ const writeRankings = async (rankings: Record<string, Record<string, { ranking: 
   await saveRankingsDb(rankings);
 };
 
-// -------------------------------------------------------------------------
-// SERP API KEY POOL
-// -------------------------------------------------------------------------
-// Add as many keys as you want by setting SERP_API_KEYS to a comma-separated
-// list in your environment, e.g.:
-//   SERP_API_KEYS=key_one,key_two,key_three,...,key_twenty
-// To add a 21st key later, just append it to that list - no code change
-// needed. SERP_API_KEY (singular) still works as a one-key fallback if
-// SERP_API_KEYS isn't set.
+// =========================================================================
+// SERP RANKING CHECKER — accurate, India-only, mobile-only, up to 8 pages
+// =========================================================================
+// Design notes (why it's built this way):
+//
+// 1. ACCURACY BUG THAT WAS HERE BEFORE: SerpApi's `organic_results[i].position`
+//    field is the result's position WITHIN that single page response (i.e. it
+//    resets back to a low number on every page), not its true overall rank
+//    on Google. Trusting that field directly was why rankings looked right
+//    on page 1 but went haywire from page 2 onward. Fixed by never reading
+//    `.position` from the API - instead we keep our own running counter as
+//    we walk organic results across every page, so a domain found as the
+//    4th organic result on page 2 correctly reports as rank 14, not 4.
+//
+// 2. PAGE-TO-PAGE DRIFT: building each page as an independent request (our
+//    own `start=10`, `start=20`, ...) can occasionally return a slightly
+//    different Google snapshot per request. SerpApi avoids this by handing
+//    back ready-made pagination URLs in `serpapi_pagination.other_pages`,
+//    generated from the exact same search as page 1. We use those instead
+//    of hand-building `start=` URLs, so every page is coherent with page 1.
+//
+// 3. LOCATION / DEVICE: locked to India (google_domain=google.co.in, gl=in)
+//    and mobile (device=mobile) on every request, matching how rankings
+//    should actually be tracked for this project - not configurable per
+//    call, so there's no risk of accidentally checking desktop/global rank.
+//
+// 4. KEY POOL: unchanged behavior from before - add/remove keys via
+//    SERP_API_KEYS (comma-separated), rotates round-robin and loops back to
+//    the first key after the last, skips a key automatically if it errors
+//    out or reports it's out of quota.
+// =========================================================================
+
 function getSerpApiKeyPool(): string[] {
   const multi = (process.env.SERP_API_KEYS || "").trim();
   if (multi) {
@@ -1321,10 +1344,8 @@ function getSerpApiKeyPool(): string[] {
   return single ? [single] : [];
 }
 
-// Round-robin cursor kept in memory across requests, so successive checks
-// spread evenly across every key in the pool. Once it reaches the last key
-// it wraps back around to the first key and keeps going - it never "runs
-// out", it just loops forever through whatever keys are configured.
+// Round-robin cursor kept in memory across requests. Wraps back to the first
+// key once it passes the last one - it never "runs out", it just loops.
 let serpKeyCursor = 0;
 function nextSerpApiKey(pool: string[]): string {
   const key = pool[serpKeyCursor % pool.length];
@@ -1332,60 +1353,71 @@ function nextSerpApiKey(pool: string[]): string {
   return key;
 }
 
-function normalizeSerpApiUrl(): string {
-  let apiUrl = (process.env.SERP_API_URL || "https://serpapi.com/search.json").trim();
-  if (apiUrl.includes("serpapi.com") && !apiUrl.includes("/search")) {
-    apiUrl = "https://serpapi.com/search.json";
-  } else if (apiUrl.includes("valueserp.com") && !apiUrl.includes("/search")) {
-    apiUrl = "https://api.valueserp.com/search";
-  } else if (apiUrl.includes("scaleserp.com") && !apiUrl.includes("/search")) {
-    apiUrl = "https://api.scaleserp.com/search";
-  } else if (apiUrl.includes("searchapi.io") && !apiUrl.includes("/api/v1/search")) {
-    apiUrl = "https://www.searchapi.io/api/v1/search";
-  } else if (apiUrl.includes("serpstack.com") && !apiUrl.includes("/search")) {
-    apiUrl = "http://api.serpstack.com/search";
-  }
-  if (!apiUrl.startsWith("http://") && !apiUrl.startsWith("https://")) {
-    apiUrl = "https://serpapi.com/search.json";
-  }
-  return apiUrl;
+const SERPAPI_BASE_URL = "https://serpapi.com/search.json";
+const SERP_MAX_PAGES = 8; // top ~80 organic results before giving up
+
+interface SerpApiOrganicResult {
+  link?: string;
+  url?: string;
+  formatted_url?: string;
+}
+interface SerpApiPagination {
+  other_pages?: Record<string, string>;
+}
+interface SerpApiResponse {
+  organic_results?: SerpApiOrganicResult[];
+  serpapi_pagination?: SerpApiPagination;
+  error?: string;
+  error_message?: string;
 }
 
-// `start` is the Google-style result offset: 0 = page 1, 10 = page 2,
-// 20 = page 3, etc. Used to page through results beyond the first ~10.
-function buildSerpFetchUrl(apiUrl: string, keyword: string, apiKey: string, start: number): string {
-  if (apiUrl.includes("serpapi.com")) {
-    return `${apiUrl}?q=${encodeURIComponent(keyword)}&api_key=${apiKey}&engine=google&num=10&start=${start}&gl=in&hl=en`;
-  } else if (apiUrl.includes("valueserp.com") || apiUrl.includes("scaleserp.com")) {
-    return `${apiUrl}?q=${encodeURIComponent(keyword)}&api_key=${apiKey}&num=10&start=${start}&gl=in&hl=en`;
-  } else if (apiUrl.includes("searchapi.io")) {
-    return `${apiUrl}?q=${encodeURIComponent(keyword)}&api_key=${apiKey}&engine=google&num=10&start=${start}&gl=in&hl=en`;
-  } else if (apiUrl.includes("serpstack.com")) {
-    // serpstack paginates via "page" (1-indexed) rather than a result offset
-    const page = Math.floor(start / 10) + 1;
-    return `${apiUrl}?query=${encodeURIComponent(keyword)}&access_key=${apiKey}&num=10&page=${page}&gl=in&hl=en`;
-  } else {
-    const separator = apiUrl.includes("?") ? "&" : "?";
-    return `${apiUrl}${separator}q=${encodeURIComponent(keyword)}&api_key=${apiKey}&key=${apiKey}&query=${encodeURIComponent(keyword)}&num=10&start=${start}&gl=in&hl=en`;
+// Strips protocol/www/path/query down to a bare, lowercase hostname.
+function normalizeHostname(rawUrl: string): string | null {
+  try {
+    const withProtocol = /^https?:\/\//i.test(rawUrl) ? rawUrl : `https://${rawUrl}`;
+    const url = new URL(withProtocol);
+    return url.hostname.replace(/^www\./, "").toLowerCase();
+  } catch {
+    return null;
   }
 }
 
-// Fetches a single results page, trying keys from the pool (round-robin) if
-// one fails or reports it's out of quota, up to `pool.length` attempts.
-async function fetchSerpPage(apiUrl: string, keyword: string, start: number, pool: string[]): Promise<any[] | null> {
+// Normalizes the domain the user is tracking (e.g. "www.example.com/" -> "example.com")
+function normalizeTrackedDomain(domain: string): string {
+  return domain
+    .replace(/^https?:\/\//, "")
+    .replace(/^www\./, "")
+    .replace(/[/?#].*$/, "")
+    .toLowerCase()
+    .trim();
+}
+
+// Exact host match or subdomain match only (e.g. "blog.example.com" matches
+// "example.com", but "notexample.com" or "example.com.fake.net" do not) -
+// far more accurate than a plain substring check.
+function isMatchingHost(hostname: string, trackedDomain: string): boolean {
+  return hostname === trackedDomain || hostname.endsWith(`.${trackedDomain}`);
+}
+
+// Fetches a SERP API URL, trying keys from the pool round-robin (swapping
+// the api_key param each attempt) up to pool.length times if a key errors
+// out or reports it's out of quota. Returns null only if every key failed.
+async function fetchSerpJson(rawUrl: string, pool: string[]): Promise<SerpApiResponse | null> {
   for (let attempt = 0; attempt < pool.length; attempt++) {
     const apiKey = nextSerpApiKey(pool);
     try {
-      const fetchUrl = buildSerpFetchUrl(apiUrl, keyword, apiKey, start);
-      const response = await fetch(fetchUrl, { method: "GET", headers: { "Accept": "application/json" } });
+      const url = new URL(rawUrl);
+      url.searchParams.set("api_key", apiKey);
+
+      const response = await fetch(url.toString(), { method: "GET", headers: { "Accept": "application/json" } });
       const responseText = await response.text();
 
       if (!response.ok) {
-        console.warn(`SERP key ...${apiKey.slice(-4)} returned status ${response.status} (page start=${start}), trying next key`);
+        console.warn(`SERP key ...${apiKey.slice(-4)} returned status ${response.status}, trying next key`);
         continue;
       }
 
-      let data: any;
+      let data: SerpApiResponse;
       try {
         data = JSON.parse(responseText);
       } catch {
@@ -1393,27 +1425,20 @@ async function fetchSerpPage(apiUrl: string, keyword: string, start: number, poo
         continue;
       }
 
-      // Many providers return HTTP 200 even when a key is out of quota, with
-      // an error field instead - treat that as a failed key too.
-      if (data && (data.error || data.error_message)) {
+      if (data.error || data.error_message) {
         console.warn(`SERP key ...${apiKey.slice(-4)} reported: ${data.error || data.error_message}, trying next key`);
         continue;
       }
 
-      return data.organic_results || data.organic || data.results || [];
+      return data;
     } catch (err) {
       console.error(`SERP key ...${apiKey.slice(-4)} fetch failed, trying next key:`, err);
       continue;
     }
   }
-  // Every key in the pool failed for this page.
+  // Every key in the pool failed.
   return null;
 }
-
-// Checks up to this many pages (10 results each) before giving up, i.e. up
-// to the top ~60 results instead of just the first ~10.
-const SERP_PAGES_TO_CHECK = 6;
-const SERP_RESULTS_PER_PAGE = 10;
 
 async function checkSerpRanking(keyword: string, domain: string): Promise<string> {
   const pool = getSerpApiKeyPool();
@@ -1422,34 +1447,75 @@ async function checkSerpRanking(keyword: string, domain: string): Promise<string
     return "NA";
   }
 
-  const apiUrl = normalizeSerpApiUrl();
-  const cleanDomain = domain.toLowerCase().replace(/^(https?:\/\/)?(www\.)?/, "").split('/')[0].trim();
+  const trackedDomain = normalizeTrackedDomain(domain);
+  if (!trackedDomain) return "NA";
 
   try {
-    for (let page = 0; page < SERP_PAGES_TO_CHECK; page++) {
-      const start = page * SERP_RESULTS_PER_PAGE;
-      const results = await fetchSerpPage(apiUrl, keyword, start, pool);
+    // Page 1 - fresh live fetch, India, mobile.
+    const page1Params = new URLSearchParams({
+      engine: "google",
+      q: keyword,
+      google_domain: "google.co.in",
+      gl: "in",
+      hl: "en",
+      device: "mobile",
+      num: "10",
+      start: "0",
+      no_cache: "true", // force a fresh crawl rather than a cached snapshot
+    });
+    const page1Url = `${SERPAPI_BASE_URL}?${page1Params.toString()}`;
 
-      if (results === null) {
-        // Every key in the pool failed on this page - no point continuing.
-        console.error(`All ${pool.length} SERP key(s) failed on page ${page + 1}; stopping.`);
-        break;
-      }
-      if (!Array.isArray(results) || results.length === 0) {
-        // No more results to page through - stop.
-        break;
-      }
+    const page1 = await fetchSerpJson(page1Url, pool);
+    if (!page1) {
+      console.error(`All ${pool.length} SERP key(s) failed on page 1 for "${keyword}"; stopping.`);
+      return "NA";
+    }
 
-      for (let i = 0; i < results.length; i++) {
-        const item = results[i];
+    // Running counter across ALL pages = true organic rank (never trust the
+    // API's own per-page `.position` field - see notes above).
+    let overallRank = 0;
+    const seenLinks = new Set<string>();
+
+    const scanPage = (items: SerpApiOrganicResult[]): number | null => {
+      for (const item of items) {
         const link = item.link || item.url || item.formatted_url || "";
-        if (link && link.toLowerCase().includes(cleanDomain)) {
-          const position = item.position !== undefined ? Number(item.position) : (start + i + 1);
-          return String(position);
+        if (!link || seenLinks.has(link)) continue;
+        seenLinks.add(link);
+        const hostname = normalizeHostname(link);
+        if (!hostname) continue;
+        overallRank += 1;
+        if (isMatchingHost(hostname, trackedDomain)) {
+          return overallRank;
         }
       }
-      // Not found on this page - loop continues to the next page with a
-      // freshly-rotated key.
+      return null;
+    };
+
+    const page1Match = scanPage(page1.organic_results ?? []);
+    if (page1Match !== null) return String(page1Match);
+
+    // Pages 2-8 - use SerpApi's own pre-built pagination URLs (tied to the
+    // same search snapshot as page 1) instead of hand-building start=
+    // offsets, so results stay coherent page to page.
+    const otherPages = page1.serpapi_pagination?.other_pages ?? {};
+    const nextPageUrls = Object.entries(otherPages)
+      .sort((a, b) => Number(a[0]) - Number(b[0]))
+      .map(([, url]) => url)
+      .slice(0, SERP_MAX_PAGES - 1);
+
+    for (const pageUrl of nextPageUrls) {
+      const page = await fetchSerpJson(pageUrl, pool);
+      if (!page) {
+        // Every key failed on this page - stop rather than skip ahead with
+        // a gap in the ranking count.
+        console.error(`All ${pool.length} SERP key(s) failed mid-pagination for "${keyword}"; stopping.`);
+        break;
+      }
+      const items = page.organic_results ?? [];
+      if (items.length === 0) break; // ran off the end of Google's results
+
+      const match = scanPage(items);
+      if (match !== null) return String(match);
     }
 
     return "100+";
