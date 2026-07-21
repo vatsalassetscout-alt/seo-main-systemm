@@ -3200,15 +3200,25 @@ export default function DSRDashboard({
                                           headers: { 'Content-Type': 'application/json' },
                                           body: JSON.stringify({ projectId: proj.id, domain: proj.domain })
                                         });
+                                        const resData = await res.json().catch(() => ({}));
                                         if (res.ok) {
-                                          const resRankings = await fetch('/api/rankings');
-                                          if (resRankings.ok) {
-                                            const data = await resRankings.json();
-                                            setRankings(data);
+                                          // Apply the freshly-checked results directly instead of
+                                          // re-fetching GET /api/rankings - re-fetching right after
+                                          // a write can race with (or mask a silent failure of) the
+                                          // database save and revert the numbers you just saw back
+                                          // to the old/empty state ("shows then vanishes").
+                                          const { results } = resData || {};
+                                          if (results && typeof results === 'object') {
+                                            setRankings(prev => ({
+                                              ...prev,
+                                              [proj.id]: { ...(prev[proj.id] || {}), ...results }
+                                            }));
+                                          }
+                                          if (resData.persisted === false) {
+                                            setRankingCheckError(resData.warning || "Rankings checked but could not be saved to the database - they will be lost on refresh. Check your Supabase 'rankings' table/credentials.");
                                           }
                                         } else {
-                                          const errData = await res.json().catch(() => ({}));
-                                          setRankingCheckError(errData.error || "Failed to check project rankings. Please verify that SERP_API_KEY is configured correctly.");
+                                          setRankingCheckError(resData.error || "Failed to check project rankings. Please verify that SERP_API_KEY is configured correctly.");
                                         }
                                       } catch (err) {
                                         console.error('Error checking project rankings:', err);
@@ -3302,15 +3312,27 @@ export default function DSRDashboard({
                                                             headers: { 'Content-Type': 'application/json' },
                                                             body: JSON.stringify({ projectId: proj.id, keyword: kwItem.keyword, domain: proj.domain })
                                                           });
+                                                          const resData = await res.json().catch(() => ({}));
                                                           if (res.ok) {
-                                                            const resRankings = await fetch('/api/rankings');
-                                                            if (resRankings.ok) {
-                                                              const data = await resRankings.json();
-                                                              setRankings(data);
+                                                            // Apply the freshly-checked value directly instead of
+                                                            // re-fetching GET /api/rankings - re-fetching right after
+                                                            // a write can race with (or mask a silent failure of) the
+                                                            // database save and revert the number you just saw back
+                                                            // to the old/empty state ("shows then vanishes").
+                                                            if (resData.keyword && resData.ranking) {
+                                                              setRankings(prev => ({
+                                                                ...prev,
+                                                                [proj.id]: {
+                                                                  ...(prev[proj.id] || {}),
+                                                                  [resData.keyword]: resData.ranking
+                                                                }
+                                                              }));
+                                                            }
+                                                            if (resData.persisted === false) {
+                                                              setRankingCheckError(resData.warning || `Ranking for "${kwItem.keyword}" checked but could not be saved to the database - it will be lost on refresh. Check your Supabase 'rankings' table/credentials.`);
                                                             }
                                                           } else {
-                                                            const errData = await res.json().catch(() => ({}));
-                                                            setRankingCheckError(errData.error || `Failed to check ranking for "${kwItem.keyword}". Please verify that SERP_API_KEY is configured.`);
+                                                            setRankingCheckError(resData.error || `Failed to check ranking for "${kwItem.keyword}". Please verify that SERP_API_KEY is configured.`);
                                                           }
                                                         } catch (err) {
                                                           console.error('Error checking keyword ranking:', err);
