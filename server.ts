@@ -1451,16 +1451,17 @@ async function checkSerpRanking(keyword: string, domain: string): Promise<string
   if (!trackedDomain) return "NA";
 
   try {
-    // Page 1 - fresh live fetch, locked to India + mobile.
+    // Page 1 - fresh live fetch, locked to Pune, India + mobile.
     // NOTE on accuracy: gl/google_domain alone are a *weaker* localization
     // signal - SerpApi's own docs say Google can still lean on the proxy's
-    // real-world location unless `location` is also set. Pairing all four
-    // (location + gl + google_domain + device) is what actually pins the
-    // search to "India, mobile" consistently instead of drifting.
+    // real-world location unless `location` is also set. City-level location
+    // (rather than just the country) is what SerpApi recommends for the
+    // closest match to a real user's search, since rankings can genuinely
+    // vary city to city within the same country.
     const page1Params = new URLSearchParams({
       engine: "google",
       q: keyword,
-      location: "India",
+      location: "Pune, Maharashtra, India",
       google_domain: "google.co.in",
       gl: "in",
       hl: "en",
