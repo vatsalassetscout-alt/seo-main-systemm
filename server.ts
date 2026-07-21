@@ -1354,7 +1354,7 @@ function nextSerpApiKey(pool: string[]): string {
 }
 
 const SERPAPI_BASE_URL = "https://serpapi.com/search.json";
-const SERP_MAX_PAGES = 10; // top ~100 organic results before giving up
+const SERP_MAX_PAGES = 6; // start=0,10,20,30,40,50 -> checks positions 1-60
 
 interface SerpApiOrganicResult {
   link?: string;
@@ -1501,76 +1501,31 @@ async function checkSerpRanking(keyword: string, domain: string): Promise<string
     const page1Match = scanPage(page1.organic_results ?? []);
     if (page1Match !== null) return String(page1Match);
 
-    // Pages 2-N.
-    //
-    // ROOT CAUSE OF THE "STOPS AT 30" BUG: Google's mobile search UI has
-    // used "continuous scroll" since Oct 2021, which only reliably serves
-    // ~3 pages (~30 results) through classic `start=` pagination before it
-    // needs a "See more" trigger instead of a normal page load. Past that
-    // point, a plain device=mobile request for start=30+ frequently comes
-    // back with an error or an empty organic_results array - which our
-    // loop was treating as "ran off the end of Google's results" and
-    // stopping, even though the domain could easily rank at position 45,
-    // 60, etc. Classic `start=` pagination on device=desktop does NOT have
-    // this limitation and reliably returns pages past 100.
-    //
-    // Fix: keep the first few pages on device=mobile (that's what actually
-    // reflects a real mobile user's SERP), but once we're past the range
-    // mobile pagination reliably covers - or the very moment a page
-    // unexpectedly comes back empty - switch to device=desktop to keep
-    // counting deeper instead of giving up.
-    const MOBILE_RELIABLE_PAGES = 3; // pages 1-3 (results 1-30) stay on mobile
-
-    const otherPages = page1.serpapi_pagination?.other_pages ?? {};
-    const otherPageUrls = Object.entries(otherPages)
-      .sort((a, b) => Number(a[0]) - Number(b[0]))
-      .map(([, url]) => url);
-
-    // SerpApi's own other_pages links are still device=mobile (inherited
-    // from page 1's request), so only trust them within the reliable range.
-    const nextPages: { url: string; pageNum: number }[] = otherPageUrls
-      .slice(0, SERP_MAX_PAGES - 1)
-      .map((url, i) => ({ url, pageNum: i + 2 }))
-      .filter(p => p.pageNum <= MOBILE_RELIABLE_PAGES);
-
-    for (let pageNum = nextPages.length + 2; pageNum <= SERP_MAX_PAGES; pageNum++) {
+    // Pages 2-N - simple, fixed start=10,20,30,40,50 offsets (same device,
+    // location, and all other params as page 1). SERP_MAX_PAGES controls
+    // how many of these we check (see constant above) before giving up.
+    for (let pageNum = 2; pageNum <= SERP_MAX_PAGES; pageNum++) {
       const start = (pageNum - 1) * 10;
       const params = new URLSearchParams(page1Params);
       params.set("start", String(start));
-      if (pageNum > MOBILE_RELIABLE_PAGES) {
-        params.set("device", "desktop");
-      }
-      nextPages.push({ url: `${SERPAPI_BASE_URL}?${params.toString()}`, pageNum });
-    }
+      const pageUrl = `${SERPAPI_BASE_URL}?${params.toString()}`;
 
-    for (const { url: pageUrl, pageNum } of nextPages) {
-      let page = await fetchSerpJson(pageUrl, pool);
-      let items = page?.organic_results ?? [];
-
-      // Even within the "reliable" mobile range, a page can occasionally
-      // come back empty - retry that exact page on desktop once before
-      // giving up, instead of assuming it's the true end of results.
-      if ((!page || items.length === 0) && pageNum <= MOBILE_RELIABLE_PAGES) {
-        const start = (pageNum - 1) * 10;
-        const desktopParams = new URLSearchParams(page1Params);
-        desktopParams.set("start", String(start));
-        desktopParams.set("device", "desktop");
-        const desktopUrl = `${SERPAPI_BASE_URL}?${desktopParams.toString()}`;
-        page = await fetchSerpJson(desktopUrl, pool);
-        items = page?.organic_results ?? [];
-      }
-
+      const page = await fetchSerpJson(pageUrl, pool);
       if (!page) {
         console.error(`All ${pool.length} SERP key(s) failed mid-pagination for "${keyword}" (page ${pageNum}); stopping.`);
         break;
       }
-      if (items.length === 0) break; // genuinely ran off the end of Google's results
+      const items = page.organic_results ?? [];
+      if (items.length === 0) break; // ran off the end of Google's results
 
       const match = scanPage(items);
       if (match !== null) return String(match);
     }
 
-    return "100+";
+    // Not found within the checked range - "NA" (not "100+"): we only
+    // looked at start=0..50 (positions 1-60), so we genuinely don't know
+    // where beyond that it ranks, if at all.
+    return "NA";
   } catch (err) {
     console.error("Error fetching ranking from SERP API:", err);
     return "NA";
