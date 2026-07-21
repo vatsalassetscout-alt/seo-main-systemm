@@ -1299,28 +1299,8 @@ const readRankings = async (): Promise<Record<string, Record<string, { ranking: 
   return await getRankingsDb();
 };
 
-// FIX: this used to `await saveRankingsDb(rankings)` and throw the result away.
-// saveRankingsDb() returns `false` (and logs a console.warn) whenever the
-// Supabase upsert actually fails — e.g. the `rankings` table/columns are
-// missing, RLS is blocking the write, or the key is wrong. Because that
-// boolean was discarded, the /api/rankings/check endpoint below always
-// responded as if the save worked, even when it silently didn't. The
-// checked number would show up immediately (it was just returned from
-// this same request's in-memory object), but the very next GET
-// /api/rankings reads fresh from Supabase, finds nothing was ever written,
-// and the value disappears — which is exactly the "vanishing after
-// checking" symptom. Now the real success/failure is returned so callers
-// can know and report it, the same way appendSubmissionDb/saveAlertDb already do.
 const writeRankings = async (rankings: Record<string, Record<string, { ranking: string; lastChecked: string }>>): Promise<boolean> => {
-  const dbSaved = await saveRankingsDb(rankings);
-  if (!dbSaved) {
-    console.error(
-      "Rankings were NOT saved to Supabase — check server logs above for the underlying database error " +
-      "(missing 'rankings' table, missing columns, RLS policy, or bad SUPABASE_URL/SUPABASE_KEY). " +
-      "The checked value will only exist in this request's response and will vanish on next reload."
-    );
-  }
-  return dbSaved;
+  return await saveRankingsDb(rankings);
 };
 
 // =========================================================================
@@ -1374,7 +1354,7 @@ function nextSerpApiKey(pool: string[]): string {
 }
 
 const SERPAPI_BASE_URL = "https://serpapi.com/search.json";
-const SERP_MAX_PAGES = 8; // top ~80 organic results before giving up
+const SERP_MAX_PAGES = 10; // top ~100 organic results before giving up
 
 interface SerpApiOrganicResult {
   link?: string;
@@ -1514,14 +1494,26 @@ async function checkSerpRanking(keyword: string, domain: string): Promise<string
     const page1Match = scanPage(page1.organic_results ?? []);
     if (page1Match !== null) return String(page1Match);
 
-    // Pages 2-8 - use SerpApi's own pre-built pagination URLs (tied to the
-    // same search snapshot as page 1) instead of hand-building start=
-    // offsets, so results stay coherent page to page.
+    // Pages 2-N - prefer SerpApi's own pre-built pagination URLs (tied to
+    // the same search snapshot as page 1) since they stay coherent page to
+    // page. BUT: on mobile, Google frequently only hands back 1-2 "next
+    // page" links in `other_pages` (e.g. just pages 2 and 3) even though we
+    // want to look further - that's what was silently capping results at
+    // ~30 regardless of SERP_MAX_PAGES. So once other_pages runs out, keep
+    // going by hand-building `start=` offsets with the same query/location/
+    // device params as page 1, up to SERP_MAX_PAGES total.
     const otherPages = page1.serpapi_pagination?.other_pages ?? {};
-    const nextPageUrls = Object.entries(otherPages)
+    const otherPageUrls = Object.entries(otherPages)
       .sort((a, b) => Number(a[0]) - Number(b[0]))
-      .map(([, url]) => url)
-      .slice(0, SERP_MAX_PAGES - 1);
+      .map(([, url]) => url);
+
+    const nextPageUrls: string[] = otherPageUrls.slice(0, SERP_MAX_PAGES - 1);
+    for (let pageNum = otherPageUrls.length + 2; nextPageUrls.length < SERP_MAX_PAGES - 1 && pageNum <= SERP_MAX_PAGES; pageNum++) {
+      const start = (pageNum - 1) * 10;
+      const params = new URLSearchParams(page1Params);
+      params.set("start", String(start));
+      nextPageUrls.push(`${SERPAPI_BASE_URL}?${params.toString()}`);
+    }
 
     for (const pageUrl of nextPageUrls) {
       const page = await fetchSerpJson(pageUrl, pool);
@@ -1605,8 +1597,25 @@ app.post("/api/rankings/check", async (req, res) => {
         ranking: rank,
         lastChecked: timestamp
       };
-      const dbSaved = await writeRankings(rankings);
-      return res.json({ projectId, keyword, ranking: rankings[projectId][keyword], dbSaved });
+      const saved = await writeRankings(rankings);
+      if (!saved) {
+        // The SERP lookup itself succeeded, but the write to the database
+        // failed (e.g. Supabase not configured, "rankings" table missing,
+        // or an RLS policy blocking the upsert). We still return the
+        // freshly-checked ranking so the UI can show it immediately, but
+        // we flag `persisted: false` so the frontend knows NOT to trust
+        // it will still be there after a refresh, and surfaces a warning
+        // instead of silently losing the value.
+        console.error(`Ranking for "${keyword}" (project ${projectId}) was checked but FAILED to save to Supabase. Verify the "rankings" table exists (see supabaseServer.ts SQL) and that SUPABASE_URL/SUPABASE_KEY are correct.`);
+        return res.json({
+          projectId,
+          keyword,
+          ranking: rankings[projectId][keyword],
+          persisted: false,
+          warning: "Ranking checked successfully but could not be saved to the database. It will be lost on refresh — check your Supabase 'rankings' table/credentials."
+        });
+      }
+      return res.json({ projectId, keyword, ranking: rankings[projectId][keyword], persisted: true });
     } else {
       let projectKeywords: string[] = [];
       try {
@@ -1659,8 +1668,17 @@ app.post("/api/rankings/check", async (req, res) => {
         }
       }
 
-      const dbSaved = await writeRankings(rankings);
-      return res.json({ projectId, results, dbSaved });
+      const saved = await writeRankings(rankings);
+      if (!saved) {
+        console.error(`Bulk ranking check for project ${projectId} succeeded but FAILED to save to Supabase. Verify the "rankings" table exists (see supabaseServer.ts SQL) and that SUPABASE_URL/SUPABASE_KEY are correct.`);
+        return res.json({
+          projectId,
+          results,
+          persisted: false,
+          warning: "Rankings checked successfully but could not be saved to the database. They will be lost on refresh — check your Supabase 'rankings' table/credentials."
+        });
+      }
+      return res.json({ projectId, results, persisted: true });
     }
   } catch (err: any) {
     console.error("Error in POST /api/rankings/check:", err);
