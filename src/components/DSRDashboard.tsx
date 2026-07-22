@@ -2590,6 +2590,11 @@ export default function DSRDashboard({
                                       <span className="text-sm font-black text-slate-800">{userName}</span>
                                     </div>
                                     <div className="flex items-center gap-2">
+                                      {isAdmin && (
+                                        <span className="text-[9px] font-mono font-black border border-indigo-100 bg-indigo-50 px-2 py-0.5 rounded text-indigo-600 uppercase leading-none whitespace-nowrap">
+                                          Project Worked = {userProjectIds.length}
+                                        </span>
+                                      )}
                                       {regionsInvolved.length > 0 && (
                                         <span className="text-[9px] font-mono font-black border border-slate-200 bg-slate-50 px-2 py-0.5 rounded text-slate-500 uppercase leading-none">
                                           {regionsInvolved.join(' / ')}
@@ -3064,13 +3069,13 @@ export default function DSRDashboard({
                     <tr>
                       <th className="px-3 py-3 w-14 text-center">Sr No.</th>
                       <th className="px-3 py-3">Project Name</th>
-                      <th className="px-3 py-3">Domain</th>
-                      <th className="px-3 py-3 w-24 text-center">Priority</th>
-                      <th className="px-3 py-3 w-32">Duration</th>
-                      <th className="px-3 py-3 w-24 text-center">Ranking</th>
+                      <th className="pl-3 pr-1 py-3 w-52">Domain</th>
+                      <th className="pl-1 pr-3 py-3 w-24 text-center">Priority</th>
+                      <th className="pl-6 pr-3 py-3 w-32">Duration</th>
+                      <th className="px-3 py-3 w-28 text-center">Best Ranking</th>
                       <th className="px-3 py-3">Last Worked Date</th>
-                      {isAdmin && <th className="px-3 py-3">User</th>}
-                      {isAdmin && <th className="px-3 py-3 w-28 text-center">Action</th>}
+                      {isAdmin && <th className="pl-3 pr-1 py-3">User</th>}
+                      {isAdmin && <th className="pl-1 pr-3 py-3 w-28 text-center">Action</th>}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-150">
@@ -3086,7 +3091,7 @@ export default function DSRDashboard({
                         </td>
 
                         {/* Domain column */}
-                        <td className="px-3 py-3.5 text-left">
+                        <td className="pl-3 pr-1 py-3.5 text-left">
                           {proj.domain ? (
                             <a 
                               href={proj.domain.startsWith('http') ? proj.domain : `https://${proj.domain}`} 
@@ -3102,7 +3107,7 @@ export default function DSRDashboard({
                         </td>
 
                         {/* Priority column */}
-                        <td className="px-3 py-3.5 text-center">
+                        <td className="pl-1 pr-3 py-3.5 text-center">
                           {proj.priority === 'P1' && (
                             <span className="inline-flex items-center gap-0.5 bg-red-50 text-red-700 text-[9px] font-black px-1.5 py-0.5 rounded border border-red-100 uppercase tracking-wider whitespace-nowrap">
                               🚨 P1
@@ -3134,7 +3139,7 @@ export default function DSRDashboard({
                         </td>
 
                         {/* Duration column */}
-                        <td className="px-3 py-3.5 text-left">
+                        <td className="pl-6 pr-3 py-3.5 text-left">
                           {(() => {
                             const days = proj.daysSinceLastWorked;
                             if (days === Infinity || days === undefined || proj.lastWorkedDate === 'Never') {
@@ -3202,7 +3207,7 @@ export default function DSRDashboard({
 
                         {/* Assigned To column (Admin Only) */}
                         {isAdmin && (
-                          <td className="px-3 py-3.5 text-left font-bold text-gray-800">
+                          <td className="pl-3 pr-1 py-3.5 text-left font-bold text-gray-800">
                             <span className="text-gray-900 bg-slate-50 border border-slate-200/50 rounded px-2.5 py-1 text-[10px] select-all">
                               {getAssignedUsersForProject(proj.id)}
                             </span>
@@ -3211,7 +3216,7 @@ export default function DSRDashboard({
 
                         {/* Actions column (Only for Admin) */}
                         {isAdmin && (
-                          <td className="px-3 py-3.5 text-center">
+                          <td className="pl-1 pr-3 py-3.5 text-center">
                             <button
                               onClick={() => setSelectedPlanProject(proj)}
                               className="inline-flex items-center gap-1 bg-indigo-50 text-indigo-750 font-black uppercase text-[10px] px-3 py-1.5 rounded-xl border border-indigo-200 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition shadow-3xs cursor-pointer"
