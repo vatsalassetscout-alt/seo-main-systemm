@@ -27,7 +27,10 @@ import {
   saveRankingsDb,
   clearRankingsDb,
   getManualRankingsDb,
-  saveManualRankingsDb
+  saveManualRankingsDb,
+  getUsersDb,
+  saveUserDb,
+  deleteUserDb
 } from "./src/lib/supabaseServer";
 
 dotenv.config();
@@ -986,6 +989,41 @@ app.post("/api/projects/sync-from-sheet", async (req, res) => {
   }
 });
 
+// Manage the dedicated Users table (clean source for the admin Users dropdown)
+app.post("/api/users", async (req, res) => {
+  const email = req.headers['x-user-email'];
+  if (!email || typeof email !== 'string' || !isUserAdmin(email)) {
+    return res.status(403).json({ error: "Admin access required to add a user." });
+  }
+  const { userId, name } = req.body;
+  if (!userId || !name) {
+    return res.status(400).json({ error: "userId and name are required." });
+  }
+  try {
+    const ok = await saveUserDb(String(userId).trim(), String(name).trim());
+    if (!ok) return res.status(500).json({ error: "Failed to save user." });
+    const list = await getUsersDb();
+    return res.json({ success: true, users: list });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete("/api/users/:userId", async (req, res) => {
+  const email = req.headers['x-user-email'];
+  if (!email || typeof email !== 'string' || !isUserAdmin(email)) {
+    return res.status(403).json({ error: "Admin access required to delete a user." });
+  }
+  try {
+    const ok = await deleteUserDb(req.params.userId);
+    if (!ok) return res.status(500).json({ error: "Failed to delete user." });
+    const list = await getUsersDb();
+    return res.json({ success: true, users: list });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
 // GET filters combinations
 app.get("/api/filters", async (req, res) => {
   try {
@@ -1008,57 +1046,11 @@ app.get("/api/filters", async (req, res) => {
     }
 
     const uniqueRegions = new Set<string>();
-    const userMap = new Map<string, string>();
-
-    const formatUserEmailToName = (email: string): string => {
-      if (!email) return "";
-      let clean = email.trim();
-      if (clean.includes("@")) {
-        clean = clean.split("@")[0];
-      }
-      if (clean.includes(".") || clean.includes("-") || clean.includes("_")) {
-        return clean
-          .split(/[\._-]/)
-          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-          .join(" ");
-      }
-      return clean.charAt(0).toUpperCase() + clean.slice(1);
-    };
 
     projectsArr.forEach((p: any) => {
       if (p.region) uniqueRegions.add(p.region);
-      if (p.userId && String(p.userId).trim()) {
-        const uId = String(p.userId).trim().toLowerCase();
-        if (!isUserAdmin(uId)) {
-          let assignedName = "";
-          if (p.users && Array.isArray(p.users) && p.users.length > 0) {
-            assignedName = p.users.find((u: string) => !/^\d+$/.test(u.trim())) || p.users[0];
-          }
-          if (!assignedName) {
-            assignedName = formatUserEmailToName(uId);
-          }
-          const formattedName = assignedName
-            .split(' ')
-            .map((w: string) => w.charAt(0).toUpperCase() + w.slice(1))
-            .join(' ');
-          
-          userMap.set(uId, formattedName);
-        }
-      }
     });
 
-    let submissionsArr = await getSubmissionsDb();
-
-    submissionsArr.forEach((entry: any) => {
-      if (entry.userEmail) {
-        const userStr = entry.userEmail.trim().toLowerCase();
-        if (userStr && !isUserAdmin(userStr)) {
-          if (!userMap.has(userStr)) {
-            userMap.set(userStr, formatUserEmailToName(userStr));
-          }
-        }
-      }
-    });
 
     if (uniqueRegions.size === 0) {
       uniqueRegions.add("North");
@@ -1066,12 +1058,14 @@ app.get("/api/filters", async (req, res) => {
       uniqueRegions.add("South");
     }
 
-    const finalUsers = Array.from(userMap.entries()).map(([emailStr, nameStr]) => {
-      return {
-        email: emailStr,
-        name: nameStr
-      };
-    }).sort((a, b) => a.name.localeCompare(b.name));
+    // Users dropdown now comes ONLY from the dedicated app_users table —
+    // no more deriving/guessing names from projects.users, projects.user_id,
+    // or submissions.user_email (that guessing logic was the root cause of
+    // project names leaking into the users dropdown).
+    const dbUsers = await getUsersDb();
+    const finalUsers = dbUsers
+      .map(u => ({ email: u.email, name: u.name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
 
     return res.json({
       projects: projectsArr,
