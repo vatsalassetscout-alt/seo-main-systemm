@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useMemo, useState, useEffect, useRef } from 'react';
+import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import { DSREntry, Project, AppUser, ProjectLocation, CustomSubmissionType } from '../types';
 import { getUserDisplayName, isUserAdmin, doesUserMatch } from '../lib/userUtils';
 import UpdateRankingTable, { ManualRankingGrid } from './UpdateRankingTable';
@@ -158,6 +158,31 @@ export default function DSRDashboard({
     observer.observe(el);
     return () => observer.disconnect();
   }, []);
+
+  // Measures the height of each section's title/heading bar (e.g. "Project
+  // Table", "Backlink Distribution", etc.) so that heading can itself be
+  // pinned sticky right below the 6-button tab bar instead of scrolling away
+  // and being hidden. Only one section is ever mounted at a time, so a single
+  // self-observing callback ref covers every section.
+  const sectionHeaderObserverRef = useRef<ResizeObserver | null>(null);
+  const [sectionHeaderHeight, setSectionHeaderHeight] = useState(0);
+  const sectionHeaderRef = useCallback((node: HTMLDivElement | null) => {
+    if (sectionHeaderObserverRef.current) {
+      sectionHeaderObserverRef.current.disconnect();
+      sectionHeaderObserverRef.current = null;
+    }
+    if (node) {
+      const updateHeight = () => setSectionHeaderHeight(node.offsetHeight);
+      updateHeight();
+      const observer = new ResizeObserver(updateHeight);
+      observer.observe(node);
+      sectionHeaderObserverRef.current = observer;
+    } else {
+      setSectionHeaderHeight(0);
+    }
+  }, []);
+  // Offset for table headers that sit below a sticky section heading.
+  const tableHeaderTopWithHeading = tableHeaderTop + sectionHeaderHeight;
 
   const monthNames = [
     'January', 'February', 'March', 'April', 'May', 'June',
@@ -1916,7 +1941,7 @@ export default function DSRDashboard({
                 <button onClick={() => setApplySuccessMessage(null)} className="hover:text-emerald-950 font-black text-sm">&times;</button>
               </div>
             )}
-            <div className="p-4 bg-gray-50/50 border-b border-gray-150 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div ref={sectionHeaderRef} className="sticky z-20 p-4 bg-gray-50 border-b border-gray-150 flex flex-col sm:flex-row sm:items-center justify-between gap-2" style={{ top: tableHeaderTop }}>
               <div>
                 <h3 className="text-xs font-black text-gray-900 uppercase tracking-wider">Project Table</h3>
               </div>
@@ -1943,7 +1968,7 @@ export default function DSRDashboard({
 
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs min-w-[700px]">
-                <thead className="sticky z-20 bg-slate-50 shadow-sm text-slate-500 font-extrabold text-[10px] uppercase border-b border-gray-150" style={{ top: tableHeaderTop }}>
+                <thead className="sticky z-20 bg-slate-50 shadow-sm text-slate-500 font-extrabold text-[10px] uppercase border-b border-gray-150" style={{ top: tableHeaderTopWithHeading }}>
                   <tr>
                     <th className="px-4 py-3 w-14">Sr No.</th>
                     <th className="px-4 py-3">Project Name</th>
@@ -2078,7 +2103,7 @@ export default function DSRDashboard({
                 <button onClick={() => setApplySuccessMessage(null)} className="hover:text-emerald-950 font-black text-sm">&times;</button>
               </div>
             )}
-            <div className="p-4 bg-gray-50/50 border-b border-gray-150 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div ref={sectionHeaderRef} className="sticky z-20 p-4 bg-gray-50 border-b border-gray-150 flex flex-col sm:flex-row sm:items-center justify-between gap-4" style={{ top: tableHeaderTop }}>
               <div>
                 <h3 className="text-xs font-black text-gray-900 uppercase tracking-wider">Project Frequency</h3>
               </div>
@@ -2140,7 +2165,7 @@ export default function DSRDashboard({
             
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs min-w-[750px]">
-                <thead className="sticky z-20 bg-slate-50 shadow-sm text-slate-500 font-extrabold text-[10px] uppercase border-b border-gray-150" style={{ top: tableHeaderTop }}>
+                <thead className="sticky z-20 bg-slate-50 shadow-sm text-slate-500 font-extrabold text-[10px] uppercase border-b border-gray-150" style={{ top: tableHeaderTopWithHeading }}>
                   <tr>
                     <th className="px-4 py-3 w-14">Sr No.</th>
                     <th className="px-4 py-3">Project</th>
@@ -2277,7 +2302,7 @@ export default function DSRDashboard({
 
         {activeTab === 'activity' && (
           <div>
-            <div className="p-4 bg-gray-50/50 border-b border-gray-150 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div ref={sectionHeaderRef} className="sticky z-20 p-4 bg-gray-50 border-b border-gray-150 flex flex-col sm:flex-row sm:items-center justify-between gap-4" style={{ top: tableHeaderTop }}>
               <div>
                 <h3 className="text-xs font-black text-gray-900 uppercase tracking-wider flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-indigo-600 inline-block animate-pulse"></span>
@@ -2971,7 +2996,7 @@ export default function DSRDashboard({
 
           return (
             <div>
-              <div className="p-4 bg-gray-50/50 border-b border-gray-150 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div ref={sectionHeaderRef} className="sticky z-20 p-4 bg-gray-50 border-b border-gray-150 flex flex-col sm:flex-row sm:items-center justify-between gap-2" style={{ top: tableHeaderTop }}>
                 <h3 className="text-xs font-black text-gray-900 uppercase tracking-wider">Backlink Distribution</h3>
                 {isAdmin && (
                   <div className="text-[10px] bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-lg border border-emerald-100 flex items-center gap-1.5 font-bold">
@@ -3030,7 +3055,7 @@ export default function DSRDashboard({
 
                   <div className="overflow-x-auto border border-gray-150 rounded-2xl shadow-3xs bg-white">
                     <table className="w-full text-left text-xs min-w-[700px]">
-                      <thead className="sticky z-20 bg-slate-50 shadow-sm border-b border-gray-150 text-[10px] text-gray-400 uppercase font-black tracking-wider" style={{ top: tableHeaderTop }}>
+                      <thead className="sticky z-20 bg-slate-50 shadow-sm border-b border-gray-150 text-[10px] text-gray-400 uppercase font-black tracking-wider" style={{ top: tableHeaderTopWithHeading }}>
                         <tr>
                           <th className="px-4 py-3.5 w-16">Sr No.</th>
                           <th className="pl-4 pr-2 py-3.5 w-1/4">Project Name</th>
@@ -3107,7 +3132,7 @@ export default function DSRDashboard({
 
         {activeTab === 'unworked_project' && (
           <div>
-            <div className="p-4 bg-gray-50/50 border-b border-gray-150 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div ref={sectionHeaderRef} className="sticky z-20 p-4 bg-gray-50 border-b border-gray-150 flex flex-col sm:flex-row sm:items-center justify-between gap-4" style={{ top: tableHeaderTop }}>
               <div>
                 <h3 className="text-xs font-black text-gray-900 uppercase tracking-wider">Idle Projects</h3>
               </div>
@@ -3137,7 +3162,7 @@ export default function DSRDashboard({
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs min-w-[820px] border-collapse">
-                  <thead className="sticky z-20 bg-slate-50 shadow-sm text-slate-500 font-extrabold text-[10px] uppercase border-b border-gray-150" style={{ top: tableHeaderTop }}>
+                  <thead className="sticky z-20 bg-slate-50 shadow-sm text-slate-500 font-extrabold text-[10px] uppercase border-b border-gray-150" style={{ top: tableHeaderTopWithHeading }}>
                     <tr>
                       <th className="px-3 py-3 w-14 text-center">Sr No.</th>
                       <th className="pl-3 pr-1 py-3 w-52">Project Name</th>
@@ -3323,7 +3348,7 @@ export default function DSRDashboard({
 
         {activeTab === 'keyword_section' && (
           <div>
-            <div className="p-4 bg-gray-50/50 border-b border-gray-150 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div ref={sectionHeaderRef} className="sticky z-20 p-4 bg-gray-50 border-b border-gray-150 flex flex-col sm:flex-row sm:items-center justify-between gap-4" style={{ top: tableHeaderTop }}>
               <div>
                 <h3 className="text-xs font-black text-gray-900 uppercase tracking-wider">Project Ranking Section</h3>
               </div>
@@ -3384,7 +3409,7 @@ export default function DSRDashboard({
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs min-w-[700px] border-collapse">
-                  <thead className="sticky z-20 bg-slate-50 shadow-sm text-slate-500 font-extrabold text-[10px] uppercase border-b border-gray-150" style={{ top: tableHeaderTop }}>
+                  <thead className="sticky z-20 bg-slate-50 shadow-sm text-slate-500 font-extrabold text-[10px] uppercase border-b border-gray-150" style={{ top: tableHeaderTopWithHeading }}>
                     <tr>
                       <th className="px-4 py-3 w-14 text-center">Sr No.</th>
                       <th className="px-4 py-3">Project Name</th>
