@@ -144,6 +144,21 @@ export default function DSRDashboard({
   const [selectedUserProjects, setSelectedUserProjects] = useState<Record<string, string>>({});
   const [expandedLogUser, setExpandedLogUser] = useState<string | null>(null);
 
+  // Measures the height of the sticky filters+tab-bar block so table headers
+  // can stick right below it (instead of colliding with / hiding under it).
+  const stickyBarRef = useRef<HTMLDivElement>(null);
+  const [tableHeaderTop, setTableHeaderTop] = useState(0);
+
+  useEffect(() => {
+    const el = stickyBarRef.current;
+    if (!el) return;
+    const updateOffset = () => setTableHeaderTop(el.offsetHeight + 64); // 64px = global app header height
+    updateOffset();
+    const observer = new ResizeObserver(updateOffset);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
   const monthNames = [
     'January', 'February', 'March', 'April', 'May', 'June',
     'July', 'August', 'September', 'October', 'November', 'December'
@@ -1369,7 +1384,7 @@ export default function DSRDashboard({
 
 
       {/* Sticky wrapper: keeps filters + tab bar visible while scrolling */}
-      <div className="sticky top-16 z-30 -mx-1 px-1 pt-2 pb-2.5 bg-gray-50/95 backdrop-blur-sm space-y-3">
+      <div ref={stickyBarRef} className="sticky top-16 z-30 -mx-1 px-1 pt-2 pb-2.5 bg-gray-50/95 backdrop-blur-sm space-y-3">
 
       {/* Workspace Filters panel - ON TOP OF PAGE */}
       <div className="bg-white p-3 rounded-2xl border border-gray-150 shadow-2xs space-y-2.5">
@@ -1926,9 +1941,9 @@ export default function DSRDashboard({
               </div>
             </div>
 
-            <div className="overflow-auto max-h-[70vh]">
+            <div className="overflow-x-auto overflow-y-visible">
               <table className="w-full text-left text-xs min-w-[700px]">
-                <thead className="sticky top-0 z-20 bg-slate-50/95 backdrop-blur-sm text-slate-500 font-extrabold text-[10px] uppercase border-b border-gray-150">
+                <thead className="sticky z-20 bg-slate-50 shadow-sm text-slate-500 font-extrabold text-[10px] uppercase border-b border-gray-150" style={{ top: tableHeaderTop }}>
                   <tr>
                     <th className="px-4 py-3 w-14">Sr No.</th>
                     <th className="px-4 py-3">Project Name</th>
@@ -2123,9 +2138,9 @@ export default function DSRDashboard({
               </div>
             </div>
             
-            <div className="overflow-auto max-h-[70vh]">
+            <div className="overflow-x-auto overflow-y-visible">
               <table className="w-full text-left text-xs min-w-[750px]">
-                <thead className="sticky top-0 z-20 bg-slate-50/95 backdrop-blur-sm text-slate-500 font-extrabold text-[10px] uppercase border-b border-gray-150">
+                <thead className="sticky z-20 bg-slate-50 shadow-sm text-slate-500 font-extrabold text-[10px] uppercase border-b border-gray-150" style={{ top: tableHeaderTop }}>
                   <tr>
                     <th className="px-4 py-3 w-14">Sr No.</th>
                     <th className="px-4 py-3">Project</th>
@@ -3013,9 +3028,9 @@ export default function DSRDashboard({
                     </h4>
                   </div>
 
-                  <div className="overflow-auto max-h-[70vh] border border-gray-150 rounded-2xl shadow-3xs bg-white">
+                  <div className="overflow-x-auto overflow-y-visible border border-gray-150 rounded-2xl shadow-3xs bg-white">
                     <table className="w-full text-left text-xs min-w-[700px]">
-                      <thead className="sticky top-0 z-20 bg-slate-50/95 backdrop-blur-sm border-b border-gray-150 text-[10px] text-gray-400 uppercase font-black tracking-wider">
+                      <thead className="sticky z-20 bg-slate-50 shadow-sm border-b border-gray-150 text-[10px] text-gray-400 uppercase font-black tracking-wider" style={{ top: tableHeaderTop }}>
                         <tr>
                           <th className="px-4 py-3.5 w-16">Sr No.</th>
                           <th className="pl-4 pr-2 py-3.5 w-1/4">Project Name</th>
@@ -3120,17 +3135,17 @@ export default function DSRDashboard({
                 <p>No projects found.</p>
               </div>
             ) : (
-              <div className="overflow-auto max-h-[70vh]">
+              <div className="overflow-x-auto overflow-y-visible">
                 <table className="w-full text-left text-xs min-w-[820px] border-collapse">
-                  <thead className="sticky top-0 z-20 bg-slate-50/95 backdrop-blur-sm text-slate-500 font-extrabold text-[10px] uppercase border-b border-gray-150">
+                  <thead className="sticky z-20 bg-slate-50 shadow-sm text-slate-500 font-extrabold text-[10px] uppercase border-b border-gray-150" style={{ top: tableHeaderTop }}>
                     <tr>
                       <th className="px-3 py-3 w-14 text-center">Sr No.</th>
                       <th className="pl-3 pr-1 py-3 w-52">Project Name</th>
                       <th className="pl-1 pr-1 py-3 w-52">Domain</th>
                       <th className="pl-1 pr-3 py-3 w-24 text-center">Priority</th>
-                      <th className="pl-6 pr-3 py-3 w-40">Last Worked</th>
-                      <th className="px-3 py-3 w-28 text-center">Best Ranking</th>
-                      <th className="px-3 py-3">Last Rank Checked</th>
+                      <th className="pl-6 pr-3 py-3 w-48">Last Worked</th>
+                      <th className="pl-6 pr-3 py-3 w-28 text-center">Best Ranking</th>
+                      <th className="px-3 py-3 w-40 text-center">Last Rank Checked</th>
                       {isAdmin && <th className="pl-3 pr-0 py-3 w-36">User</th>}
                       {isAdmin && <th className="pl-0 pr-3 py-3 w-24 text-center">Action</th>}
                     </tr>
@@ -3198,7 +3213,7 @@ export default function DSRDashboard({
                         {/* Last Worked column (renamed from Duration) - shows the actual
                             last worked date, with days-ago in brackets. Never-worked
                             projects just show "Never". */}
-                        <td className="pl-6 pr-3 py-3.5 text-left">
+                        <td className="pl-6 pr-3 py-3.5 w-48 text-left">
                           {(() => {
                             const days = proj.daysSinceLastWorked;
                             if (days === Infinity || days === undefined || proj.lastWorkedDate === 'Never') {
@@ -3229,7 +3244,7 @@ export default function DSRDashboard({
                               : 'text-rose-800';
 
                             return (
-                              <span className={`font-black font-mono text-xs ${colorClass}`}>
+                              <span className={`font-black font-mono text-xs whitespace-nowrap ${colorClass}`}>
                                 {dateLabel} <span className="font-bold text-gray-400">({daysLabel})</span>
                               </span>
                             );
@@ -3237,7 +3252,7 @@ export default function DSRDashboard({
                         </td>
 
                         {/* Ranking column - best keyword ranking across the project */}
-                        <td className="px-3 py-3.5 text-center">
+                        <td className="pl-6 pr-3 py-3.5 w-28 text-center">
                           {proj.bestRanking !== null && proj.bestRanking !== undefined ? (
                             <span className={`inline-flex items-center justify-center font-mono font-black text-[10px] px-2 py-0.5 rounded border whitespace-nowrap ${
                               proj.bestRanking <= 10
@@ -3255,7 +3270,7 @@ export default function DSRDashboard({
 
                         {/* Last Rank Checked column (renamed from Last Worked Date) -
                             shows when the Best Ranking shown above was last checked. */}
-                        <td className="px-3 py-3.5 text-left">
+                        <td className="px-3 py-3.5 w-40 text-center">
                           {(() => {
                             if (!proj.bestRankingLastChecked) {
                               return <span className="text-gray-400 font-bold">—</span>;
@@ -3367,9 +3382,9 @@ export default function DSRDashboard({
                 <p>No projects found matching the search criteria.</p>
               </div>
             ) : (
-              <div className="overflow-auto max-h-[70vh]">
+              <div className="overflow-x-auto overflow-y-visible">
                 <table className="w-full text-left text-xs min-w-[700px] border-collapse">
-                  <thead className="sticky top-0 z-20 bg-slate-50/95 backdrop-blur-sm text-slate-500 font-extrabold text-[10px] uppercase border-b border-gray-150">
+                  <thead className="sticky z-20 bg-slate-50 shadow-sm text-slate-500 font-extrabold text-[10px] uppercase border-b border-gray-150" style={{ top: tableHeaderTop }}>
                     <tr>
                       <th className="px-4 py-3 w-14 text-center">Sr No.</th>
                       <th className="px-4 py-3">Project Name</th>
@@ -3644,6 +3659,7 @@ export default function DSRDashboard({
             grid={manualRankingGrid}
             setGrid={setManualRankingGrid}
             isLoading={manualRankingLoading}
+            stickyOffset={tableHeaderTop}
           />
         )}
 
