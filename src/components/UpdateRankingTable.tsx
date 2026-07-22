@@ -24,6 +24,9 @@ interface UpdateRankingTableProps {
   grid: ManualRankingGrid;
   setGrid: React.Dispatch<React.SetStateAction<ManualRankingGrid>>;
   isLoading: boolean;
+  /** Height (px) of the sticky filters+tab-bar block above this table, so the
+      table header can stick right below it instead of hiding under it. */
+  stickyOffset?: number;
 }
 
 const EMPTY_GRID: ManualRankingGrid = { columns: [], values: {}, rowColors: {} };
@@ -85,7 +88,7 @@ const NAME_COL_WIDTH = 200;      // widened to fit full project names
 const DOMAIN_COL_WIDTH = 240;    // widened to fit full domain URLs
 const LOCATION_COL_WIDTH = 140;  // widened to fit full location names
 
-export default function UpdateRankingTable({ projects, isAdmin = false, grid, setGrid, isLoading }: UpdateRankingTableProps) {
+export default function UpdateRankingTable({ projects, isAdmin = false, grid, setGrid, isLoading, stickyOffset = 0 }: UpdateRankingTableProps) {
   // Permissions are intentionally flipped from "isAdmin": admin can only VIEW
   // this section (plus use the sort filter), while regular users get full
   // editing rights (values, add/rename/delete columns, color tagging).
@@ -470,32 +473,32 @@ export default function UpdateRankingTable({ projects, isAdmin = false, grid, se
           No projects found matching the search criteria.
         </div>
       ) : (
-        <div className="overflow-auto rounded-b-2xl mt-1 max-h-[70vh]">
+        <div className="overflow-x-auto rounded-b-2xl mt-1">
           <table className="text-left text-xs border-collapse w-full" style={{ tableLayout: 'fixed' }}>
             <thead className="bg-slate-50/70 text-slate-500 font-extrabold text-[10px] uppercase border-b border-gray-150">
               <tr>
-                {colorModeOn && <th className="px-3 py-3 sticky top-0 left-0 bg-slate-50 z-30" style={{ width: CHECKBOX_COL_WIDTH, minWidth: CHECKBOX_COL_WIDTH, maxWidth: CHECKBOX_COL_WIDTH }}></th>}
+                {colorModeOn && <th className="px-3 py-3 sticky left-0 bg-slate-50 z-30" style={{ top: stickyOffset, width: CHECKBOX_COL_WIDTH, minWidth: CHECKBOX_COL_WIDTH, maxWidth: CHECKBOX_COL_WIDTH }}></th>}
                 <th
-                  className="px-3 py-3 text-center sticky top-0 bg-slate-50 z-30"
-                  style={{ left: srNoLeft, width: SR_NO_COL_WIDTH, minWidth: SR_NO_COL_WIDTH, maxWidth: SR_NO_COL_WIDTH }}
+                  className="px-3 py-3 text-center sticky bg-slate-50 z-30"
+                  style={{ top: stickyOffset, left: srNoLeft, width: SR_NO_COL_WIDTH, minWidth: SR_NO_COL_WIDTH, maxWidth: SR_NO_COL_WIDTH }}
                 >
                   Sr No.
                 </th>
                 <th
-                  className="px-1.5 py-3 sticky top-0 bg-slate-50 z-30 truncate"
-                  style={{ left: nameLeft, width: NAME_COL_WIDTH, minWidth: NAME_COL_WIDTH, maxWidth: NAME_COL_WIDTH }}
+                  className="px-1.5 py-3 sticky bg-slate-50 z-30 truncate"
+                  style={{ top: stickyOffset, left: nameLeft, width: NAME_COL_WIDTH, minWidth: NAME_COL_WIDTH, maxWidth: NAME_COL_WIDTH }}
                 >
                   Project Name
                 </th>
                 <th
-                  className="px-1.5 py-3 sticky top-0 bg-slate-50 z-30 truncate"
-                  style={{ left: domainLeft, width: DOMAIN_COL_WIDTH, minWidth: DOMAIN_COL_WIDTH, maxWidth: DOMAIN_COL_WIDTH }}
+                  className="px-1.5 py-3 sticky bg-slate-50 z-30 truncate"
+                  style={{ top: stickyOffset, left: domainLeft, width: DOMAIN_COL_WIDTH, minWidth: DOMAIN_COL_WIDTH, maxWidth: DOMAIN_COL_WIDTH }}
                 >
                   Domain
                 </th>
                 <th
-                  className="px-1.5 py-3 sticky top-0 bg-slate-50 z-30 truncate"
-                  style={{ left: locationLeft, width: LOCATION_COL_WIDTH, minWidth: LOCATION_COL_WIDTH, maxWidth: LOCATION_COL_WIDTH }}
+                  className="px-1.5 py-3 sticky bg-slate-50 z-30 truncate"
+                  style={{ top: stickyOffset, left: locationLeft, width: LOCATION_COL_WIDTH, minWidth: LOCATION_COL_WIDTH, maxWidth: LOCATION_COL_WIDTH }}
                 >
                   Location
                 </th>
@@ -503,7 +506,7 @@ export default function UpdateRankingTable({ projects, isAdmin = false, grid, se
                 {grid.columns.map(col => {
                   const w = columnWidth(col.name);
                   return (
-                    <th key={col.id} className="px-2.5 py-3 group/col relative sticky top-0 z-20 bg-slate-50" style={{ width: w, minWidth: w, maxWidth: w }}>
+                    <th key={col.id} className="px-2.5 py-3 group/col relative sticky z-20 bg-slate-50" style={{ top: stickyOffset, width: w, minWidth: w, maxWidth: w }}>
                       <div className="flex items-center justify-between gap-1">
                         {canEdit ? (
                           <button
@@ -531,7 +534,7 @@ export default function UpdateRankingTable({ projects, isAdmin = false, grid, se
                 })}
 
                 {canEdit && (
-                  <th className="px-3 py-3 w-12 sticky top-0 z-20 bg-slate-50">
+                  <th className="px-3 py-3 w-12 sticky z-20 bg-slate-50" style={{ top: stickyOffset }}>
                     <button
                       onClick={addColumn}
                       title="Add a new ranking column"
@@ -545,7 +548,7 @@ export default function UpdateRankingTable({ projects, isAdmin = false, grid, se
                     horizontal space. Lets a colored row's background extend
                     all the way to the right edge instead of stopping at the
                     last data column. */}
-                <th className="w-full sticky top-0 z-20 bg-slate-50"></th>
+                <th className="w-full sticky z-20 bg-slate-50" style={{ top: stickyOffset }}></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-150">
