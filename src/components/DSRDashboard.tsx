@@ -178,6 +178,10 @@ export default function DSRDashboard({
   const [isLocationDropdownOpen, setIsLocationDropdownOpen] = useState(false);
   const [locationSearchTerm, setLocationSearchTerm] = useState('');
 
+  const [selectedPriorities, setSelectedPriorities] = useState<string[]>([]);
+  const [isPriorityDropdownOpen, setIsPriorityDropdownOpen] = useState(false);
+  const PRIORITY_OPTIONS = ['P1', 'P2', 'P3', 'P4', 'P5'];
+
   const [commonSearchTerm, setCommonSearchTerm] = useState('');
   const [keywordSearchTerm, setKeywordSearchTerm] = useState('');
 
@@ -662,6 +666,7 @@ export default function DSRDashboard({
     setSelectedUsers([]);
     setRegionFilter('All');
     setSelectedLocations([]);
+    setSelectedPriorities([]);
     setDateFilterType('all');
     setCustomStartDate('');
     setCustomEndDate('');
@@ -692,6 +697,14 @@ export default function DSRDashboard({
       // 3. Location checklist filter
       if (selectedLocations.length > 0) {
         if (!selectedLocations.includes(pLocation)) {
+          return false;
+        }
+      }
+
+      // 3b. Priority checklist filter
+      if (selectedPriorities.length > 0) {
+        const pPriority = pendingChanges[p.id]?.priority !== undefined ? pendingChanges[p.id].priority : p.priority;
+        if (!selectedPriorities.includes(pPriority || '')) {
           return false;
         }
       }
@@ -737,7 +750,7 @@ export default function DSRDashboard({
 
       return true;
     });
-  }, [projects, regionFilter, selectedLocations, selectedProjectIds, commonSearchTerm, filteredWorks, isAdmin, currentUserEmail, selectedUsers]);
+  }, [projects, regionFilter, selectedLocations, selectedPriorities, pendingChanges, selectedProjectIds, commonSearchTerm, filteredWorks, isAdmin, currentUserEmail, selectedUsers]);
 
   // KPI calculations for response metrics
   const projectsAssignedCount = projects.length;
@@ -1290,7 +1303,7 @@ export default function DSRDashboard({
       <div className="bg-white p-3 rounded-2xl border border-gray-150 shadow-2xs space-y-2.5">
         <div className="flex items-center justify-between">
           <div />
-          {(selectedProjectIds.length > 0 || selectedUsers.length > 0 || regionFilter !== 'All' || selectedLocations.length > 0 || dateFilterType !== 'all' || commonSearchTerm !== '') && (
+          {(selectedProjectIds.length > 0 || selectedUsers.length > 0 || regionFilter !== 'All' || selectedLocations.length > 0 || selectedPriorities.length > 0 || dateFilterType !== 'all' || commonSearchTerm !== '') && (
             <button
               onClick={handleResetFilters}
               className="text-[10px] font-bold text-indigo-600 hover:text-indigo-850 flex items-center gap-1 bg-indigo-50 hover:bg-indigo-100 px-2 py-1 rounded-lg transition-all"
@@ -1325,7 +1338,7 @@ export default function DSRDashboard({
         </div>
 
         {/* Filters Grid */}
-        <div className={`grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 ${isAdmin ? 'lg:grid-cols-5' : 'lg:grid-cols-4'} gap-2.5 pt-0.5`}>
+        <div className={`grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 ${isAdmin ? 'lg:grid-cols-6' : 'lg:grid-cols-5'} gap-2.5 pt-0.5`}>
           
           {/* Block 1: Date Filter */}
           <div className="flex flex-col gap-1 bg-slate-50/40 p-2 rounded-xl border border-gray-100">
@@ -1408,6 +1421,7 @@ export default function DSRDashboard({
                   setIsProjectDropdownOpen(!isProjectDropdownOpen);
                   setIsUserDropdownOpen(false);
                   setIsLocationDropdownOpen(false);
+                  setIsPriorityDropdownOpen(false);
                 }}
                 className="w-full flex items-center justify-between px-2.5 py-1.5 bg-white border border-gray-200 rounded-lg text-xs text-gray-950 font-bold focus:outline-none transition hover:bg-gray-50 h-[30px]"
               >
@@ -1503,6 +1517,7 @@ export default function DSRDashboard({
                   setIsLocationDropdownOpen(!isLocationDropdownOpen);
                   setIsProjectDropdownOpen(false);
                   setIsUserDropdownOpen(false);
+                  setIsPriorityDropdownOpen(false);
                 }}
                 className="w-full flex items-center justify-between px-2.5 py-1.5 bg-white border border-gray-200 rounded-lg text-xs text-gray-950 font-bold focus:outline-none transition hover:bg-gray-50 h-[30px]"
               >
@@ -1585,6 +1600,89 @@ export default function DSRDashboard({
             </div>
           </div>
 
+          {/* Block: Priority checklist filter (multi-select, applies across all sections) */}
+          <div className="flex flex-col gap-1 bg-slate-50/40 p-2 rounded-xl border border-gray-100">
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1 leading-none">
+              <Tag size={11} className="text-gray-400" />
+              Priority
+            </span>
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsPriorityDropdownOpen(!isPriorityDropdownOpen);
+                  setIsProjectDropdownOpen(false);
+                  setIsLocationDropdownOpen(false);
+                  setIsUserDropdownOpen(false);
+                }}
+                className="w-full flex items-center justify-between px-2.5 py-1.5 bg-white border border-gray-200 rounded-lg text-xs text-gray-950 font-bold focus:outline-none transition hover:bg-gray-50 h-[30px]"
+              >
+                <span className="truncate pr-1">
+                  {selectedPriorities.length === 0
+                    ? 'All Priorities'
+                    : `${selectedPriorities.length} selected`}
+                </span>
+                <ChevronDown size={12} className={`text-gray-400 transition-transform shrink-0 ${isPriorityDropdownOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {isPriorityDropdownOpen && (
+                <>
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setIsPriorityDropdownOpen(false)}
+                  />
+                  <div className="absolute right-0 left-0 mt-1.5 bg-white border border-gray-200 rounded-xl shadow-lg z-50 p-2.5 space-y-2 max-h-56 overflow-y-auto">
+                    <div className="flex items-center justify-between text-[9px] pb-1 border-b border-gray-100 font-bold text-gray-400">
+                      <span>PRIORITY</span>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); setSelectedPriorities([]); }}
+                          className="text-indigo-600 hover:text-indigo-850"
+                        >
+                          Clear
+                        </button>
+                        <span>•</span>
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); setSelectedPriorities(PRIORITY_OPTIONS); }}
+                          className="text-indigo-600 hover:text-indigo-850"
+                        >
+                          All
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-0.5 max-h-36 overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+                      {PRIORITY_OPTIONS.map((pr) => {
+                        const isChecked = selectedPriorities.includes(pr);
+                        return (
+                          <div key={pr} className="flex items-center justify-between p-1 rounded hover:bg-gray-50 transition-colors">
+                            <label className="flex items-center gap-2 cursor-pointer text-xs text-gray-800 font-bold grow select-none">
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                onChange={() => {
+                                  if (isChecked) {
+                                    setSelectedPriorities(selectedPriorities.filter(item => item !== pr));
+                                  } else {
+                                    setSelectedPriorities([...selectedPriorities, pr]);
+                                  }
+                                }}
+                                className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 w-3.5 h-3.5 cursor-pointer"
+                              />
+                              <span className="truncate">{pr}</span>
+                            </label>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+
           {/* Block 5: Filter by User/Users (Admin Only) */}
           {isAdmin && (
             <div className="flex flex-col gap-1 bg-slate-50/40 p-2 rounded-xl border border-gray-100">
@@ -1599,6 +1697,7 @@ export default function DSRDashboard({
                     setIsUserDropdownOpen(!isUserDropdownOpen);
                     setIsProjectDropdownOpen(false);
                     setIsLocationDropdownOpen(false);
+                    setIsPriorityDropdownOpen(false);
                   }}
                   className="w-full flex items-center justify-between px-2.5 py-1.5 bg-white border border-gray-200 rounded-lg text-xs text-gray-950 font-bold focus:outline-none transition hover:bg-gray-50 h-[30px]"
                 >
