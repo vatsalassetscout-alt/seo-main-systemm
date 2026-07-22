@@ -1143,16 +1143,22 @@ export default function App() {
                                     </span>
                                     <button
                                       onClick={() => {
-                                        setAssignmentPreFill({
-                                          projectId: alert.projectId,
-                                          date: alert.date
-                                        });
-                                        setActiveTab('submit');
+                                        if (isAdmin) {
+                                          const emailLower = (alert.userEmail || '').trim().toLowerCase();
+                                          setFocusLogKey(`group-${emailLower}-${alert.date}`);
+                                          setActiveTab('logs');
+                                        } else {
+                                          setAssignmentPreFill({
+                                            projectId: alert.projectId,
+                                            date: alert.date
+                                          });
+                                          setActiveTab('submit');
+                                        }
                                         setShowNotifications(false);
                                       }}
                                       className="whitespace-nowrap px-4 py-1.5 bg-amber-600 hover:bg-amber-700 hover:scale-[1.01] active:scale-[0.99] text-white font-extrabold rounded-lg text-[11px] transition duration-75 shadow-3xs cursor-pointer inline-flex items-center gap-1"
                                     >
-                                       Update on log
+                                       {isAdmin ? 'Check Log' : 'Update on log'}
                                     </button>
                                   </div>
                                 )}
@@ -1174,9 +1180,13 @@ export default function App() {
                                 )}
                               </div>
 
-                              <div className="flex justify-between items-center mt-3 text-[9px] text-gray-400 font-bold font-mono uppercase border-t border-gray-100/50 pt-2">
-                                <span>{isUserMsg ? `Sender: ${alert.adminEmail === '8888' ? 'Admin' : alert.adminEmail}` : `By ${alert.adminEmail === '8888' ? 'Admin' : alert.adminEmail}`}</span>
-                                <span>{new Date(alert.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                              <div className="flex justify-between items-center mt-3 text-[11px] text-gray-500 font-bold font-mono uppercase border-t border-gray-100/50 pt-2">
+                                <span>
+                                  {isAdmin
+                                    ? `User: ${getUserDisplayName(alert.userEmail, allowedUsers) || alert.userEmail || 'Unknown'}`
+                                    : (isUserMsg ? `Sender: ${alert.adminEmail === '8888' ? 'Admin' : alert.adminEmail}` : `By ${alert.adminEmail === '8888' ? 'Admin' : alert.adminEmail}`)}
+                                </span>
+                                <span className="text-[10px]">{new Date(alert.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
                               </div>
                               {!alert.read && (
                                 <span className="absolute left-1.5 top-1/2 -translate-y-1/2 w-1.5 h-1.5 bg-indigo-600 rounded-full"></span>
