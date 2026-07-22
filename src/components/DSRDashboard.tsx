@@ -3130,7 +3130,7 @@ export default function DSRDashboard({
                       <th className="pl-1 pr-3 py-3 w-24 text-center">Priority</th>
                       <th className="pl-6 pr-3 py-3 w-40">Last Worked</th>
                       <th className="px-3 py-3 w-28 text-center">Best Ranking</th>
-                      <th className="px-3 py-3">Last Rank Checked</th>
+                      <th className="pl-3 pr-4 py-3 w-40 text-right">Last Rank Checked</th>
                       {isAdmin && <th className="pl-3 pr-0 py-3 w-36">User</th>}
                       {isAdmin && <th className="pl-0 pr-3 py-3 w-24 text-center">Action</th>}
                     </tr>
@@ -3255,7 +3255,7 @@ export default function DSRDashboard({
 
                         {/* Last Rank Checked column (renamed from Last Worked Date) -
                             shows when the Best Ranking shown above was last checked. */}
-                        <td className="px-3 py-3.5 text-left">
+                        <td className="pl-3 pr-4 py-3.5 w-40 text-right">
                           {(() => {
                             if (!proj.bestRankingLastChecked) {
                               return <span className="text-gray-400 font-bold">—</span>;
