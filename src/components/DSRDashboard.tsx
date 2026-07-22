@@ -199,6 +199,7 @@ export default function DSRDashboard({
   const [checkingProjectIds, setCheckingProjectIds] = useState<string[]>([]);
   const [checkingKeywords, setCheckingKeywords] = useState<string[]>([]); // "projectId_keyword"
   const [rankingCheckError, setRankingCheckError] = useState<string | null>(null);
+  const [isCheckingAllRankings, setIsCheckingAllRankings] = useState(false);
 
   useEffect(() => {
     const fetchRankings = async () => {
@@ -1145,10 +1146,12 @@ export default function DSRDashboard({
       // Best (lowest/top) keyword ranking for this project across all tracked keywords
       const projRankings: Record<string, { ranking: string; lastChecked: string }> = rankings[p.id] || {};
       let bestRanking: number | null = null;
+      let bestRankingLastChecked: string | null = null;
       Object.values(projRankings).forEach((r) => {
         const parsed = parseInt(String(r?.ranking ?? '').replace(/[^0-9]/g, ''), 10);
         if (!isNaN(parsed) && (bestRanking === null || parsed < bestRanking)) {
           bestRanking = parsed;
+          bestRankingLastChecked = r?.lastChecked || null;
         }
       });
 
@@ -1159,6 +1162,7 @@ export default function DSRDashboard({
         domain: p.domain || '',
         priority: priority || '',
         bestRanking,
+        bestRankingLastChecked,
         lastWorkedDate: lastWorkedDateStr,
         daysSinceLastWorked: daysSinceLastWorked,
       };
@@ -1294,6 +1298,59 @@ export default function DSRDashboard({
       ...prev,
       [projId]: !prev[projId]
     }));
+  };
+
+  // Checks live SERP ranking for every keyword of a single project. Shared by
+  // the per-row "Check" button and the "Check All" bulk action below, so both
+  // paths update the same rankings state and show the same spinner/error UX.
+  const checkProjectRanking = async (proj: { id: string; domain?: string }) => {
+    if (checkingProjectIds.includes(proj.id)) return;
+    setCheckingProjectIds(prev => [...prev, proj.id]);
+    try {
+      const res = await fetch('/api/rankings/check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ projectId: proj.id, domain: proj.domain })
+      });
+      const resData = await res.json().catch(() => ({}));
+      if (res.ok) {
+        const { results } = resData || {};
+        if (results && typeof results === 'object') {
+          setRankings(prev => ({
+            ...prev,
+            [proj.id]: { ...(prev[proj.id] || {}), ...results }
+          }));
+        }
+        if (resData.persisted === false) {
+          setRankingCheckError(resData.warning || "Rankings checked but could not be saved to the database - they will be lost on refresh. Check your Supabase 'rankings' table/credentials.");
+        }
+      } else {
+        setRankingCheckError(resData.error || "Failed to check project rankings. Please verify that SERP_API_KEY is configured correctly.");
+      }
+    } catch (err) {
+      console.error('Error checking project rankings:', err);
+      setRankingCheckError("Connection to backend ranking checker failed. Check if local dev server is running.");
+    } finally {
+      setCheckingProjectIds(prev => prev.filter(id => id !== proj.id));
+    }
+  };
+
+  // "Check All" bulk action - runs against whatever the Ranking section is
+  // currently showing (all projects if no search term is typed, or just the
+  // filtered/searched subset if one is). One at a time, to stay gentle on
+  // the SERP API and avoid hammering it with parallel requests.
+  const handleCheckAllRankings = async () => {
+    if (isCheckingAllRankings) return;
+    setIsCheckingAllRankings(true);
+    setRankingCheckError(null);
+    try {
+      for (const proj of filteredProjectKeywordGroups) {
+        // eslint-disable-next-line no-await-in-loop
+        await checkProjectRanking(proj);
+      }
+    } finally {
+      setIsCheckingAllRankings(false);
+    }
   };
 
   const tabsInfo = [
@@ -2956,9 +3013,9 @@ export default function DSRDashboard({
                     </h4>
                   </div>
 
-                  <div className="overflow-x-auto border border-gray-150 rounded-2xl shadow-3xs bg-white">
+                  <div className="overflow-auto max-h-[70vh] border border-gray-150 rounded-2xl shadow-3xs bg-white">
                     <table className="w-full text-left text-xs min-w-[700px]">
-                      <thead className="bg-slate-50 border-b border-gray-150 text-[10px] text-gray-400 uppercase font-black tracking-wider">
+                      <thead className="sticky top-0 z-20 bg-slate-50/95 backdrop-blur-sm border-b border-gray-150 text-[10px] text-gray-400 uppercase font-black tracking-wider">
                         <tr>
                           <th className="px-4 py-3.5 w-16">Sr No.</th>
                           <th className="pl-4 pr-2 py-3.5 w-1/4">Project Name</th>
@@ -3068,14 +3125,14 @@ export default function DSRDashboard({
                   <thead className="sticky top-0 z-20 bg-slate-50/95 backdrop-blur-sm text-slate-500 font-extrabold text-[10px] uppercase border-b border-gray-150">
                     <tr>
                       <th className="px-3 py-3 w-14 text-center">Sr No.</th>
-                      <th className="px-3 py-3">Project Name</th>
-                      <th className="pl-3 pr-1 py-3 w-52">Domain</th>
+                      <th className="pl-3 pr-1 py-3 w-52">Project Name</th>
+                      <th className="pl-1 pr-1 py-3 w-52">Domain</th>
                       <th className="pl-1 pr-3 py-3 w-24 text-center">Priority</th>
-                      <th className="pl-6 pr-3 py-3 w-32">Duration</th>
+                      <th className="pl-6 pr-3 py-3 w-40">Last Worked</th>
                       <th className="px-3 py-3 w-28 text-center">Best Ranking</th>
-                      <th className="px-3 py-3">Last Worked Date</th>
-                      {isAdmin && <th className="pl-3 pr-1 py-3">User</th>}
-                      {isAdmin && <th className="pl-1 pr-3 py-3 w-28 text-center">Action</th>}
+                      <th className="px-3 py-3">Last Rank Checked</th>
+                      {isAdmin && <th className="pl-3 pr-0 py-3 w-36">User</th>}
+                      {isAdmin && <th className="pl-0 pr-3 py-3 w-24 text-center">Action</th>}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-150">
@@ -3084,14 +3141,14 @@ export default function DSRDashboard({
                         <td className="px-3 py-3.5 font-mono font-black text-gray-400 text-center">{proj.srNo}</td>
                         
                         {/* Project Name column */}
-                        <td className="px-3 py-3.5 font-bold text-gray-900 text-left">
+                        <td className="pl-3 pr-1 py-3.5 font-bold text-gray-900 text-left">
                           <div className="flex items-center gap-2">
                             <span className="text-gray-900 font-black">{proj.name}</span>
                           </div>
                         </td>
 
                         {/* Domain column */}
-                        <td className="pl-3 pr-1 py-3.5 text-left">
+                        <td className="pl-1 pr-1 py-3.5 text-left">
                           {proj.domain ? (
                             <a 
                               href={proj.domain.startsWith('http') ? proj.domain : `https://${proj.domain}`} 
@@ -3138,7 +3195,9 @@ export default function DSRDashboard({
                           )}
                         </td>
 
-                        {/* Duration column */}
+                        {/* Last Worked column (renamed from Duration) - shows the actual
+                            last worked date, with days-ago in brackets. Never-worked
+                            projects just show "Never". */}
                         <td className="pl-6 pr-3 py-3.5 text-left">
                           {(() => {
                             const days = proj.daysSinceLastWorked;
@@ -3149,22 +3208,31 @@ export default function DSRDashboard({
                                 </span>
                               );
                             }
-                            
-                            if (days === 0) {
-                              return <span className="font-black text-emerald-600">0 Days (Active Today)</span>;
+
+                            let dateLabel = proj.lastWorkedDate;
+                            try {
+                              const d = new Date(proj.lastWorkedDate);
+                              if (!isNaN(d.getTime())) {
+                                dateLabel = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+                              }
+                            } catch {
+                              // keep raw string as fallback
                             }
-                            
-                            // If daily filter is selected, or if days are less than 7, show in days only without neglected word
-                            if (unworkedFilter === 'daily' || days < 7) {
-                              return <span className="font-black text-amber-600">{days} {days === 1 ? 'Day' : 'Days'}</span>;
-                            }
-                            
-                            const weeks = (days / 7).toFixed(1);
-                            if (days < 30) {
-                              return <span className="font-black text-rose-650">{weeks} Weeks ({days} days)</span>;
-                            }
-                            const months = (days / 30).toFixed(1);
-                            return <span className="font-black text-rose-800">{months} Months ({days} days)</span>;
+
+                            const daysLabel = days === 0 ? 'Today' : `${days} ${days === 1 ? 'day' : 'days'} ago`;
+                            const colorClass = days === 0
+                              ? 'text-emerald-600'
+                              : days < 7
+                              ? 'text-amber-600'
+                              : days < 30
+                              ? 'text-rose-650'
+                              : 'text-rose-800';
+
+                            return (
+                              <span className={`font-black font-mono text-xs ${colorClass}`}>
+                                {dateLabel} <span className="font-bold text-gray-400">({daysLabel})</span>
+                              </span>
+                            );
                           })()}
                         </td>
 
@@ -3185,29 +3253,33 @@ export default function DSRDashboard({
                           )}
                         </td>
 
-                        {/* Last Worked Date column */}
+                        {/* Last Rank Checked column (renamed from Last Worked Date) -
+                            shows when the Best Ranking shown above was last checked. */}
                         <td className="px-3 py-3.5 text-left">
                           {(() => {
-                            if (proj.lastWorkedDate === 'Never') {
+                            if (!proj.bestRankingLastChecked) {
                               return <span className="text-gray-400 font-bold">—</span>;
                             }
-                            
+
                             try {
-                              const d = new Date(proj.lastWorkedDate);
+                              const d = new Date(proj.bestRankingLastChecked);
+                              if (isNaN(d.getTime())) {
+                                return <span className="text-gray-800 font-extrabold font-mono text-xs">{proj.bestRankingLastChecked}</span>;
+                              }
                               return (
                                 <span className="text-gray-800 font-extrabold font-mono text-xs">
                                   {d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
                                 </span>
                               );
                             } catch {
-                              return <span className="text-gray-800 font-extrabold font-mono text-xs">{proj.lastWorkedDate}</span>;
+                              return <span className="text-gray-800 font-extrabold font-mono text-xs">{proj.bestRankingLastChecked}</span>;
                             }
                           })()}
                         </td>
 
                         {/* Assigned To column (Admin Only) */}
                         {isAdmin && (
-                          <td className="pl-3 pr-1 py-3.5 text-left font-bold text-gray-800">
+                          <td className="pl-3 pr-0 py-3.5 text-left font-bold text-gray-800">
                             <span className="text-gray-900 bg-slate-50 border border-slate-200/50 rounded px-2.5 py-1 text-[10px] select-all">
                               {getAssignedUsersForProject(proj.id)}
                             </span>
@@ -3216,7 +3288,7 @@ export default function DSRDashboard({
 
                         {/* Actions column (Only for Admin) */}
                         {isAdmin && (
-                          <td className="pl-1 pr-3 py-3.5 text-center">
+                          <td className="pl-0 pr-3 py-3.5 text-center">
                             <button
                               onClick={() => setSelectedPlanProject(proj)}
                               className="inline-flex items-center gap-1 bg-indigo-50 text-indigo-750 font-black uppercase text-[10px] px-3 py-1.5 rounded-xl border border-indigo-200 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition shadow-3xs cursor-pointer"
@@ -3241,17 +3313,37 @@ export default function DSRDashboard({
                 <h3 className="text-xs font-black text-gray-900 uppercase tracking-wider">Project Ranking Section</h3>
               </div>
               
-              <div className="relative w-full sm:w-64">
-                <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-400">
-                  <Search size={14} />
-                </span>
-                <input
-                  type="text"
-                  value={keywordSearchTerm}
-                  onChange={(e) => setKeywordSearchTerm(e.target.value)}
-                  placeholder="Search projects or keywords..."
-                  className="w-full text-xs pl-9 pr-3 py-2 border border-gray-200 rounded-xl focus:outline-hidden focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 bg-white"
-                />
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                {isAdmin && (
+                  <button
+                    type="button"
+                    onClick={handleCheckAllRankings}
+                    disabled={isCheckingAllRankings || filteredProjectKeywordGroups.length === 0}
+                    className="inline-flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black uppercase text-[10px] px-3 py-2 rounded-xl transition shadow-3xs cursor-pointer whitespace-nowrap"
+                    title="Check live SERP ranking for every project currently listed below (respects the search box if you've typed something)"
+                  >
+                    {isCheckingAllRankings ? (
+                      <>
+                        <span className="inline-block animate-spin">⏳</span>
+                        Checking...
+                      </>
+                    ) : (
+                      <>🔍 Check All</>
+                    )}
+                  </button>
+                )}
+                <div className="relative w-full sm:w-64">
+                  <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-400">
+                    <Search size={14} />
+                  </span>
+                  <input
+                    type="text"
+                    value={keywordSearchTerm}
+                    onChange={(e) => setKeywordSearchTerm(e.target.value)}
+                    placeholder="Search projects or keywords..."
+                    className="w-full text-xs pl-9 pr-3 py-2 border border-gray-200 rounded-xl focus:outline-hidden focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 bg-white"
+                  />
+                </div>
               </div>
             </div>
 
@@ -3361,41 +3453,7 @@ export default function DSRDashboard({
                                   <button
                                     onClick={async (e) => {
                                       e.stopPropagation();
-                                      if (checkingProjectIds.includes(proj.id)) return;
-                                      setCheckingProjectIds(prev => [...prev, proj.id]);
-                                      try {
-                                        setRankingCheckError(null);
-                                        const res = await fetch('/api/rankings/check', {
-                                          method: 'POST',
-                                          headers: { 'Content-Type': 'application/json' },
-                                          body: JSON.stringify({ projectId: proj.id, domain: proj.domain })
-                                        });
-                                        const resData = await res.json().catch(() => ({}));
-                                        if (res.ok) {
-                                          // Apply the freshly-checked results directly instead of
-                                          // re-fetching GET /api/rankings - re-fetching right after
-                                          // a write can race with (or mask a silent failure of) the
-                                          // database save and revert the numbers you just saw back
-                                          // to the old/empty state ("shows then vanishes").
-                                          const { results } = resData || {};
-                                          if (results && typeof results === 'object') {
-                                            setRankings(prev => ({
-                                              ...prev,
-                                              [proj.id]: { ...(prev[proj.id] || {}), ...results }
-                                            }));
-                                          }
-                                          if (resData.persisted === false) {
-                                            setRankingCheckError(resData.warning || "Rankings checked but could not be saved to the database - they will be lost on refresh. Check your Supabase 'rankings' table/credentials.");
-                                          }
-                                        } else {
-                                          setRankingCheckError(resData.error || "Failed to check project rankings. Please verify that SERP_API_KEY is configured correctly.");
-                                        }
-                                      } catch (err) {
-                                        console.error('Error checking project rankings:', err);
-                                        setRankingCheckError("Connection to backend ranking checker failed. Check if local dev server is running.");
-                                      } finally {
-                                        setCheckingProjectIds(prev => prev.filter(id => id !== proj.id));
-                                      }
+                                      await checkProjectRanking(proj);
                                     }}
                                     disabled={checkingProjectIds.includes(proj.id)}
                                     className="inline-flex items-center gap-1 bg-amber-50 hover:bg-amber-100 disabled:opacity-50 disabled:cursor-not-allowed text-amber-800 font-black uppercase text-[10px] px-2 py-1 rounded border border-amber-200 transition shadow-3xs cursor-pointer"
