@@ -729,7 +729,31 @@ export default function App() {
   };
 
   const handleTriggerSync = async () => {
-    await syncWithBackend();
+    // This button is now the ONLY place that pulls fresh data from the Google
+    // Sheet into Supabase. Regular loads/polling (syncWithBackend elsewhere)
+    // just read the database as-is, so manual DB edits/deletes stick permanently
+    // until you explicitly click this to re-import from the Sheet.
+    setIsSyncing(true);
+    try {
+      const syncHeaders: Record<string, string> = {};
+      if (currentUserEmail) syncHeaders["x-user-email"] = currentUserEmail;
+      if (currentUserRole) syncHeaders["x-user-role"] = currentUserRole;
+
+      const res = await fetch("/api/projects/sync-from-sheet", {
+        method: "POST",
+        headers: syncHeaders,
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        console.error("Sync from Sheet failed:", errData.error || res.statusText);
+      }
+    } catch (err) {
+      console.error("Sync from Sheet request failed:", err);
+    } finally {
+      // Pull the (now possibly updated) DB state into the app
+      await syncWithBackend();
+    }
   };
 
   const handleAddDSR = async (worksData: Omit<ProjectWork, 'id'>[], date: string) => {
@@ -1053,7 +1077,7 @@ export default function App() {
                 onClick={handleTriggerSync}
                 disabled={isSyncing}
                 className="p-2 border border-gray-150 hover:bg-slate-50 text-gray-500 hover:text-indigo-600 rounded-xl transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                title="Refresh data from database"
+                title="Sync from Google Sheet & refresh"
               >
                 <RefreshCw size={20} className={isSyncing ? 'animate-spin' : ''} />
               </button>
