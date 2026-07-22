@@ -903,9 +903,9 @@ app.get("/api/config-status", async (req, res) => {
 // GET All Projects
 app.get("/api/projects", async (req, res) => {
   try {
-    // Sync from Google Sheets first if credentials are valid
-    await syncProjectsFromGoogleSheet();
-
+    // NOTE: Auto-sync from Google Sheets on every load has been removed.
+    // Supabase is now the source of truth. Use POST /api/projects/sync-from-sheet
+    // to explicitly pull fresh data from the Sheet when you want to.
     let list = await getProjectsDb();
 
     const clientUserEmail = req.headers['x-user-email'];
@@ -963,11 +963,34 @@ app.post("/api/projects", async (req, res) => {
   }
 });
 
+// MANUAL SYNC: Pull latest data from Google Sheet into Supabase, on demand only.
+// This is the ONLY place Google Sheet data now overwrites Supabase project data.
+// Call this from an admin "Sync from Sheet" button, not automatically on page load.
+app.post("/api/projects/sync-from-sheet", async (req, res) => {
+  try {
+    const email = req.headers['x-user-email'];
+    if (!email || typeof email !== 'string' || !isUserAdmin(email)) {
+      console.warn(`Blocked non-admin attempt to sync projects from Sheet: "${email || 'unknown'}"`);
+      return res.status(403).json({ error: "Admin access required to sync from Sheet." });
+    }
+
+    const result = await syncProjectsFromGoogleSheet();
+    const list = await getProjectsDb();
+
+    await logActivityLocally(String(email), "SYNC Projects", `Manually synced ${result?.length ?? 0} project(s) from Google Sheet into the database.`);
+
+    return res.json({ success: true, syncedCount: result?.length ?? 0, list });
+  } catch (err: any) {
+    console.error("POST /api/projects/sync-from-sheet error:", err);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
 // GET filters combinations
 app.get("/api/filters", async (req, res) => {
   try {
-    // Sync both from Google Sheets first if credentials are valid
-    await syncProjectsFromGoogleSheet();
+    // NOTE: Project auto-sync removed — Supabase is the source of truth now.
+    // Submissions sync is unrelated to the project/users issue, so it's left as-is.
     await syncSubmissionsFromGoogleSheet();
 
     let projectsArr = await getProjectsDb();
@@ -1702,8 +1725,9 @@ async function startServer() {
 
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`Express Local DB Server running on port ${PORT}`);
-    // Warm up the caches / fallbacks on boot
-    syncProjectsFromGoogleSheet().catch(err => console.error("Boot projects sync error:", err));
+    // Warm up submissions cache on boot. Project auto-sync removed on purpose —
+    // Supabase is now the source of truth for projects; sync manually via
+    // POST /api/projects/sync-from-sheet (admin-only) when you want fresh Sheet data.
     syncSubmissionsFromGoogleSheet().catch(err => console.error("Boot submissions sync error:", err));
   });
 }
