@@ -258,6 +258,72 @@ export async function saveProjectDb(project: any): Promise<boolean> {
   return false;
 }
 
+// ---- Dedicated Users table (clean source of truth for the admin Users dropdown) ----
+// This is intentionally separate from projects.users / projects.user_id /
+// submissions.user_email, which are NOT used to build the dropdown anymore.
+
+export async function getUsersDb(): Promise<{ email: string; name: string }[]> {
+  const sb = getSupabase();
+  if (sb) {
+    try {
+      const { data, error } = await sb
+        .from("app_users")
+        .select("*")
+        .order("name", { ascending: true });
+
+      if (error) {
+        console.warn("Supabase query error for app_users:", error.message);
+      } else if (data) {
+        return data.map((u: any) => ({ email: u.user_id, name: u.name }));
+      }
+    } catch (err) {
+      console.error("Supabase exception for getUsersDb:", err);
+    }
+  }
+  return [];
+}
+
+export async function saveUserDb(userId: string, name: string): Promise<boolean> {
+  const sb = getSupabase();
+  if (sb) {
+    try {
+      const { error } = await sb
+        .from("app_users")
+        .upsert({ user_id: userId, name }, { onConflict: "user_id" });
+
+      if (error) {
+        console.warn("Supabase upsert app_user failed:", error.message);
+        return false;
+      }
+      return true;
+    } catch (err) {
+      console.error("Supabase app_user upsert exception:", err);
+    }
+  }
+  return false;
+}
+
+export async function deleteUserDb(userId: string): Promise<boolean> {
+  const sb = getSupabase();
+  if (sb) {
+    try {
+      const { error } = await sb
+        .from("app_users")
+        .delete()
+        .eq("user_id", userId);
+
+      if (error) {
+        console.warn("Supabase delete app_user failed:", error.message);
+        return false;
+      }
+      return true;
+    } catch (err) {
+      console.error("Supabase app_user delete exception:", err);
+    }
+  }
+  return false;
+}
+
 export async function deleteProjectDb(projectId: string): Promise<boolean> {
   const sb = getSupabase();
   if (sb) {
