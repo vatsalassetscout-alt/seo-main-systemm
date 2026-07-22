@@ -1928,12 +1928,12 @@ export default function DSRDashboard({
       </div>
 
       {/* Content Section corresponding to Selected Tab */}
-      <div className={`bg-white rounded-2xl border border-gray-150 shadow-3xs ${activeTab === 'update_ranking' ? 'overflow-visible' : 'overflow-hidden'}`}>
+      <div className="bg-white rounded-2xl border border-gray-150 shadow-3xs overflow-visible">
         
         {activeTab === 'project_table' && (
           <div>
             {applySuccessMessage && (
-              <div className="bg-emerald-50 text-emerald-800 text-xs font-bold px-4 py-3 border-b border-emerald-150 flex items-center justify-between animate-fade-in">
+              <div className="rounded-t-2xl bg-emerald-50 text-emerald-800 text-xs font-bold px-4 py-3 border-b border-emerald-150 flex items-center justify-between animate-fade-in">
                 <span className="flex items-center gap-1.5">
                   <CheckCircle size={14} className="text-emerald-600" />
                   {applySuccessMessage}
@@ -1941,7 +1941,7 @@ export default function DSRDashboard({
                 <button onClick={() => setApplySuccessMessage(null)} className="hover:text-emerald-950 font-black text-sm">&times;</button>
               </div>
             )}
-            <div ref={sectionHeaderRef} className="sticky z-30 p-4 bg-gray-50 border-b border-gray-150 flex flex-col sm:flex-row sm:items-center justify-between gap-2" style={{ top: tableHeaderTop }}>
+            <div ref={sectionHeaderRef} className="sticky z-30 rounded-t-2xl p-4 bg-gray-50 border-b border-gray-150 flex flex-col sm:flex-row sm:items-center justify-between gap-2" style={{ top: tableHeaderTop }}>
               <div>
                 <h3 className="text-xs font-black text-gray-900 uppercase tracking-wider">Project Table</h3>
               </div>
@@ -2095,7 +2095,7 @@ export default function DSRDashboard({
         {activeTab === 'frequency' && (
           <div>
             {applySuccessMessage && (
-              <div className="bg-emerald-50 text-emerald-800 text-xs font-bold px-4 py-3 border-b border-emerald-150 flex items-center justify-between animate-fade-in">
+              <div className="rounded-t-2xl bg-emerald-50 text-emerald-800 text-xs font-bold px-4 py-3 border-b border-emerald-150 flex items-center justify-between animate-fade-in">
                 <span className="flex items-center gap-1.5">
                   <CheckCircle size={14} className="text-emerald-600" />
                   {applySuccessMessage}
@@ -2103,7 +2103,7 @@ export default function DSRDashboard({
                 <button onClick={() => setApplySuccessMessage(null)} className="hover:text-emerald-950 font-black text-sm">&times;</button>
               </div>
             )}
-            <div ref={sectionHeaderRef} className="sticky z-30 p-4 bg-gray-50 border-b border-gray-150 flex flex-col sm:flex-row sm:items-center justify-between gap-4" style={{ top: tableHeaderTop }}>
+            <div ref={sectionHeaderRef} className="sticky z-30 rounded-t-2xl p-4 bg-gray-50 border-b border-gray-150 flex flex-col sm:flex-row sm:items-center justify-between gap-4" style={{ top: tableHeaderTop }}>
               <div>
                 <h3 className="text-xs font-black text-gray-900 uppercase tracking-wider">Project Frequency</h3>
               </div>
@@ -2302,7 +2302,7 @@ export default function DSRDashboard({
 
         {activeTab === 'activity' && (
           <div>
-            <div ref={sectionHeaderRef} className="sticky z-30 p-4 bg-gray-50 border-b border-gray-150 flex flex-col sm:flex-row sm:items-center justify-between gap-4" style={{ top: tableHeaderTop }}>
+            <div ref={sectionHeaderRef} className="sticky z-30 rounded-t-2xl p-4 bg-gray-50 border-b border-gray-150 flex flex-col sm:flex-row sm:items-center justify-between gap-4" style={{ top: tableHeaderTop }}>
               <div>
                 <h3 className="text-xs font-black text-gray-900 uppercase tracking-wider flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-indigo-600 inline-block animate-pulse"></span>
@@ -2996,7 +2996,7 @@ export default function DSRDashboard({
 
           return (
             <div>
-              <div ref={sectionHeaderRef} className="sticky z-30 p-4 bg-gray-50 border-b border-gray-150 flex flex-col sm:flex-row sm:items-center justify-between gap-2" style={{ top: tableHeaderTop }}>
+              <div ref={sectionHeaderRef} className="sticky z-30 rounded-t-2xl p-4 bg-gray-50 border-b border-gray-150 flex flex-col sm:flex-row sm:items-center justify-between gap-2" style={{ top: tableHeaderTop }}>
                 <h3 className="text-xs font-black text-gray-900 uppercase tracking-wider">Backlink Distribution</h3>
                 {isAdmin && (
                   <div className="text-[10px] bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-lg border border-emerald-100 flex items-center gap-1.5 font-bold">
@@ -3132,7 +3132,7 @@ export default function DSRDashboard({
 
         {activeTab === 'unworked_project' && (
           <div>
-            <div ref={sectionHeaderRef} className="sticky z-30 p-4 bg-gray-50 border-b border-gray-150 flex flex-col sm:flex-row sm:items-center justify-between gap-4" style={{ top: tableHeaderTop }}>
+            <div ref={sectionHeaderRef} className="sticky z-30 rounded-t-2xl p-4 bg-gray-50 border-b border-gray-150 flex flex-col sm:flex-row sm:items-center justify-between gap-4" style={{ top: tableHeaderTop }}>
               <div>
                 <h3 className="text-xs font-black text-gray-900 uppercase tracking-wider">Idle Projects</h3>
               </div>
@@ -3348,7 +3348,7 @@ export default function DSRDashboard({
 
         {activeTab === 'keyword_section' && (
           <div>
-            <div ref={sectionHeaderRef} className="sticky z-30 p-4 bg-gray-50 border-b border-gray-150 flex flex-col sm:flex-row sm:items-center justify-between gap-4" style={{ top: tableHeaderTop }}>
+            <div ref={sectionHeaderRef} className="sticky z-30 rounded-t-2xl p-4 bg-gray-50 border-b border-gray-150 flex flex-col sm:flex-row sm:items-center justify-between gap-4" style={{ top: tableHeaderTop }}>
               <div>
                 <h3 className="text-xs font-black text-gray-900 uppercase tracking-wider">Project Ranking Section</h3>
               </div>
