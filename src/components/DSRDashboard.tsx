@@ -1966,7 +1966,7 @@ export default function DSRDashboard({
               </div>
             </div>
 
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto overflow-y-visible">
               <table className="w-full text-left text-xs min-w-[700px]">
                 <thead className="sticky z-20 bg-slate-50 shadow-sm text-slate-500 font-extrabold text-[10px] uppercase border-b border-gray-150" style={{ top: tableHeaderTopWithHeading }}>
                   <tr>
@@ -2163,7 +2163,7 @@ export default function DSRDashboard({
               </div>
             </div>
             
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto overflow-y-visible">
               <table className="w-full text-left text-xs min-w-[750px]">
                 <thead className="sticky z-20 bg-slate-50 shadow-sm text-slate-500 font-extrabold text-[10px] uppercase border-b border-gray-150" style={{ top: tableHeaderTopWithHeading }}>
                   <tr>
@@ -3053,7 +3053,7 @@ export default function DSRDashboard({
                     </h4>
                   </div>
 
-                  <div className="overflow-x-auto border border-gray-150 rounded-2xl shadow-3xs bg-white">
+                  <div className="overflow-x-auto overflow-y-visible border border-gray-150 rounded-2xl shadow-3xs bg-white">
                     <table className="w-full text-left text-xs min-w-[700px]">
                       <thead className="sticky z-20 bg-slate-50 shadow-sm border-b border-gray-150 text-[10px] text-gray-400 uppercase font-black tracking-wider" style={{ top: tableHeaderTopWithHeading }}>
                         <tr>
@@ -3160,7 +3160,7 @@ export default function DSRDashboard({
                 <p>No projects found.</p>
               </div>
             ) : (
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto overflow-y-visible">
                 <table className="w-full text-left text-xs min-w-[820px] border-collapse">
                   <thead className="sticky z-20 bg-slate-50 shadow-sm text-slate-500 font-extrabold text-[10px] uppercase border-b border-gray-150" style={{ top: tableHeaderTopWithHeading }}>
                     <tr>
@@ -3407,7 +3407,7 @@ export default function DSRDashboard({
                 <p>No projects found matching the search criteria.</p>
               </div>
             ) : (
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto overflow-y-visible">
                 <table className="w-full text-left text-xs min-w-[700px] border-collapse">
                   <thead className="sticky z-20 bg-slate-50 shadow-sm text-slate-500 font-extrabold text-[10px] uppercase border-b border-gray-150" style={{ top: tableHeaderTopWithHeading }}>
                     <tr>
