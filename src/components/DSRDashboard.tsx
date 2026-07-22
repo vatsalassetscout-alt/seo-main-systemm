@@ -1409,7 +1409,7 @@ export default function DSRDashboard({
 
 
       {/* Sticky wrapper: keeps filters + tab bar visible while scrolling */}
-      <div ref={stickyBarRef} className="sticky top-16 z-30 -mx-1 px-1 pt-2 pb-2.5 bg-gray-50/95 backdrop-blur-sm space-y-3">
+      <div ref={stickyBarRef} className="sticky top-16 z-40 -mx-1 px-1 pt-2 pb-2.5 bg-gray-50/95 backdrop-blur-sm space-y-3">
 
       {/* Workspace Filters panel - ON TOP OF PAGE */}
       <div className="bg-white p-3 rounded-2xl border border-gray-150 shadow-2xs space-y-2.5">
@@ -1941,7 +1941,7 @@ export default function DSRDashboard({
                 <button onClick={() => setApplySuccessMessage(null)} className="hover:text-emerald-950 font-black text-sm">&times;</button>
               </div>
             )}
-            <div ref={sectionHeaderRef} className="sticky z-20 p-4 bg-gray-50 border-b border-gray-150 flex flex-col sm:flex-row sm:items-center justify-between gap-2" style={{ top: tableHeaderTop }}>
+            <div ref={sectionHeaderRef} className="sticky z-30 p-4 bg-gray-50 border-b border-gray-150 flex flex-col sm:flex-row sm:items-center justify-between gap-2" style={{ top: tableHeaderTop }}>
               <div>
                 <h3 className="text-xs font-black text-gray-900 uppercase tracking-wider">Project Table</h3>
               </div>
@@ -2103,7 +2103,7 @@ export default function DSRDashboard({
                 <button onClick={() => setApplySuccessMessage(null)} className="hover:text-emerald-950 font-black text-sm">&times;</button>
               </div>
             )}
-            <div ref={sectionHeaderRef} className="sticky z-20 p-4 bg-gray-50 border-b border-gray-150 flex flex-col sm:flex-row sm:items-center justify-between gap-4" style={{ top: tableHeaderTop }}>
+            <div ref={sectionHeaderRef} className="sticky z-30 p-4 bg-gray-50 border-b border-gray-150 flex flex-col sm:flex-row sm:items-center justify-between gap-4" style={{ top: tableHeaderTop }}>
               <div>
                 <h3 className="text-xs font-black text-gray-900 uppercase tracking-wider">Project Frequency</h3>
               </div>
@@ -2302,7 +2302,7 @@ export default function DSRDashboard({
 
         {activeTab === 'activity' && (
           <div>
-            <div ref={sectionHeaderRef} className="sticky z-20 p-4 bg-gray-50 border-b border-gray-150 flex flex-col sm:flex-row sm:items-center justify-between gap-4" style={{ top: tableHeaderTop }}>
+            <div ref={sectionHeaderRef} className="sticky z-30 p-4 bg-gray-50 border-b border-gray-150 flex flex-col sm:flex-row sm:items-center justify-between gap-4" style={{ top: tableHeaderTop }}>
               <div>
                 <h3 className="text-xs font-black text-gray-900 uppercase tracking-wider flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-indigo-600 inline-block animate-pulse"></span>
@@ -2996,7 +2996,7 @@ export default function DSRDashboard({
 
           return (
             <div>
-              <div ref={sectionHeaderRef} className="sticky z-20 p-4 bg-gray-50 border-b border-gray-150 flex flex-col sm:flex-row sm:items-center justify-between gap-2" style={{ top: tableHeaderTop }}>
+              <div ref={sectionHeaderRef} className="sticky z-30 p-4 bg-gray-50 border-b border-gray-150 flex flex-col sm:flex-row sm:items-center justify-between gap-2" style={{ top: tableHeaderTop }}>
                 <h3 className="text-xs font-black text-gray-900 uppercase tracking-wider">Backlink Distribution</h3>
                 {isAdmin && (
                   <div className="text-[10px] bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-lg border border-emerald-100 flex items-center gap-1.5 font-bold">
@@ -3132,7 +3132,7 @@ export default function DSRDashboard({
 
         {activeTab === 'unworked_project' && (
           <div>
-            <div ref={sectionHeaderRef} className="sticky z-20 p-4 bg-gray-50 border-b border-gray-150 flex flex-col sm:flex-row sm:items-center justify-between gap-4" style={{ top: tableHeaderTop }}>
+            <div ref={sectionHeaderRef} className="sticky z-30 p-4 bg-gray-50 border-b border-gray-150 flex flex-col sm:flex-row sm:items-center justify-between gap-4" style={{ top: tableHeaderTop }}>
               <div>
                 <h3 className="text-xs font-black text-gray-900 uppercase tracking-wider">Idle Projects</h3>
               </div>
@@ -3348,7 +3348,7 @@ export default function DSRDashboard({
 
         {activeTab === 'keyword_section' && (
           <div>
-            <div ref={sectionHeaderRef} className="sticky z-20 p-4 bg-gray-50 border-b border-gray-150 flex flex-col sm:flex-row sm:items-center justify-between gap-4" style={{ top: tableHeaderTop }}>
+            <div ref={sectionHeaderRef} className="sticky z-30 p-4 bg-gray-50 border-b border-gray-150 flex flex-col sm:flex-row sm:items-center justify-between gap-4" style={{ top: tableHeaderTop }}>
               <div>
                 <h3 className="text-xs font-black text-gray-900 uppercase tracking-wider">Project Ranking Section</h3>
               </div>
