@@ -1903,7 +1903,7 @@ export default function DSRDashboard({
       </div>
 
       {/* Content Section corresponding to Selected Tab */}
-      <div className={`bg-white rounded-2xl border border-gray-150 shadow-3xs ${activeTab === 'update_ranking' ? 'overflow-visible' : 'overflow-hidden'}`}>
+      <div className="bg-white rounded-2xl border border-gray-150 shadow-3xs overflow-visible">
         
         {activeTab === 'project_table' && (
           <div>
@@ -1941,9 +1941,9 @@ export default function DSRDashboard({
               </div>
             </div>
 
-            <div className="overflow-x-auto overflow-y-visible">
+            <div className="overflow-auto" style={{ maxHeight: `calc(100vh - ${tableHeaderTop}px)` }}>
               <table className="w-full text-left text-xs min-w-[700px]">
-                <thead className="sticky z-20 bg-slate-50 shadow-sm text-slate-500 font-extrabold text-[10px] uppercase border-b border-gray-150" style={{ top: tableHeaderTop }}>
+                <thead className="sticky z-20 bg-slate-50 shadow-sm text-slate-500 font-extrabold text-[10px] uppercase border-b border-gray-150" style={{ top: 0 }}>
                   <tr>
                     <th className="px-4 py-3 w-14">Sr No.</th>
                     <th className="px-4 py-3">Project Name</th>
@@ -2138,9 +2138,9 @@ export default function DSRDashboard({
               </div>
             </div>
             
-            <div className="overflow-x-auto overflow-y-visible">
+            <div className="overflow-auto" style={{ maxHeight: `calc(100vh - ${tableHeaderTop}px)` }}>
               <table className="w-full text-left text-xs min-w-[750px]">
-                <thead className="sticky z-20 bg-slate-50 shadow-sm text-slate-500 font-extrabold text-[10px] uppercase border-b border-gray-150" style={{ top: tableHeaderTop }}>
+                <thead className="sticky z-20 bg-slate-50 shadow-sm text-slate-500 font-extrabold text-[10px] uppercase border-b border-gray-150" style={{ top: 0 }}>
                   <tr>
                     <th className="px-4 py-3 w-14">Sr No.</th>
                     <th className="px-4 py-3">Project</th>
@@ -3028,9 +3028,9 @@ export default function DSRDashboard({
                     </h4>
                   </div>
 
-                  <div className="overflow-x-auto overflow-y-visible border border-gray-150 rounded-2xl shadow-3xs bg-white">
+                  <div className="overflow-auto border border-gray-150 rounded-2xl shadow-3xs bg-white" style={{ maxHeight: `calc(100vh - ${tableHeaderTop}px)` }}>
                     <table className="w-full text-left text-xs min-w-[700px]">
-                      <thead className="sticky z-20 bg-slate-50 shadow-sm border-b border-gray-150 text-[10px] text-gray-400 uppercase font-black tracking-wider" style={{ top: tableHeaderTop }}>
+                      <thead className="sticky z-20 bg-slate-50 shadow-sm border-b border-gray-150 text-[10px] text-gray-400 uppercase font-black tracking-wider" style={{ top: 0 }}>
                         <tr>
                           <th className="px-4 py-3.5 w-16">Sr No.</th>
                           <th className="pl-4 pr-2 py-3.5 w-1/4">Project Name</th>
@@ -3135,9 +3135,9 @@ export default function DSRDashboard({
                 <p>No projects found.</p>
               </div>
             ) : (
-              <div className="overflow-x-auto overflow-y-visible">
+              <div className="overflow-auto" style={{ maxHeight: `calc(100vh - ${tableHeaderTop}px)` }}>
                 <table className="w-full text-left text-xs min-w-[820px] border-collapse">
-                  <thead className="sticky z-20 bg-slate-50 shadow-sm text-slate-500 font-extrabold text-[10px] uppercase border-b border-gray-150" style={{ top: tableHeaderTop }}>
+                  <thead className="sticky z-20 bg-slate-50 shadow-sm text-slate-500 font-extrabold text-[10px] uppercase border-b border-gray-150" style={{ top: 0 }}>
                     <tr>
                       <th className="px-3 py-3 w-14 text-center">Sr No.</th>
                       <th className="pl-3 pr-1 py-3 w-52">Project Name</th>
@@ -3382,9 +3382,9 @@ export default function DSRDashboard({
                 <p>No projects found matching the search criteria.</p>
               </div>
             ) : (
-              <div className="overflow-x-auto overflow-y-visible">
+              <div className="overflow-auto" style={{ maxHeight: `calc(100vh - ${tableHeaderTop}px)` }}>
                 <table className="w-full text-left text-xs min-w-[700px] border-collapse">
-                  <thead className="sticky z-20 bg-slate-50 shadow-sm text-slate-500 font-extrabold text-[10px] uppercase border-b border-gray-150" style={{ top: tableHeaderTop }}>
+                  <thead className="sticky z-20 bg-slate-50 shadow-sm text-slate-500 font-extrabold text-[10px] uppercase border-b border-gray-150" style={{ top: 0 }}>
                     <tr>
                       <th className="px-4 py-3 w-14 text-center">Sr No.</th>
                       <th className="px-4 py-3">Project Name</th>
