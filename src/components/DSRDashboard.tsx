@@ -1139,11 +1139,26 @@ export default function DSRDashboard({
         }
       }
 
+      // Priority exactly as set by admin in the Priority section (respecting any pending unsaved edits)
+      const priority = pendingChanges[p.id]?.priority !== undefined ? pendingChanges[p.id].priority : p.priority;
+
+      // Best (lowest/top) keyword ranking for this project across all tracked keywords
+      const projRankings: Record<string, { ranking: string; lastChecked: string }> = rankings[p.id] || {};
+      let bestRanking: number | null = null;
+      Object.values(projRankings).forEach((r) => {
+        const parsed = parseInt(String(r?.ranking ?? '').replace(/[^0-9]/g, ''), 10);
+        if (!isNaN(parsed) && (bestRanking === null || parsed < bestRanking)) {
+          bestRanking = parsed;
+        }
+      });
+
       return {
         id: p.id,
         name: p.name,
         code: p.code,
         domain: p.domain || '',
+        priority: priority || '',
+        bestRanking,
         lastWorkedDate: lastWorkedDateStr,
         daysSinceLastWorked: daysSinceLastWorked,
       };
@@ -1158,7 +1173,7 @@ export default function DSRDashboard({
       ...p,
       srNo: idx + 1
     }));
-  }, [filteredProjectsForMetrics, enrichedWorks, unworkedFilter]);
+  }, [filteredProjectsForMetrics, enrichedWorks, unworkedFilter, pendingChanges, rankings]);
 
   const projectKeywordGroups = useMemo(() => {
     return filteredProjectsForMetrics.map((proj) => {
@@ -3044,32 +3059,34 @@ export default function DSRDashboard({
               </div>
             ) : (
               <div className="overflow-auto max-h-[70vh]">
-                <table className="w-full text-left text-xs min-w-[650px] border-collapse">
+                <table className="w-full text-left text-xs min-w-[820px] border-collapse">
                   <thead className="sticky top-0 z-20 bg-slate-50/95 backdrop-blur-sm text-slate-500 font-extrabold text-[10px] uppercase border-b border-gray-150">
                     <tr>
-                      <th className="px-4 py-3 w-14 text-center">Sr No.</th>
-                      <th className="px-4 py-3">Project Name</th>
-                      <th className="px-4 py-3">Domain Name</th>
-                      <th className="px-4 py-3">Duration</th>
-                      <th className="px-4 py-3">Last Worked Date</th>
-                      {isAdmin && <th className="px-4 py-3">User</th>}
-                      {isAdmin && <th className="px-4 py-3 w-28 text-center">Action</th>}
+                      <th className="px-3 py-3 w-14 text-center">Sr No.</th>
+                      <th className="px-3 py-3">Project Name</th>
+                      <th className="px-3 py-3">Domain</th>
+                      <th className="px-3 py-3 w-24 text-center">Priority</th>
+                      <th className="px-3 py-3 w-32">Duration</th>
+                      <th className="px-3 py-3 w-24 text-center">Ranking</th>
+                      <th className="px-3 py-3">Last Worked Date</th>
+                      {isAdmin && <th className="px-3 py-3">User</th>}
+                      {isAdmin && <th className="px-3 py-3 w-28 text-center">Action</th>}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-150">
                     {unworkedProjects.map((proj) => (
                       <tr key={proj.id} className="hover:bg-slate-50/40">
-                        <td className="px-4 py-3.5 font-mono font-black text-gray-400 text-center">{proj.srNo}</td>
+                        <td className="px-3 py-3.5 font-mono font-black text-gray-400 text-center">{proj.srNo}</td>
                         
                         {/* Project Name column */}
-                        <td className="px-4 py-3.5 font-bold text-gray-900 text-left">
+                        <td className="px-3 py-3.5 font-bold text-gray-900 text-left">
                           <div className="flex items-center gap-2">
                             <span className="text-gray-900 font-black">{proj.name}</span>
                           </div>
                         </td>
 
-                        {/* Domain Name column */}
-                        <td className="px-4 py-3.5 text-left">
+                        {/* Domain column */}
+                        <td className="px-3 py-3.5 text-left">
                           {proj.domain ? (
                             <a 
                               href={proj.domain.startsWith('http') ? proj.domain : `https://${proj.domain}`} 
@@ -3084,8 +3101,40 @@ export default function DSRDashboard({
                           )}
                         </td>
 
+                        {/* Priority column */}
+                        <td className="px-3 py-3.5 text-center">
+                          {proj.priority === 'P1' && (
+                            <span className="inline-flex items-center gap-0.5 bg-red-50 text-red-700 text-[9px] font-black px-1.5 py-0.5 rounded border border-red-100 uppercase tracking-wider whitespace-nowrap">
+                              🚨 P1
+                            </span>
+                          )}
+                          {proj.priority === 'P2' && (
+                            <span className="inline-flex items-center gap-0.5 bg-amber-50 text-amber-700 text-[9px] font-black px-1.5 py-0.5 rounded border border-amber-100 uppercase tracking-wider whitespace-nowrap">
+                              ⚡ P2
+                            </span>
+                          )}
+                          {proj.priority === 'P3' && (
+                            <span className="inline-flex items-center gap-0.5 bg-blue-50 text-blue-700 text-[9px] font-black px-1.5 py-0.5 rounded border border-blue-100 uppercase tracking-wider whitespace-nowrap">
+                              🟢 P3
+                            </span>
+                          )}
+                          {proj.priority === 'P4' && (
+                            <span className="inline-flex items-center gap-0.5 bg-purple-50 text-purple-700 text-[9px] font-black px-1.5 py-0.5 rounded border border-purple-100 uppercase tracking-wider whitespace-nowrap">
+                              🟣 P4
+                            </span>
+                          )}
+                          {proj.priority === 'P5' && (
+                            <span className="inline-flex items-center gap-0.5 bg-gray-50 text-gray-700 text-[9px] font-black px-1.5 py-0.5 rounded border border-gray-150 uppercase tracking-wider whitespace-nowrap">
+                              ⚪ P5
+                            </span>
+                          )}
+                          {!['P1', 'P2', 'P3', 'P4', 'P5'].includes(proj.priority || '') && (
+                            <span className="text-[10px] font-bold text-gray-300 italic">—</span>
+                          )}
+                        </td>
+
                         {/* Duration column */}
-                        <td className="px-4 py-3.5 text-left">
+                        <td className="px-3 py-3.5 text-left">
                           {(() => {
                             const days = proj.daysSinceLastWorked;
                             if (days === Infinity || days === undefined || proj.lastWorkedDate === 'Never') {
@@ -3114,8 +3163,25 @@ export default function DSRDashboard({
                           })()}
                         </td>
 
+                        {/* Ranking column - best keyword ranking across the project */}
+                        <td className="px-3 py-3.5 text-center">
+                          {proj.bestRanking !== null && proj.bestRanking !== undefined ? (
+                            <span className={`inline-flex items-center justify-center font-mono font-black text-[10px] px-2 py-0.5 rounded border whitespace-nowrap ${
+                              proj.bestRanking <= 10
+                                ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
+                                : proj.bestRanking <= 30
+                                ? 'bg-amber-50 text-amber-700 border-amber-100'
+                                : 'bg-rose-50 text-rose-700 border-rose-100'
+                            }`}>
+                              #{proj.bestRanking}
+                            </span>
+                          ) : (
+                            <span className="text-[10px] font-bold text-gray-300 italic">—</span>
+                          )}
+                        </td>
+
                         {/* Last Worked Date column */}
-                        <td className="px-4 py-3.5 text-left">
+                        <td className="px-3 py-3.5 text-left">
                           {(() => {
                             if (proj.lastWorkedDate === 'Never') {
                               return <span className="text-gray-400 font-bold">—</span>;
@@ -3136,7 +3202,7 @@ export default function DSRDashboard({
 
                         {/* Assigned To column (Admin Only) */}
                         {isAdmin && (
-                          <td className="px-4 py-3.5 text-left font-bold text-gray-800">
+                          <td className="px-3 py-3.5 text-left font-bold text-gray-800">
                             <span className="text-gray-900 bg-slate-50 border border-slate-200/50 rounded px-2.5 py-1 text-[10px] select-all">
                               {getAssignedUsersForProject(proj.id)}
                             </span>
@@ -3145,7 +3211,7 @@ export default function DSRDashboard({
 
                         {/* Actions column (Only for Admin) */}
                         {isAdmin && (
-                          <td className="px-4 py-3.5 text-center">
+                          <td className="px-3 py-3.5 text-center">
                             <button
                               onClick={() => setSelectedPlanProject(proj)}
                               className="inline-flex items-center gap-1 bg-indigo-50 text-indigo-750 font-black uppercase text-[10px] px-3 py-1.5 rounded-xl border border-indigo-200 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition shadow-3xs cursor-pointer"
