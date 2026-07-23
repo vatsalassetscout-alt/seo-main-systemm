@@ -3033,8 +3033,8 @@ export default function DSRDashboard({
                       <thead className="bg-slate-50 border-b border-gray-150 text-[10px] text-gray-400 uppercase font-black tracking-wider sticky top-0 z-10">
                         <tr>
                           <th className="px-4 py-3.5 w-16 bg-slate-50">Sr No.</th>
-                          <th className="pl-4 pr-2 py-3.5 w-1/4 bg-slate-50">Project Name</th>
-                          <th className="pl-1 pr-4 py-3.5 w-1/4 bg-slate-50">Domain</th>
+                          <th className="pl-4 pr-1 py-3.5 w-1/4 bg-slate-50">Project Name</th>
+                          <th className="pl-1 pr-2 py-3.5 w-1/4 bg-slate-50">Domain</th>
                           {isAdmin && <th className="px-4 py-3.5 text-left bg-slate-50">User</th>}
                           {activeColumns.map((col, cIdx) => (
                             <th key={cIdx} className="px-4 py-3.5 text-center font-bold bg-slate-50">{col.label}</th>
@@ -3046,10 +3046,10 @@ export default function DSRDashboard({
                         {projectRows.map((row, idx) => (
                           <tr key={row.id} className="hover:bg-slate-50/50 transition">
                             <td className="px-4 py-3.5 font-mono text-gray-400 font-bold">{idx + 1}</td>
-                            <td className="pl-4 pr-2 py-3.5">
+                            <td className="pl-4 pr-1 py-3.5">
                               <span className="font-bold text-gray-900 block">{row.name}</span>
                             </td>
-                            <td className="pl-1 pr-4 py-3.5 font-mono text-gray-500">
+                            <td className="pl-1 pr-2 py-3.5 font-mono text-gray-500">
                               {row.domain ? (
                                 <a 
                                   href={`https://${row.domain}`} 
