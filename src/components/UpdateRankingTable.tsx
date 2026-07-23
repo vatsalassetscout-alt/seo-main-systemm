@@ -473,7 +473,7 @@ export default function UpdateRankingTable({ projects, isAdmin = false, grid, se
           No projects found matching the search criteria.
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-b-2xl mt-1" style={{ overflowY: 'clip' }}>
+        <div className="overflow-x-auto overflow-y-visible rounded-b-2xl mt-1">
           <table className="text-left text-xs border-collapse w-full" style={{ tableLayout: 'fixed' }}>
             <thead className="bg-slate-50/70 text-slate-500 font-extrabold text-[10px] uppercase border-b border-gray-150">
               <tr>
