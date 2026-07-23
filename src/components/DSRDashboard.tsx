@@ -3111,22 +3111,6 @@ export default function DSRDashboard({
               <div>
                 <h3 className="text-xs font-black text-gray-900 uppercase tracking-wider">Idle Projects</h3>
               </div>
-              
-              <div className="flex bg-slate-100 p-0.5 rounded-xl border border-slate-200">
-                {(['daily', 'weekly', 'monthly'] as const).map((mode) => (
-                  <button
-                    key={mode}
-                    onClick={() => setUnworkedFilter(mode)}
-                    className={`px-3 py-1.5 text-[10px] font-black uppercase tracking-wider rounded-lg transition-all cursor-pointer ${
-                      unworkedFilter === mode
-                        ? 'bg-white text-indigo-700 shadow-3xs border border-indigo-100/30'
-                        : 'text-gray-500 hover:text-gray-900'
-                    }`}
-                  >
-                    {mode === 'daily' ? '📅 Daily' : mode === 'weekly' ? '⏳ Weekly' : '🗓️ Monthly'}
-                  </button>
-                ))}
-              </div>
             </div>
 
             {unworkedProjects.length === 0 ? (
@@ -3182,27 +3166,27 @@ export default function DSRDashboard({
                         <td className="pl-1 pr-3 py-3.5 text-center">
                           {proj.priority === 'P1' && (
                             <span className="inline-flex items-center gap-0.5 bg-red-50 text-red-700 text-[9px] font-black px-1.5 py-0.5 rounded border border-red-100 uppercase tracking-wider whitespace-nowrap">
-                              🚨 P1
+                              P1
                             </span>
                           )}
                           {proj.priority === 'P2' && (
                             <span className="inline-flex items-center gap-0.5 bg-amber-50 text-amber-700 text-[9px] font-black px-1.5 py-0.5 rounded border border-amber-100 uppercase tracking-wider whitespace-nowrap">
-                              ⚡ P2
+                              P2
                             </span>
                           )}
                           {proj.priority === 'P3' && (
                             <span className="inline-flex items-center gap-0.5 bg-blue-50 text-blue-700 text-[9px] font-black px-1.5 py-0.5 rounded border border-blue-100 uppercase tracking-wider whitespace-nowrap">
-                              🟢 P3
+                              P3
                             </span>
                           )}
                           {proj.priority === 'P4' && (
                             <span className="inline-flex items-center gap-0.5 bg-purple-50 text-purple-700 text-[9px] font-black px-1.5 py-0.5 rounded border border-purple-100 uppercase tracking-wider whitespace-nowrap">
-                              🟣 P4
+                              P4
                             </span>
                           )}
                           {proj.priority === 'P5' && (
                             <span className="inline-flex items-center gap-0.5 bg-gray-50 text-gray-700 text-[9px] font-black px-1.5 py-0.5 rounded border border-gray-150 uppercase tracking-wider whitespace-nowrap">
-                              ⚪ P5
+                              P5
                             </span>
                           )}
                           {!['P1', 'P2', 'P3', 'P4', 'P5'].includes(proj.priority || '') && (
@@ -3308,7 +3292,7 @@ export default function DSRDashboard({
                               onClick={() => setSelectedPlanProject(proj)}
                               className="inline-flex items-center gap-1 bg-indigo-50 text-indigo-750 font-black uppercase text-[10px] px-3 py-1.5 rounded-xl border border-indigo-200 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition shadow-3xs cursor-pointer"
                             >
-                              📋 Plan
+                               Plan
                             </button>
                           </td>
                         )}
