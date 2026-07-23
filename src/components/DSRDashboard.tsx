@@ -1985,27 +1985,27 @@ export default function DSRDashboard({
                         <td className="px-4 py-3">
                           {item.priority === 'P1' && (
                             <span className="inline-flex items-center gap-1 bg-red-50 text-red-700 text-[10px] font-black px-2 py-0.5 rounded border border-red-100 uppercase tracking-wider">
-                              🚨 P1 High
+                               P1
                             </span>
                           )}
                           {item.priority === 'P2' && (
                             <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-700 text-[10px] font-black px-2 py-0.5 rounded border border-amber-100 uppercase tracking-wider">
-                              ⚡ P2 Med
+                              P2
                             </span>
                           )}
                           {item.priority === 'P3' && (
                             <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-700 text-[10px] font-black px-2 py-0.5 rounded border border-blue-100 uppercase tracking-wider">
-                              🟢 P3 Low
+                              P3
                             </span>
                           )}
                           {item.priority === 'P4' && (
                             <span className="inline-flex items-center gap-1 bg-purple-50 text-purple-700 text-[10px] font-black px-2 py-0.5 rounded border border-purple-100 uppercase tracking-wider">
-                              🟣 P4 Very Low
+                              P4
                             </span>
                           )}
                           {item.priority === 'P5' && (
                             <span className="inline-flex items-center gap-1 bg-gray-50 text-gray-700 text-[10px] font-black px-2 py-0.5 rounded border border-gray-150 uppercase tracking-wider">
-                              ⚪ P5 Minimal
+                              P5
                             </span>
                           )}
                           {!['P1', 'P2', 'P3', 'P4', 'P5'].includes(item.priority || '') && (
