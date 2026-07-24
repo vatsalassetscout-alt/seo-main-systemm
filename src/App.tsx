@@ -37,7 +37,8 @@ import {
   UserCheck,
   Bell,
   RefreshCw,
-  X
+  X,
+  Boxes
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -315,7 +316,7 @@ export default function App() {
     return (sessionStorage.getItem('dsr_logged_role') as 'user' | 'admin') || null;
   });
 
-  const [activeTab, setActiveTab] = useState<'submit' | 'logs' | 'dashboard' | 'settings'>(() => {
+  const [activeTab, setActiveTab] = useState<'submit' | 'logs' | 'dashboard' | 'settings' | 'xyz'>(() => {
     const savedUser = sessionStorage.getItem('dsr_logged_user');
     const savedRole = sessionStorage.getItem('dsr_logged_role') as 'user' | 'admin' | null;
     if (savedUser) {
@@ -330,6 +331,7 @@ export default function App() {
   });
 
   const [dashboardSubTab, setDashboardSubTab] = useState<'project_table' | 'frequency' | 'activity' | 'backlinks' | 'unworked_project' | 'keyword_section' | 'update_ranking'>('project_table');
+  const [workLogView, setWorkLogView] = useState<'submission' | 'history'>('submission');
 
   // Synchronize dynamic data from our local database server
   const syncWithBackend = async () => {
@@ -1028,17 +1030,32 @@ export default function App() {
                 </button>
               )}
 
+              {isAdmin && (
+                <button
+                  id="tab-logs"
+                  onClick={() => setActiveTab('logs')}
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold cursor-pointer transition ${
+                    activeTab === 'logs'
+                      ? 'bg-indigo-50 text-indigo-700'
+                      : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'
+                  }`}
+                >
+                  <Database size={14} />
+                  Work Log History
+                </button>
+              )}
+
               <button
-                id="tab-logs"
-                onClick={() => setActiveTab('logs')}
+                id="tab-xyz"
+                onClick={() => setActiveTab('xyz')}
                 className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold cursor-pointer transition ${
-                  activeTab === 'logs'
+                  activeTab === 'xyz'
                     ? 'bg-indigo-50 text-indigo-700'
                     : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'
                 }`}
               >
-                <Database size={14} />
-                Work Log History
+                <Boxes size={14} />
+                xyz
               </button>
 
               <button
@@ -1316,14 +1333,26 @@ export default function App() {
             </button>
           )}
 
+          {isAdmin && (
+            <button
+              onClick={() => setActiveTab('logs')}
+              className={`flex flex-col items-center gap-1 py-1.5 px-1 rounded-xl text-[10px] font-bold w-1/4 transition cursor-pointer ${
+                activeTab === 'logs' ? 'text-indigo-600 bg-indigo-50/50' : 'text-gray-400 hover:text-gray-700'
+              }`}
+            >
+              <Database size={15} />
+              History Logs
+            </button>
+          )}
+
           <button
-            onClick={() => setActiveTab('logs')}
+            onClick={() => setActiveTab('xyz')}
             className={`flex flex-col items-center gap-1 py-1.5 px-1 rounded-xl text-[10px] font-bold w-1/4 transition cursor-pointer ${
-              activeTab === 'logs' ? 'text-indigo-600 bg-indigo-50/50' : 'text-gray-400 hover:text-gray-700'
+              activeTab === 'xyz' ? 'text-indigo-600 bg-indigo-50/50' : 'text-gray-400 hover:text-gray-700'
             }`}
           >
-            <Database size={15} />
-            History Logs
+            <Boxes size={15} />
+            xyz
           </button>
 
           <button
@@ -1354,14 +1383,15 @@ export default function App() {
           <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-150 pb-6">
             <div className="space-y-1">
               <h1 className="text-xl font-black text-gray-900 tracking-tight sm:text-2xl flex items-center gap-2">
-                {activeTab === 'submit' && 'Work Log Submissions'}
+                {activeTab === 'submit' && (workLogView === 'history' ? 'Daily Task History' : 'Work Log Submissions')}
                 {activeTab === 'logs' && 'Daily Task History'}
                 {activeTab === 'settings' && 'System Configuration Studio'}
+                {activeTab === 'xyz' && 'xyz'}
               </h1>
             </div>
 
             <div className="flex items-center gap-2 text-xs">
-              {activeTab === 'logs' && (
+              {(activeTab === 'logs' || (activeTab === 'submit' && workLogView === 'history')) && (
                 <span className="bg-indigo-50 border border-indigo-200/60 text-indigo-700 px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5 shadow-2xs">
                   ⚡ Total Logs: <strong>{filteredLogsCount !== null ? filteredLogsCount : 0} logs</strong>
                 </span>
@@ -1381,17 +1411,66 @@ export default function App() {
               transition={{ duration: 0.15 }}
             >
               {activeTab === 'submit' && !isAdmin && (
-                <DSRForm
-                  projects={filteredProjectsForUser}
-                  onSubmit={handleAddDSR}
-                  currentUserEmail={currentUserEmail}
-                  allowedUsers={allowedUsers}
-                  onViewLogs={() => setActiveTab('logs')}
-                  customSubmissionTypes={customSubmissionTypes}
-                  onSendAdminMessage={handleSendUserMessage}
-                  preFill={assignmentPreFill}
-                  onClearPreFill={() => setAssignmentPreFill(null)}
-                />
+                <div>
+                  {/* Work Log Submission / History toggle */}
+                  <div className="flex items-center gap-2 mb-6">
+                    <button
+                      onClick={() => setWorkLogView('submission')}
+                      className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold cursor-pointer transition ${
+                        workLogView === 'submission'
+                          ? 'bg-indigo-600 text-white shadow-xs'
+                          : 'bg-white text-gray-500 border border-gray-150 hover:bg-gray-50 hover:text-gray-800'
+                      }`}
+                    >
+                      <PenTool size={14} />
+                      Work Log Submission
+                    </button>
+                    <button
+                      onClick={() => setWorkLogView('history')}
+                      className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold cursor-pointer transition ${
+                        workLogView === 'history'
+                          ? 'bg-indigo-600 text-white shadow-xs'
+                          : 'bg-white text-gray-500 border border-gray-150 hover:bg-gray-50 hover:text-gray-800'
+                      }`}
+                    >
+                      <Database size={14} />
+                      History
+                    </button>
+                  </div>
+
+                  {workLogView === 'submission' ? (
+                    <DSRForm
+                      projects={filteredProjectsForUser}
+                      onSubmit={handleAddDSR}
+                      currentUserEmail={currentUserEmail}
+                      allowedUsers={allowedUsers}
+                      onViewLogs={() => setWorkLogView('history')}
+                      customSubmissionTypes={customSubmissionTypes}
+                      onSendAdminMessage={handleSendUserMessage}
+                      preFill={assignmentPreFill}
+                      onClearPreFill={() => setAssignmentPreFill(null)}
+                    />
+                  ) : (
+                    <DSRLogs
+                      entries={entries}
+                      projects={projects}
+                      onUpdateStatus={handleUpdateDSRStatus}
+                      isAdmin={false}
+                      customSubmissionTypes={customSubmissionTypes}
+                      allowedUsers={allowedUsers}
+                      currentUserEmail={currentUserEmail}
+                      onFilteredCountChange={setFilteredLogsCount}
+                      focusUniqueId={focusLogKey}
+                      onFocusHandled={() => setFocusLogKey(null)}
+                    />
+                  )}
+                </div>
+              )}
+
+              {activeTab === 'xyz' && (
+                <div className="flex items-center justify-center h-64 text-gray-400 text-sm font-semibold">
+                  {/* Blank placeholder section — content coming soon */}
+                </div>
               )}
 
               {activeTab === 'logs' && (
