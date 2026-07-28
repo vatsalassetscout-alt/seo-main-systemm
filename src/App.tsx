@@ -330,7 +330,7 @@ export default function App() {
     return 'submit';
   });
 
-  const [dashboardSubTab, setDashboardSubTab] = useState<'project_table' | 'frequency' | 'activity' | 'backlinks' | 'unworked_project' | 'keyword_section' | 'update_ranking'>('project_table');
+  const [dashboardSubTab, setDashboardSubTab] = useState<'project_table' | 'activity' | 'backlinks' | 'unworked_project' | 'keyword_section' | 'update_ranking'>('project_table');
 
   // Synchronize dynamic data from our local database server
   const syncWithBackend = async () => {
