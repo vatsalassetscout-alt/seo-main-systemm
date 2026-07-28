@@ -36,6 +36,7 @@ import {
   generateLineupForDate,
   markTaskAssignmentDoneDb,
   deleteTaskAssignmentsForDateDb,
+  deleteAllTaskAssignmentsDb,
   getLineupEngineStateDb,
   setLineupEngineStateDb,
   ensureTodayLineupIfEngineActive,
@@ -1109,15 +1110,18 @@ app.post("/api/task-lineup/generate", requireAdmin, async (req, res) => {
   }
 });
 
-// POST wipe a date's lineup with no regeneration afterwards. This is the
-// "Delete" button — every project assigned to every user for that date is
-// removed, and nothing new gets picked in its place. Admin-only.
+// POST full reset — this is the "Delete" button. It wipes EVERY task
+// assignment ever created (every user, every date, not just the date that
+// happened to be on screen), so Yesterday Pending / Total Pending drop back
+// to 0 everywhere right away. It also resets the lifetime engine state back
+// to inactive, so the UI shows "Start Cycle" again afterwards instead of
+// "Resume Cycle" — a real restart, not a paused cycle picking back up.
 app.post("/api/task-lineup/delete", requireAdmin, async (req, res) => {
   try {
-    const date = req.body?.date || new Date().toISOString().slice(0, 10);
-    const existing = await getTaskAssignmentsDb({ date });
-    const ok = await deleteTaskAssignmentsForDateDb(date);
-    return res.json({ success: ok, date, deletedCount: existing.length });
+    const existing = await getTaskAssignmentsDb({});
+    const ok = await deleteAllTaskAssignmentsDb();
+    await setLineupEngineStateDb({ active: false, paused: false });
+    return res.json({ success: ok, deletedCount: existing.length });
   } catch (err: any) {
     console.error("POST /api/task-lineup/delete error:", err);
     return res.status(500).json({ error: err.message });
