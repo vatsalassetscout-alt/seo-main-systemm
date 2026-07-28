@@ -1,0 +1,1169 @@
+import { createClient } from "@supabase/supabase-js";
+import { PRIORITY_WEEKLY_TARGET, DAILY_LINEUP_CAP_PER_USER } from "../types";
+
+let supabaseClient: any = null;
+
+// Initialize Supabase Client lazily to prevent startup crashes
+export function getSupabase(): any {
+  if (!supabaseClient) {
+    const url = process.env.SUPABASE_URL;
+    const key = process.env.SUPABASE_KEY;
+    if (url && key && url.trim() && key.trim()) {
+      try {
+        supabaseClient = createClient(url, key);
+        console.log("Supabase Client initialized successfully.");
+      } catch (err) {
+        console.error("Failed to initialize Supabase client:", err);
+      }
+    }
+  }
+  return supabaseClient;
+}
+
+// Check if Supabase connection is active and configured
+export function isSupabaseConfigured(): boolean {
+  return !!getSupabase();
+}
+
+// Check which tables exist in Supabase
+export async function checkSupabaseTablesStatus(): Promise<{ configured: boolean; ok: boolean; error: string; missingTables: string[] }> {
+  const sb = getSupabase();
+  if (!sb) {
+    return { configured: false, ok: false, error: "Supabase not configured in settings variables.", missingTables: [] };
+  }
+
+  const tables = ["projects", "submissions", "alerts", "activities", "rankings", "manual_rankings"];
+  const missing: string[] = [];
+
+  for (const table of tables) {
+    try {
+      const { error } = await sb.from(table).select("id").limit(1);
+      if (error) {
+        const errMsg = error.message || "";
+        if (errMsg.includes("Could not find the table") || error.code === "42P01" || errMsg.includes("does not exist")) {
+          missing.push(table);
+        }
+      }
+    } catch (err: any) {
+      missing.push(table);
+    }
+  }
+
+  if (missing.length > 0) {
+    return {
+      configured: true,
+      ok: false,
+      error: `Missing table(s): ${missing.join(", ")}. Run the SQL schema to initialize.`,
+      missingTables: missing
+    };
+  }
+
+  return { configured: true, ok: true, error: "All tables connected and verified successfully!", missingTables: [] };
+}
+
+/**
+ * SQL Schema script to print in logs or admin dashboard for user convenience.
+ */
+export const SUPABASE_SQL_SCHEMA = `
+-- Supabase Table Schema for SEO Data Tracking System
+
+-- 1. Projects Table
+CREATE TABLE IF NOT EXISTS projects (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  code TEXT,
+  domain TEXT,
+  location TEXT,
+  region TEXT,
+  users JSONB DEFAULT '[]'::jsonb,
+  user_id TEXT,
+  priority TEXT,
+  frequency TEXT,
+  keywords JSONB DEFAULT '[]'::jsonb,
+  description TEXT,
+  created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now())
+);
+
+-- 2. DSR Submissions Table
+CREATE TABLE IF NOT EXISTS submissions (
+  id TEXT PRIMARY KEY,
+  date TEXT NOT NULL,
+  user_email TEXT NOT NULL,
+  works JSONB DEFAULT '[]'::jsonb,
+  created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now())
+);
+
+-- 3. Alerts / Announcements Table
+CREATE TABLE IF NOT EXISTS alerts (
+  id TEXT PRIMARY KEY,
+  user_email TEXT,
+  project_name TEXT,
+  project_domain TEXT,
+  message TEXT,
+  read BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()),
+  admin_email TEXT,
+  alert_type TEXT,
+  project_id TEXT,
+  date TEXT
+);
+
+-- 4. Activities Table
+CREATE TABLE IF NOT EXISTS activities (
+  id TEXT PRIMARY KEY,
+  timestamp TIMESTAMPTZ DEFAULT timezone('utc'::text, now()),
+  user_email TEXT,
+  event_type TEXT,
+  details TEXT,
+  platform TEXT DEFAULT 'Web App'
+);
+
+-- 5. Rankings Table
+CREATE TABLE IF NOT EXISTS rankings (
+  id TEXT PRIMARY KEY, -- e.g. "latest" or date
+  data JSONB DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now())
+);
+
+-- 6. Manual Rankings Table (user-filled "Update Ranking" grid)
+CREATE TABLE IF NOT EXISTS manual_rankings (
+  id TEXT PRIMARY KEY, -- always "latest"
+  data JSONB DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now())
+);
+
+-- 7. Dedicated Users table (source of truth for the admin Users dropdown,
+--    and now also for the Task Lineup per-user pause switch)
+CREATE TABLE IF NOT EXISTS app_users (
+  user_id TEXT PRIMARY KEY,
+  name TEXT,
+  paused BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now())
+);
+ALTER TABLE app_users ADD COLUMN IF NOT EXISTS paused BOOLEAN DEFAULT false;
+
+-- 8. Task Lineup Assignments Table
+-- One row per (date, user, project) that the auto-assignment engine picked
+-- for that user to work on that day. status flips to 'Done' the moment a
+-- matching Work Log submission comes in for that project/user/date.
+CREATE TABLE IF NOT EXISTS task_assignments (
+  id TEXT PRIMARY KEY,
+  date TEXT NOT NULL,
+  project_id TEXT NOT NULL,
+  project_name TEXT,
+  user_email TEXT NOT NULL,
+  priority TEXT,
+  status TEXT DEFAULT 'Pending',
+  created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now())
+);
+CREATE INDEX IF NOT EXISTS idx_task_assignments_date ON task_assignments (date);
+CREATE INDEX IF NOT EXISTS idx_task_assignments_user ON task_assignments (user_email);
+
+-- Row Level Security (RLS) Setup
+-- Disable RLS to allow direct database sync from the web client safely:
+ALTER TABLE projects DISABLE ROW LEVEL SECURITY;
+ALTER TABLE submissions DISABLE ROW LEVEL SECURITY;
+ALTER TABLE alerts DISABLE ROW LEVEL SECURITY;
+ALTER TABLE activities DISABLE ROW LEVEL SECURITY;
+ALTER TABLE rankings DISABLE ROW LEVEL SECURITY;
+ALTER TABLE manual_rankings DISABLE ROW LEVEL SECURITY;
+ALTER TABLE app_users DISABLE ROW LEVEL SECURITY;
+ALTER TABLE task_assignments DISABLE ROW LEVEL SECURITY;
+
+-- If you prefer keeping RLS enabled on your database, run the following commands to allow full public access instead:
+-- CREATE POLICY "Allow public read-write for projects" ON projects FOR ALL USING (true) WITH CHECK (true);
+-- CREATE POLICY "Allow public read-write for submissions" ON submissions FOR ALL USING (true) WITH CHECK (true);
+-- CREATE POLICY "Allow public read-write for alerts" ON alerts FOR ALL USING (true) WITH CHECK (true);
+-- CREATE POLICY "Allow public read-write for activities" ON activities FOR ALL USING (true) WITH CHECK (true);
+-- CREATE POLICY "Allow public read-write for rankings" ON rankings FOR ALL USING (true) WITH CHECK (true);
+`;
+
+// =========================================================================
+// PROJECTS DB INTERACTION
+// =========================================================================
+
+export async function getProjectsDb(): Promise<any[]> {
+  const sb = getSupabase();
+  if (sb) {
+    try {
+      const { data, error } = await sb
+        .from("projects")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        console.warn("Supabase query error for projects:", error.message);
+      } else if (data) {
+        // Map snake_case to camelCase structure for Frontend
+        return data.map((p: any) => ({
+          id: p.id,
+          name: p.name,
+          code: p.code,
+          domain: p.domain,
+          location: p.location,
+          region: p.region,
+          users: p.users || [],
+          userId: p.user_id,
+          priority: p.priority,
+          frequency: p.frequency,
+          keywords: p.keywords || [],
+          description: p.description || ""
+        }));
+      }
+    } catch (err) {
+      console.error("Supabase exception for getProjectsDb:", err);
+    }
+  }
+  return [];
+}
+
+export async function saveProjectsBulkDb(projects: any[]): Promise<boolean> {
+  const sb = getSupabase();
+  if (sb) {
+    try {
+      const rows = projects.map(p => ({
+        id: p.id,
+        name: p.name,
+        code: p.code,
+        domain: p.domain,
+        location: p.location,
+        region: p.region,
+        users: p.users || [],
+        user_id: p.userId,
+        priority: p.priority || "",
+        frequency: p.frequency || "",
+        keywords: p.keywords || [],
+        description: p.description || ""
+      }));
+
+      // Perform upsert
+      const { error } = await sb
+        .from("projects")
+        .upsert(rows, { onConflict: "id" });
+
+      if (error) {
+        console.warn("Supabase upsert bulk projects failed:", error.message);
+        return false;
+      }
+      return true;
+    } catch (err) {
+      console.error("Supabase bulk projects upsert exception:", err);
+    }
+  }
+  return false;
+}
+
+export async function saveProjectDb(project: any): Promise<boolean> {
+  const sb = getSupabase();
+  if (sb) {
+    try {
+      const row = {
+        id: project.id,
+        name: project.name,
+        code: project.code,
+        domain: project.domain,
+        location: project.location,
+        region: project.region,
+        users: project.users || [],
+        user_id: project.userId,
+        priority: project.priority || "",
+        frequency: project.frequency || "",
+        keywords: project.keywords || [],
+        description: project.description || ""
+      };
+
+      const { error } = await sb
+        .from("projects")
+        .upsert(row, { onConflict: "id" });
+
+      if (error) {
+        console.warn("Supabase upsert single project failed:", error.message);
+        return false;
+      }
+      return true;
+    } catch (err) {
+      console.error("Supabase project upsert exception:", err);
+    }
+  }
+  return false;
+}
+
+// ---- Dedicated Users table (clean source of truth for the admin Users dropdown) ----
+// This is intentionally separate from projects.users / projects.user_id /
+// submissions.user_email, which are NOT used to build the dropdown anymore.
+
+export async function getUsersDb(): Promise<{ email: string; name: string }[]> {
+  const sb = getSupabase();
+  if (sb) {
+    try {
+      const { data, error } = await sb
+        .from("app_users")
+        .select("*")
+        .order("name", { ascending: true });
+
+      if (error) {
+        console.warn("Supabase query error for app_users:", error.message);
+      } else if (data) {
+        return data.map((u: any) => ({ email: u.user_id, name: u.name, paused: !!u.paused }));
+      }
+    } catch (err) {
+      console.error("Supabase exception for getUsersDb:", err);
+    }
+  }
+  return [];
+}
+
+export async function setUserPausedDb(userId: string, paused: boolean): Promise<boolean> {
+  const sb = getSupabase();
+  if (sb) {
+    try {
+      const { error } = await sb
+        .from("app_users")
+        .update({ paused })
+        .eq("user_id", userId);
+
+      if (error) {
+        console.warn("Supabase set user paused failed:", error.message);
+        return false;
+      }
+      return true;
+    } catch (err) {
+      console.error("Supabase set user paused exception:", err);
+    }
+  }
+  return false;
+}
+
+export async function saveUserDb(userId: string, name: string): Promise<boolean> {
+  const sb = getSupabase();
+  if (sb) {
+    try {
+      const { error } = await sb
+        .from("app_users")
+        .upsert({ user_id: userId, name }, { onConflict: "user_id" });
+
+      if (error) {
+        console.warn("Supabase upsert app_user failed:", error.message);
+        return false;
+      }
+      return true;
+    } catch (err) {
+      console.error("Supabase app_user upsert exception:", err);
+    }
+  }
+  return false;
+}
+
+export async function deleteUserDb(userId: string): Promise<boolean> {
+  const sb = getSupabase();
+  if (sb) {
+    try {
+      const { error } = await sb
+        .from("app_users")
+        .delete()
+        .eq("user_id", userId);
+
+      if (error) {
+        console.warn("Supabase delete app_user failed:", error.message);
+        return false;
+      }
+      return true;
+    } catch (err) {
+      console.error("Supabase app_user delete exception:", err);
+    }
+  }
+  return false;
+}
+
+export async function deleteProjectDb(projectId: string): Promise<boolean> {
+  const sb = getSupabase();
+  if (sb) {
+    try {
+      const { error } = await sb
+        .from("projects")
+        .delete()
+        .eq("id", projectId);
+
+      if (error) {
+        console.warn("Supabase delete project failed:", error.message);
+        return false;
+      }
+      return true;
+    } catch (err) {
+      console.error("Supabase project delete exception:", err);
+    }
+  }
+  return false;
+}
+
+// =========================================================================
+// SUBMISSIONS / DSR DB INTERACTION
+// =========================================================================
+
+export async function getSubmissionsDb(): Promise<any[]> {
+  const sb = getSupabase();
+  if (sb) {
+    try {
+      const { data, error } = await sb
+        .from("submissions")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        console.warn("Supabase query error for submissions:", error.message);
+      } else if (data) {
+        return data.map((s: any) => ({
+          id: s.id,
+          date: s.date,
+          userEmail: s.user_email,
+          works: s.works || [],
+          createdAt: s.created_at,
+          status: s.status || 'Pending'
+        }));
+      }
+    } catch (err) {
+      console.error("Supabase submissions read exception:", err);
+    }
+  }
+  return [];
+}
+
+export async function saveSubmissionsBulkDb(submissions: any[]): Promise<boolean> {
+  const sb = getSupabase();
+  if (sb) {
+    try {
+      const rows = submissions.map(s => ({
+        id: s.id,
+        date: s.date,
+        user_email: s.userEmail,
+        works: s.works || [],
+        created_at: s.createdAt,
+        status: s.status || 'Pending'
+      }));
+
+      const { error } = await sb
+        .from("submissions")
+        .upsert(rows, { onConflict: "id" });
+
+      if (error) {
+        console.warn("Supabase bulk submissions upsert failed:", error.message);
+        return false;
+      }
+      return true;
+    } catch (err) {
+      console.error("Supabase bulk submissions upsert exception:", err);
+    }
+  }
+  return false;
+}
+
+export async function appendSubmissionDb(entry: any): Promise<boolean> {
+  const sb = getSupabase();
+  if (sb) {
+    try {
+      const row = {
+        id: entry.id,
+        date: entry.date,
+        user_email: entry.userEmail,
+        works: entry.works || [],
+        created_at: entry.createdAt,
+        status: entry.status || 'Pending'
+      };
+
+      const { error } = await sb
+        .from("submissions")
+        .insert(row);
+
+      if (error) {
+        console.warn("Supabase append submission failed:", error.message);
+        return false;
+      }
+      return true;
+    } catch (err) {
+      console.error("Supabase append submission exception:", err);
+    }
+  }
+  return false;
+}
+
+export async function updateSubmissionStatusDb(submissionId: string, status: string): Promise<boolean> {
+  const sb = getSupabase();
+  if (sb) {
+    try {
+      const { error } = await sb
+        .from("submissions")
+        .update({ status })
+        .eq("id", submissionId);
+
+      if (error) {
+        console.warn("Supabase update submission status failed:", error.message);
+        return false;
+      }
+      return true;
+    } catch (err) {
+      console.error("Supabase update submission status exception:", err);
+    }
+  }
+  return false;
+}
+
+export async function deleteSubmissionDb(submissionId: string): Promise<boolean> {
+  const sb = getSupabase();
+  if (sb) {
+    try {
+      const { error } = await sb
+        .from("submissions")
+        .delete()
+        .eq("id", submissionId);
+
+      if (error) {
+        console.warn("Supabase delete submission failed:", error.message);
+        return false;
+      }
+      return true;
+    } catch (err) {
+      console.error("Supabase submission delete exception:", err);
+    }
+  }
+  return false;
+}
+
+export async function clearSubmissionsDb(): Promise<boolean> {
+  const sb = getSupabase();
+  if (sb) {
+    try {
+      const { error } = await sb
+        .from("submissions")
+        .delete()
+        .neq("id", "force_delete_all_placeholder_non_existent"); // clears everything
+
+      if (error) {
+        console.warn("Supabase clear submissions failed:", error.message);
+        return false;
+      }
+      return true;
+    } catch (err) {
+      console.error("Supabase clear submissions exception:", err);
+    }
+  }
+  return false;
+}
+
+// =========================================================================
+// ALERTS DB INTERACTION
+// =========================================================================
+
+export async function getAlertsDb(): Promise<any[]> {
+  const sb = getSupabase();
+  if (sb) {
+    try {
+      const { data, error } = await sb
+        .from("alerts")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        console.warn("Supabase alerts get failed:", error.message);
+      } else if (data) {
+        return data.map((a: any) => ({
+          id: a.id,
+          userEmail: a.user_email,
+          projectName: a.project_name,
+          projectDomain: a.project_domain,
+          message: a.message,
+          read: a.read,
+          createdAt: a.created_at,
+          adminEmail: a.admin_email,
+          alertType: a.alert_type || "",
+          projectId: a.project_id || "",
+          date: a.date || ""
+        }));
+      }
+    } catch (err) {
+      console.error("Supabase alerts fetch exception:", err);
+    }
+  }
+  return [];
+}
+
+export async function saveAlertDb(alert: any): Promise<boolean> {
+  const sb = getSupabase();
+  if (sb) {
+    try {
+      const row = {
+        id: alert.id,
+        user_email: alert.userEmail,
+        project_name: alert.projectName,
+        project_domain: alert.projectDomain,
+        message: alert.message,
+        read: alert.read || false,
+        created_at: alert.createdAt || new Date().toISOString(),
+        admin_email: alert.adminEmail,
+        alert_type: alert.alertType || "",
+        project_id: alert.projectId || "",
+        date: alert.date || ""
+      };
+
+      const { error } = await sb
+        .from("alerts")
+        .insert(row);
+
+      if (error) {
+        const missingSchema = error.message && (error.message.includes("does not exist") || error.message.includes("schema cache") || error.message.includes("Could not find") || error.message.includes("alert_type") || error.code === "42703");
+        if (missingSchema) {
+          // Do NOT silently drop alert_type/project_id/date — that field loss is what makes
+          // assignment banners "disappear" after a background sync. Fail loudly instead so the
+          // real fix (adding the missing columns) actually gets applied.
+          console.error(
+            "Supabase 'alerts' table is missing required columns (alert_type, project_id, date). " +
+            "Run this in your Supabase SQL editor:\n" +
+            "ALTER TABLE alerts ADD COLUMN IF NOT EXISTS alert_type TEXT;\n" +
+            "ALTER TABLE alerts ADD COLUMN IF NOT EXISTS project_id TEXT;\n" +
+            "ALTER TABLE alerts ADD COLUMN IF NOT EXISTS date TEXT;\n" +
+            "Original error: " + error.message
+          );
+          return false;
+        }
+        console.warn("Supabase insert alert failed:", error.message);
+        return false;
+      }
+      return true;
+    } catch (err) {
+      console.error("Supabase insert alert exception:", err);
+    }
+  }
+  return false;
+}
+
+export async function saveAlertsBulkDb(alerts: any[]): Promise<boolean> {
+  const sb = getSupabase();
+  if (sb) {
+    try {
+      const rows = alerts.map(alert => ({
+        id: alert.id,
+        user_email: alert.userEmail,
+        project_name: alert.projectName,
+        project_domain: alert.projectDomain,
+        message: alert.message,
+        read: alert.read || false,
+        created_at: alert.createdAt || new Date().toISOString(),
+        admin_email: alert.adminEmail,
+        alert_type: alert.alertType || "",
+        project_id: alert.projectId || "",
+        date: alert.date || ""
+      }));
+
+      const { error } = await sb
+        .from("alerts")
+        .upsert(rows, { onConflict: "id" });
+
+      if (error) {
+        const missingSchema = error.message && (error.message.includes("does not exist") || error.message.includes("schema cache") || error.message.includes("Could not find") || error.message.includes("alert_type") || error.code === "42703");
+        if (missingSchema) {
+          console.error(
+            "Supabase 'alerts' table is missing required columns (alert_type, project_id, date). " +
+            "Run this in your Supabase SQL editor:\n" +
+            "ALTER TABLE alerts ADD COLUMN IF NOT EXISTS alert_type TEXT;\n" +
+            "ALTER TABLE alerts ADD COLUMN IF NOT EXISTS project_id TEXT;\n" +
+            "ALTER TABLE alerts ADD COLUMN IF NOT EXISTS date TEXT;\n" +
+            "Original error: " + error.message
+          );
+          return false;
+        }
+        console.warn("Supabase bulk alerts upsert failed:", error.message);
+        return false;
+      }
+      return true;
+    } catch (err) {
+      console.error("Supabase bulk alerts upsert exception:", err);
+    }
+  }
+  return false;
+}
+
+export async function deleteAlertDb(alertId: string): Promise<boolean> {
+  const sb = getSupabase();
+  if (sb) {
+    try {
+      const { error } = await sb
+        .from("alerts")
+        .delete()
+        .eq("id", alertId);
+
+      if (error) {
+        console.warn("Supabase delete alert failed:", error.message);
+        return false;
+      }
+      return true;
+    } catch (err) {
+      console.error("Supabase delete alert exception:", err);
+    }
+  }
+  return false;
+}
+
+// =========================================================================
+// ACTIVITIES DB INTERACTION
+// =========================================================================
+
+export async function getActivitiesDb(): Promise<any[]> {
+  const sb = getSupabase();
+  if (sb) {
+    try {
+      const { data, error } = await sb
+        .from("activities")
+        .select("*")
+        .order("timestamp", { ascending: false })
+        .limit(1000);
+
+      if (error) {
+        console.warn("Supabase get activities failed:", error.message);
+      } else if (data) {
+        return data.map((a: any) => ({
+          id: a.id,
+          timestamp: a.timestamp,
+          userEmail: a.user_email,
+          eventType: a.event_type,
+          details: a.details,
+          platform: a.platform
+        }));
+      }
+    } catch (err) {
+      console.error("Supabase activities fetch exception:", err);
+    }
+  }
+  return [];
+}
+
+export async function logActivityDb(activity: any): Promise<boolean> {
+  const sb = getSupabase();
+  if (sb) {
+    try {
+      const row = {
+        id: activity.id,
+        timestamp: activity.timestamp,
+        user_email: activity.userEmail,
+        event_type: activity.eventType,
+        details: activity.details,
+        platform: activity.platform || "Web App"
+      };
+
+      const { error } = await sb
+        .from("activities")
+        .insert(row);
+
+      if (error) {
+        console.warn("Supabase insert activity failed:", error.message);
+        return false;
+      }
+      return true;
+    } catch (err) {
+      console.error("Supabase insert activity exception:", err);
+    }
+  }
+  return false;
+}
+
+export async function clearActivitiesDb(): Promise<boolean> {
+  const sb = getSupabase();
+  if (sb) {
+    try {
+      const { error } = await sb
+        .from("activities")
+        .delete()
+        .neq("id", "force_clear_non_existent");
+
+      if (error) {
+        console.warn("Supabase clear activities failed:", error.message);
+        return false;
+      }
+      return true;
+    } catch (err) {
+      console.error("Supabase clear activities exception:", err);
+    }
+  }
+  return false;
+}
+
+// =========================================================================
+// RANKINGS DB INTERACTION
+// =========================================================================
+
+export async function getRankingsDb(): Promise<any> {
+  const sb = getSupabase();
+  if (sb) {
+    try {
+      const { data, error } = await sb
+        .from("rankings")
+        .select("*")
+        .eq("id", "latest")
+        .single();
+
+      if (error) {
+        if (error.code !== "PGRST116") { // single query no record is okay
+          console.warn("Supabase get rankings failed:", error.message);
+        }
+      } else if (data) {
+        return data.data || {};
+      }
+    } catch (err) {
+      console.error("Supabase rankings fetch exception:", err);
+    }
+  }
+  return {};
+}
+
+export async function saveRankingsDb(rankingsData: any): Promise<boolean> {
+  const sb = getSupabase();
+  if (sb) {
+    try {
+      const row = {
+        id: "latest",
+        data: rankingsData,
+        created_at: new Date().toISOString()
+      };
+
+      const { error } = await sb
+        .from("rankings")
+        .upsert(row, { onConflict: "id" });
+
+      if (error) {
+        console.warn("Supabase upsert rankings failed:", error.message);
+        return false;
+      }
+      return true;
+    } catch (err) {
+      console.error("Supabase upsert rankings exception:", err);
+    }
+  }
+  return false;
+}
+
+export async function clearRankingsDb(): Promise<boolean> {
+  const sb = getSupabase();
+  if (sb) {
+    try {
+      const { error } = await sb
+        .from("rankings")
+        .delete()
+        .eq("id", "latest");
+
+      if (error) {
+        console.warn("Supabase clear rankings failed:", error.message);
+        return false;
+      }
+      return true;
+    } catch (err) {
+      console.error("Supabase clear rankings exception:", err);
+    }
+  }
+  return false;
+}
+
+// =========================================================================
+// MANUAL RANKINGS ("Update Ranking" grid) DB INTERACTION
+// =========================================================================
+
+export async function getManualRankingsDb(): Promise<any> {
+  const sb = getSupabase();
+  if (sb) {
+    try {
+      const { data, error } = await sb
+        .from("manual_rankings")
+        .select("*")
+        .eq("id", "latest")
+        .single();
+
+      if (error) {
+        if (error.code !== "PGRST116") { // single query no record is okay
+          console.warn("Supabase get manual_rankings failed:", error.message);
+        }
+      } else if (data) {
+        return data.data || {};
+      }
+    } catch (err) {
+      console.error("Supabase manual_rankings fetch exception:", err);
+    }
+  }
+  return {};
+}
+
+// =========================================================================
+// TASK LINEUP (auto-assignment) DB INTERACTION
+// =========================================================================
+//
+// Priority tiers X1-X5 imply a weekly work-frequency target (assumption,
+// see PRIORITY_WEEKLY_TARGET below). Every day the engine runs (Mon-Sat,
+// Sunday is always skipped) it works out, per user, which of their
+// projects are still "owed" work this week and picks the top ones up to
+// a 25-projects/day cap - carrying forward anything left "Pending" from
+// yesterday first so nothing silently falls off the list.
+
+function toRow(a: any) {
+  return {
+    id: a.id,
+    date: a.date,
+    project_id: a.projectId,
+    project_name: a.projectName,
+    user_email: a.userEmail,
+    priority: a.priority || "",
+    status: a.status || "Pending",
+    created_at: a.createdAt || new Date().toISOString(),
+  };
+}
+
+function fromRow(r: any) {
+  return {
+    id: r.id,
+    date: r.date,
+    projectId: r.project_id,
+    projectName: r.project_name,
+    userEmail: r.user_email,
+    priority: r.priority || "",
+    status: r.status || "Pending",
+    createdAt: r.created_at,
+  };
+}
+
+export async function getTaskAssignmentsDb(filters: {
+  date?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  userEmail?: string;
+  status?: string;
+} = {}): Promise<any[]> {
+  const sb = getSupabase();
+  if (!sb) return [];
+  try {
+    let query = sb.from("task_assignments").select("*");
+    if (filters.date) query = query.eq("date", filters.date);
+    if (filters.dateFrom) query = query.gte("date", filters.dateFrom);
+    if (filters.dateTo) query = query.lte("date", filters.dateTo);
+    if (filters.userEmail) query = query.eq("user_email", filters.userEmail.trim().toLowerCase());
+    if (filters.status) query = query.eq("status", filters.status);
+
+    const { data, error } = await query.order("date", { ascending: false });
+    if (error) {
+      console.warn("Supabase query error for task_assignments:", error.message);
+      return [];
+    }
+    return (data || []).map(fromRow);
+  } catch (err) {
+    console.error("Supabase exception for getTaskAssignmentsDb:", err);
+    return [];
+  }
+}
+
+export async function insertTaskAssignmentsBulkDb(assignments: any[]): Promise<boolean> {
+  const sb = getSupabase();
+  if (!sb || assignments.length === 0) return false;
+  try {
+    const rows = assignments.map(toRow);
+    const { error } = await sb.from("task_assignments").insert(rows);
+    if (error) {
+      console.warn("Supabase bulk insert task_assignments failed:", error.message);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error("Supabase bulk insert task_assignments exception:", err);
+    return false;
+  }
+}
+
+export async function deleteTaskAssignmentsForDateDb(date: string): Promise<boolean> {
+  const sb = getSupabase();
+  if (!sb) return false;
+  try {
+    const { error } = await sb.from("task_assignments").delete().eq("date", date);
+    if (error) {
+      console.warn("Supabase delete task_assignments for date failed:", error.message);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error("Supabase delete task_assignments exception:", err);
+    return false;
+  }
+}
+
+export async function markTaskAssignmentDoneDb(date: string, userEmail: string, projectId: string): Promise<boolean> {
+  const sb = getSupabase();
+  if (!sb) return false;
+  try {
+    const { error } = await sb
+      .from("task_assignments")
+      .update({ status: "Done" })
+      .eq("date", date)
+      .eq("user_email", userEmail.trim().toLowerCase())
+      .eq("project_id", projectId)
+      .eq("status", "Pending");
+    if (error) {
+      console.warn("Supabase mark task_assignment done failed:", error.message);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error("Supabase mark task_assignment done exception:", err);
+    return false;
+  }
+}
+
+function ymd(d: Date): string {
+  return d.toISOString().slice(0, 10);
+}
+
+function addDays(dateStr: string, days: number): string {
+  const d = new Date(dateStr + "T00:00:00Z");
+  d.setUTCDate(d.getUTCDate() + days);
+  return ymd(d);
+}
+
+// Monday of the week containing dateStr (weeks run Mon-Sat; Sunday is a rest day).
+function weekStartMonday(dateStr: string): string {
+  const d = new Date(dateStr + "T00:00:00Z");
+  const day = d.getUTCDay(); // 0=Sun..6=Sat
+  const diffToMonday = day === 0 ? -6 : 1 - day;
+  return addDays(dateStr, diffToMonday);
+}
+
+/**
+ * Generates (or regenerates, if force=true) the Task Lineup for a single
+ * calendar date. Returns a summary the API route can pass straight back to
+ * the client.
+ */
+export async function generateLineupForDate(
+  dateStr: string,
+  projects: any[],
+  pausedEmails: Set<string>,
+  force: boolean = false
+): Promise<{ generated: boolean; reason?: string; count: number; date: string }> {
+  const dow = new Date(dateStr + "T00:00:00Z").getUTCDay();
+  if (dow === 0) {
+    return { generated: false, reason: "Sundays are a rest day - no lineup is generated.", count: 0, date: dateStr };
+  }
+
+  const existing = await getTaskAssignmentsDb({ date: dateStr });
+  if (existing.length > 0 && !force) {
+    return { generated: false, reason: "A lineup already exists for this date.", count: existing.length, date: dateStr };
+  }
+  if (existing.length > 0 && force) {
+    await deleteTaskAssignmentsForDateDb(dateStr);
+  }
+
+  const weekStart = weekStartMonday(dateStr);
+  const yesterday = addDays(dateStr, -1);
+
+  // Everything already assigned this week (Mon .. yesterday), used to work out
+  // how many more times each project still needs to be picked before Saturday.
+  const weekSoFar = await getTaskAssignmentsDb({ dateFrom: weekStart, dateTo: yesterday });
+  const countThisWeek = new Map<string, number>(); // `${userEmail}::${projectId}` -> count
+  weekSoFar.forEach((a) => {
+    const key = `${a.userEmail}::${a.projectId}`;
+    countThisWeek.set(key, (countThisWeek.get(key) || 0) + 1);
+  });
+
+  // Yesterday's assignments that never got a matching Work Log ("Yesterday
+  // Pending") jump to the front of today's queue so nothing gets silently dropped.
+  const yesterdayPending = new Set<string>();
+  weekSoFar
+    .filter((a) => a.date === yesterday && a.status === "Pending")
+    .forEach((a) => yesterdayPending.add(`${a.userEmail}::${a.projectId}`));
+
+  type Candidate = {
+    userEmail: string;
+    projectId: string;
+    projectName: string;
+    priority: string;
+    carried: boolean;
+    deficit: number;
+  };
+
+  const candidatesByUser = new Map<string, Candidate[]>();
+
+  projects.forEach((p) => {
+    const priority = String(p.priority || "").toUpperCase();
+    const weeklyTarget = PRIORITY_WEEKLY_TARGET[priority];
+    if (!weeklyTarget) return; // no recognized priority tier - admin hasn't set one, skip from auto-assignment
+
+    const rawUsers: string[] = Array.isArray(p.users) ? p.users : [];
+    const emails = new Set<string>();
+    rawUsers.forEach((u: string) => {
+      if (u && String(u).trim()) emails.add(String(u).trim().toLowerCase());
+    });
+    if (p.userId && String(p.userId).trim()) emails.add(String(p.userId).trim().toLowerCase());
+
+    emails.forEach((userEmail) => {
+      if (pausedEmails.has(userEmail)) return; // paused users are skipped entirely for new generation
+      const key = `${userEmail}::${p.id}`;
+      const doneThisWeek = countThisWeek.get(key) || 0;
+      const deficit = weeklyTarget - doneThisWeek;
+      const carried = yesterdayPending.has(key);
+      if (deficit <= 0 && !carried) return; // this project's weekly quota is already met
+
+      if (!candidatesByUser.has(userEmail)) candidatesByUser.set(userEmail, []);
+      candidatesByUser.get(userEmail)!.push({
+        userEmail,
+        projectId: p.id,
+        projectName: p.name,
+        priority,
+        carried,
+        deficit,
+      });
+    });
+  });
+
+  const toInsert: any[] = [];
+  candidatesByUser.forEach((candidates) => {
+    candidates.sort((a, b) => {
+      if (a.carried !== b.carried) return a.carried ? -1 : 1; // carried-over pending first
+      if (b.deficit !== a.deficit) return b.deficit - a.deficit; // bigger deficit first
+      return (PRIORITY_WEEKLY_TARGET[b.priority] || 0) - (PRIORITY_WEEKLY_TARGET[a.priority] || 0);
+    });
+
+    candidates.slice(0, DAILY_LINEUP_CAP_PER_USER).forEach((c) => {
+      toInsert.push({
+        id: `lineup-${dateStr}-${c.userEmail.replace(/[^a-z0-9]/gi, "")}-${c.projectId}`,
+        date: dateStr,
+        projectId: c.projectId,
+        projectName: c.projectName,
+        userEmail: c.userEmail,
+        priority: c.priority,
+        status: "Pending",
+        createdAt: new Date().toISOString(),
+      });
+    });
+  });
+
+  if (toInsert.length > 0) {
+    await insertTaskAssignmentsBulkDb(toInsert);
+  }
+
+  return { generated: true, count: toInsert.length, date: dateStr };
+}
+
+export async function saveManualRankingsDb(gridData: any): Promise<boolean> {
+  const sb = getSupabase();
+  if (sb) {
+    try {
+      const row = {
+        id: "latest",
+        data: gridData,
+        created_at: new Date().toISOString()
+      };
+
+      const { error } = await sb
+        .from("manual_rankings")
+        .upsert(row, { onConflict: "id" });
+
+      if (error) {
+        console.warn("Supabase upsert manual_rankings failed:", error.message);
+        return false;
+      }
+      return true;
+    } catch (err) {
+      console.error("Supabase upsert manual_rankings exception:", err);
+    }
+  }
+  return false;
+}
