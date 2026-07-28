@@ -159,6 +159,18 @@ CREATE TABLE IF NOT EXISTS task_assignments (
 CREATE INDEX IF NOT EXISTS idx_task_assignments_date ON task_assignments (date);
 CREATE INDEX IF NOT EXISTS idx_task_assignments_user ON task_assignments (user_email);
 
+-- 9. Task Lineup Engine State (single row) — lets the auto-assignment cycle
+-- run forever once started, instead of needing a manual click every day.
+-- "active" flips on the first time an admin hits Start Cycle and stays on
+-- permanently; "paused" is the separate long-vacation switch admins can
+-- flip any time without losing the "active" (ever-started) state.
+CREATE TABLE IF NOT EXISTS lineup_engine (
+  id TEXT PRIMARY KEY, -- always "singleton"
+  active BOOLEAN DEFAULT false,
+  paused BOOLEAN DEFAULT false,
+  updated_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now())
+);
+
 -- Row Level Security (RLS) Setup
 -- Disable RLS to allow direct database sync from the web client safely:
 ALTER TABLE projects DISABLE ROW LEVEL SECURITY;
@@ -169,6 +181,7 @@ ALTER TABLE rankings DISABLE ROW LEVEL SECURITY;
 ALTER TABLE manual_rankings DISABLE ROW LEVEL SECURITY;
 ALTER TABLE app_users DISABLE ROW LEVEL SECURITY;
 ALTER TABLE task_assignments DISABLE ROW LEVEL SECURITY;
+ALTER TABLE lineup_engine DISABLE ROW LEVEL SECURITY;
 
 -- If you prefer keeping RLS enabled on your database, run the following commands to allow full public access instead:
 -- CREATE POLICY "Allow public read-write for projects" ON projects FOR ALL USING (true) WITH CHECK (true);
@@ -925,6 +938,36 @@ function fromRow(r: any) {
   };
 }
 
+// Collapses any rows that share the same (date, user, project) down to one.
+// This is what fixes the "same user's card showing twice" bug in the Task
+// Lineup UI — it doesn't matter whether the duplicate rows came from an old
+// pre-deterministic-id version of the generator or a double-click race,
+// this guarantees the API never hands the frontend two rows for the same
+// (date, user, project) triple. When duplicates exist we keep the one
+// marked "Done" over "Pending" (so a completed row never gets hidden by a
+// stale duplicate), and otherwise the most recently created row.
+function dedupeAssignments(rows: any[]): any[] {
+  const byKey = new Map<string, any>();
+  rows.forEach((r) => {
+    const key = `${r.date}::${String(r.userEmail || "").trim().toLowerCase()}::${r.projectId}`;
+    const prev = byKey.get(key);
+    if (!prev) {
+      byKey.set(key, r);
+      return;
+    }
+    const prevDone = prev.status === "Done";
+    const curDone = r.status === "Done";
+    if (curDone && !prevDone) {
+      byKey.set(key, r);
+    } else if (curDone === prevDone) {
+      const prevTime = new Date(prev.createdAt || 0).getTime();
+      const curTime = new Date(r.createdAt || 0).getTime();
+      if (curTime >= prevTime) byKey.set(key, r);
+    }
+  });
+  return Array.from(byKey.values());
+}
+
 export async function getTaskAssignmentsDb(filters: {
   date?: string;
   dateFrom?: string;
@@ -947,7 +990,7 @@ export async function getTaskAssignmentsDb(filters: {
       console.warn("Supabase query error for task_assignments:", error.message);
       return [];
     }
-    return (data || []).map(fromRow);
+    return dedupeAssignments((data || []).map(fromRow));
   } catch (err) {
     console.error("Supabase exception for getTaskAssignmentsDb:", err);
     return [];
@@ -959,7 +1002,7 @@ export async function insertTaskAssignmentsBulkDb(assignments: any[]): Promise<b
   if (!sb || assignments.length === 0) return false;
   try {
     const rows = assignments.map(toRow);
-    const { error } = await sb.from("task_assignments").insert(rows);
+    const { error } = await sb.from("task_assignments").upsert(rows, { onConflict: "id" });
     if (error) {
       console.warn("Supabase bulk insert task_assignments failed:", error.message);
       return false;
@@ -1140,6 +1183,115 @@ export async function generateLineupForDate(
   }
 
   return { generated: true, count: toInsert.length, date: dateStr };
+}
+
+// =========================================================================
+// TASK LINEUP ENGINE STATE — makes "Start Cycle" a one-time, lifetime action.
+// `active` is set once, the first time an admin starts the cycle, and never
+// gets cleared by the daily auto-generate check. `paused` is the separate
+// long-vacation switch — the engine stays "active" but simply skips
+// auto-generating while paused, and picks back up the day it's unpaused.
+// =========================================================================
+
+export async function getLineupEngineStateDb(): Promise<{ active: boolean; paused: boolean }> {
+  const sb = getSupabase();
+  if (!sb) return { active: false, paused: false };
+  try {
+    const { data, error } = await sb.from("lineup_engine").select("*").eq("id", "singleton").maybeSingle();
+    if (error || !data) return { active: false, paused: false };
+    return { active: !!data.active, paused: !!data.paused };
+  } catch (err) {
+    console.error("Supabase exception for getLineupEngineStateDb:", err);
+    return { active: false, paused: false };
+  }
+}
+
+export async function setLineupEngineStateDb(patch: { active?: boolean; paused?: boolean }): Promise<boolean> {
+  const sb = getSupabase();
+  if (!sb) return false;
+  try {
+    const current = await getLineupEngineStateDb();
+    const row = {
+      id: "singleton",
+      active: patch.active !== undefined ? patch.active : current.active,
+      paused: patch.paused !== undefined ? patch.paused : current.paused,
+      updated_at: new Date().toISOString(),
+    };
+    const { error } = await sb.from("lineup_engine").upsert(row, { onConflict: "id" });
+    if (error) {
+      console.warn("Supabase upsert lineup_engine failed:", error.message);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error("Supabase exception for setLineupEngineStateDb:", err);
+    return false;
+  }
+}
+
+// Called on server startup (interval) and opportunistically whenever the
+// Task Lineup screen is loaded. If the engine has been started, isn't
+// paused, and today's lineup doesn't exist yet (and today isn't a Sunday),
+// this generates it — so nobody ever has to remember to click "Start Cycle"
+// again after the very first time.
+export async function ensureTodayLineupIfEngineActive(): Promise<void> {
+  try {
+    const state = await getLineupEngineStateDb();
+    if (!state.active || state.paused) return;
+    const today = new Date().toISOString().slice(0, 10);
+    if (new Date(today + "T00:00:00Z").getUTCDay() === 0) return; // Sunday rest day
+    const existing = await getTaskAssignmentsDb({ date: today });
+    if (existing.length > 0) return;
+    const projects = await getProjectsDb();
+    const users = await getUsersDb();
+    const pausedEmails = new Set(users.filter((u: any) => u.paused).map((u: any) => u.email.trim().toLowerCase()));
+    await generateLineupForDate(today, projects, pausedEmails, false);
+  } catch (err) {
+    console.error("ensureTodayLineupIfEngineActive error:", err);
+  }
+}
+
+// Per-user rollup for the admin "Team Pause Controls" panel and the
+// "Check Pendings" drill-down: total assignments ever made, yesterday's
+// still-pending count, and the all-time still-pending count, for every
+// configured user in one shot (avoids N round trips from the client).
+export async function getPendingSummaryAllUsersDb(
+  users: { email: string; name: string }[]
+): Promise<Array<{
+  email: string;
+  name: string;
+  totalTasks: number;
+  yesterdayPendingCount: number;
+  totalPendingCount: number;
+  yesterdayPending: any[];
+  totalPending: any[];
+}>> {
+  const today = new Date().toISOString().slice(0, 10);
+  const yesterday = addDays(today, -1);
+  const all = await getTaskAssignmentsDb({ dateTo: today });
+
+  const perUser = new Map<string, any[]>();
+  all.forEach((a) => {
+    const key = String(a.userEmail || "").trim().toLowerCase();
+    if (!perUser.has(key)) perUser.set(key, []);
+    perUser.get(key)!.push(a);
+  });
+
+  return users.map((u) => {
+    const key = u.email.trim().toLowerCase();
+    const rows = perUser.get(key) || [];
+    const yesterdayPending = rows.filter((r) => r.date === yesterday && r.status === "Pending");
+    const totalPending = rows.filter((r) => r.status === "Pending");
+    return {
+      email: u.email,
+      name: u.name,
+      totalTasks: rows.length,
+      yesterdayPendingCount: yesterdayPending.length,
+      totalPendingCount: totalPending.length,
+      yesterdayPending,
+      totalPending,
+    };
+  });
 }
 
 export async function saveManualRankingsDb(gridData: any): Promise<boolean> {
