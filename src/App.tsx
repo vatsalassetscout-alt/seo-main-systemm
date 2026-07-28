@@ -1044,16 +1044,14 @@ export default function App() {
                 </button>
               )}
 
-              {!isAdmin && (
-                <button
-                  id="tab-xyz"
-                  onClick={() => {}}
-                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold cursor-pointer transition text-gray-500 hover:text-gray-800 hover:bg-gray-50"
-                >
-                  <Sparkles size={14} />
-                  xyz
-                </button>
-              )}
+              <button
+                id="tab-task-lineup"
+                onClick={() => {}}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold cursor-pointer transition text-gray-500 hover:text-gray-800 hover:bg-gray-50"
+              >
+                <Sparkles size={14} />
+                Task Lineup
+              </button>
 
               <button
                 id="tab-dashboard"
@@ -1342,15 +1340,13 @@ export default function App() {
             </button>
           )}
 
-          {!isAdmin && (
-            <button
-              onClick={() => {}}
-              className="flex flex-col items-center gap-1 py-1.5 px-1 rounded-xl text-[10px] font-bold w-1/4 transition cursor-pointer text-gray-400 hover:text-gray-700"
-            >
-              <Sparkles size={15} />
-              xyz
-            </button>
-          )}
+          <button
+            onClick={() => {}}
+            className="flex flex-col items-center gap-1 py-1.5 px-1 rounded-xl text-[10px] font-bold w-1/4 transition cursor-pointer text-gray-400 hover:text-gray-700"
+          >
+            <Sparkles size={15} />
+            Task Lineup
+          </button>
 
           <button
             onClick={() => setActiveTab('dashboard')}
