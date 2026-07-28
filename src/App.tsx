@@ -1025,7 +1025,7 @@ export default function App() {
                   }`}
                 >
                   <PenTool size={14} />
-                  Work Log Submission
+                  Work Log 
                 </button>
               )}
 
@@ -1382,14 +1382,24 @@ export default function App() {
               <h1 className="text-xl font-black text-gray-900 tracking-tight sm:text-2xl flex items-center gap-2">
                 {activeTab === 'submit' && (
                   <>
-                    Work Log Submissions
+                    {isAdmin ? (
+                      'Work Log Submissions'
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab('submit')}
+                        className="text-xl font-black text-gray-900 tracking-tight sm:text-2xl cursor-pointer"
+                      >
+                        Work Log Submissions
+                      </button>
+                    )}
                     {!isAdmin && (
                       <>
                         <span className="text-gray-400">,</span>
                         <button
                           type="button"
                           onClick={() => setActiveTab('logs')}
-                          className="text-xl font-black text-gray-900 tracking-tight sm:text-2xl hover:text-indigo-600 transition cursor-pointer"
+                          className="text-xl font-black text-gray-400 tracking-tight sm:text-2xl hover:text-indigo-600 transition cursor-pointer"
                         >
                           History
                         </button>
@@ -1397,7 +1407,31 @@ export default function App() {
                     )}
                   </>
                 )}
-                {activeTab === 'logs' && 'Daily Task History'}
+                {activeTab === 'logs' && (
+                  <>
+                    {isAdmin ? (
+                      'Daily Task History'
+                    ) : (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => setActiveTab('submit')}
+                          className="text-xl font-black text-gray-400 tracking-tight sm:text-2xl hover:text-indigo-600 transition cursor-pointer"
+                        >
+                          Submission
+                        </button>
+                        <span className="text-gray-400">,</span>
+                        <button
+                          type="button"
+                          onClick={() => setActiveTab('logs')}
+                          className="text-xl font-black text-gray-900 tracking-tight sm:text-2xl cursor-pointer"
+                        >
+                          History
+                        </button>
+                      </>
+                    )}
+                  </>
+                )}
                 {activeTab === 'settings' && 'System Configuration Studio'}
               </h1>
             </div>
