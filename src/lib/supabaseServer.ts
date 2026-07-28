@@ -1030,6 +1030,28 @@ export async function deleteTaskAssignmentsForDateDb(date: string): Promise<bool
   }
 }
 
+// Full reset — wipes EVERY task assignment ever created, for every user and
+// every date (not just one day). Used by the "Delete" button's full-reset
+// mode so that Yesterday Pending / Total Pending go back to 0 everywhere,
+// instead of only clearing the single date that was showing on screen.
+export async function deleteAllTaskAssignmentsDb(): Promise<boolean> {
+  const sb = getSupabase();
+  if (!sb) return false;
+  try {
+    // Supabase requires a filter on delete; neq on a value nothing can equal
+    // (empty string id never happens) safely matches every row.
+    const { error } = await sb.from("task_assignments").delete().neq("id", "");
+    if (error) {
+      console.warn("Supabase delete ALL task_assignments failed:", error.message);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error("Supabase delete ALL task_assignments exception:", err);
+    return false;
+  }
+}
+
 export async function markTaskAssignmentDoneDb(date: string, userEmail: string, projectId: string): Promise<boolean> {
   const sb = getSupabase();
   if (!sb) return false;
