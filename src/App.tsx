@@ -37,6 +37,7 @@ import {
   UserCheck,
   Bell,
   RefreshCw,
+  Sparkles,
   X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -1043,6 +1044,17 @@ export default function App() {
                 </button>
               )}
 
+              {!isAdmin && (
+                <button
+                  id="tab-xyz"
+                  onClick={() => {}}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold cursor-pointer transition text-gray-500 hover:text-gray-800 hover:bg-gray-50"
+                >
+                  <Sparkles size={14} />
+                  xyz
+                </button>
+              )}
+
               <button
                 id="tab-dashboard"
                 onClick={() => setActiveTab('dashboard')}
@@ -1330,6 +1342,16 @@ export default function App() {
             </button>
           )}
 
+          {!isAdmin && (
+            <button
+              onClick={() => {}}
+              className="flex flex-col items-center gap-1 py-1.5 px-1 rounded-xl text-[10px] font-bold w-1/4 transition cursor-pointer text-gray-400 hover:text-gray-700"
+            >
+              <Sparkles size={15} />
+              xyz
+            </button>
+          )}
+
           <button
             onClick={() => setActiveTab('dashboard')}
             className={`flex flex-col items-center gap-1 py-1.5 px-1 rounded-xl text-[10px] font-bold w-1/4 transition cursor-pointer ${
@@ -1358,7 +1380,23 @@ export default function App() {
           <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-150 pb-6">
             <div className="space-y-1">
               <h1 className="text-xl font-black text-gray-900 tracking-tight sm:text-2xl flex items-center gap-2">
-                {activeTab === 'submit' && 'Work Log Submissions'}
+                {activeTab === 'submit' && (
+                  <>
+                    Work Log Submissions
+                    {!isAdmin && (
+                      <>
+                        <span className="text-gray-400">,</span>
+                        <button
+                          type="button"
+                          onClick={() => setActiveTab('logs')}
+                          className="text-xl font-black text-gray-900 tracking-tight sm:text-2xl hover:text-indigo-600 transition cursor-pointer"
+                        >
+                          History
+                        </button>
+                      </>
+                    )}
+                  </>
+                )}
                 {activeTab === 'logs' && 'Daily Task History'}
                 {activeTab === 'settings' && 'System Configuration Studio'}
               </h1>
@@ -1395,8 +1433,6 @@ export default function App() {
                   onSendAdminMessage={handleSendUserMessage}
                   preFill={assignmentPreFill}
                   onClearPreFill={() => setAssignmentPreFill(null)}
-                  entries={entries}
-                  onUpdateStatus={handleUpdateDSRStatus}
                 />
               )}
 
