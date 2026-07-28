@@ -1100,9 +1100,8 @@ app.post("/api/task-lineup/generate", requireAdmin, async (req, res) => {
 
     const projects = await getProjectsDb();
     const users = await getUsersDb();
-    const pausedEmails = new Set(users.filter((u: any) => u.paused).map((u: any) => u.email.trim().toLowerCase()));
 
-    const result = await generateLineupForDate(date, projects, pausedEmails, force);
+    const result = await generateLineupForDate(date, projects, users, force);
     return res.json(result);
   } catch (err: any) {
     console.error("POST /api/task-lineup/generate error:", err);
