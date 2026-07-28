@@ -35,7 +35,11 @@ import {
   getTaskAssignmentsDb,
   generateLineupForDate,
   markTaskAssignmentDoneDb,
-  deleteTaskAssignmentsForDateDb
+  deleteTaskAssignmentsForDateDb,
+  getLineupEngineStateDb,
+  setLineupEngineStateDb,
+  ensureTodayLineupIfEngineActive,
+  getPendingSummaryAllUsersDb
 } from "./src/lib/supabaseServer";
 import { detectColumns } from "./src/lib/columnMapper";
 
@@ -1070,6 +1074,11 @@ app.get("/api/task-lineup", async (req, res) => {
     const clientUserEmail = req.headers["x-user-email"];
     const clientUserRole = req.headers["x-user-role"];
 
+    // Opportunistic auto-generate: if the engine has been started and isn't
+    // paused, make sure today's lineup exists before answering. Cheap no-op
+    // once today's lineup is already there.
+    await ensureTodayLineupIfEngineActive();
+
     let list = await getTaskAssignmentsDb({ date });
     if (clientUserRole !== "admin" && typeof clientUserEmail === "string" && clientUserEmail) {
       const emailLower = clientUserEmail.trim().toLowerCase();
@@ -1157,6 +1166,67 @@ app.post("/api/task-lineup/pause", requireAdmin, async (req, res) => {
     return res.json({ success: ok });
   } catch (err: any) {
     console.error("POST /api/task-lineup/pause error:", err);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// GET the engine's lifetime state — has it ever been started, and is it
+// currently paused (the long-vacation switch)?
+app.get("/api/task-lineup/engine-status", async (req, res) => {
+  try {
+    const state = await getLineupEngineStateDb();
+    return res.json(state);
+  } catch (err: any) {
+    console.error("GET /api/task-lineup/engine-status error:", err);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// POST start the engine (admin only, one-time action). Marks the cycle
+// "active" for life and immediately generates today's lineup if it doesn't
+// exist yet. After this, the cycle keeps generating every day on its own —
+// no more daily manual clicks.
+app.post("/api/task-lineup/engine/start", requireAdmin, async (req, res) => {
+  try {
+    await setLineupEngineStateDb({ active: true, paused: false });
+    await ensureTodayLineupIfEngineActive();
+    const state = await getLineupEngineStateDb();
+    return res.json({ success: true, ...state });
+  } catch (err: any) {
+    console.error("POST /api/task-lineup/engine/start error:", err);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// POST pause/resume the whole engine (admin only) — the "long vacation"
+// switch. While paused, no new day's lineup auto-generates; resuming picks
+// back up the same day without needing Start Cycle again.
+app.post("/api/task-lineup/engine/pause", requireAdmin, async (req, res) => {
+  try {
+    const { paused } = req.body;
+    if (typeof paused !== "boolean") {
+      return res.status(400).json({ error: "paused (boolean) is required." });
+    }
+    await setLineupEngineStateDb({ paused });
+    if (!paused) await ensureTodayLineupIfEngineActive();
+    const state = await getLineupEngineStateDb();
+    return res.json({ success: true, ...state });
+  } catch (err: any) {
+    console.error("POST /api/task-lineup/engine/pause error:", err);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// GET a one-shot rollup of every user's total tasks, yesterday-pending count,
+// and total-pending count — powers both the Team Pause Controls stats and
+// the admin "Check Pendings" drill-down list. Admin only.
+app.get("/api/task-lineup/pending-summary/all", requireAdmin, async (req, res) => {
+  try {
+    const users = await getUsersDb();
+    const summary = await getPendingSummaryAllUsersDb(users);
+    return res.json({ users: summary });
+  } catch (err: any) {
+    console.error("GET /api/task-lineup/pending-summary/all error:", err);
     return res.status(500).json({ error: err.message });
   }
 });
@@ -1819,6 +1889,16 @@ async function startServer() {
     // Supabase is the sole source of truth. Use the manual sync endpoints
     // (POST /api/projects/sync-from-sheet) when you want fresh Sheet data.
   });
+
+  // Task Lineup engine heartbeat: once an admin has started the cycle, this
+  // makes sure a new day's lineup gets generated on its own, without anyone
+  // having to open the app or click Start Cycle again. Also checked
+  // opportunistically on every GET /api/task-lineup call — this interval is
+  // just the belt-and-braces path for when nobody's actively using the app.
+  ensureTodayLineupIfEngineActive();
+  setInterval(() => {
+    ensureTodayLineupIfEngineActive();
+  }, 15 * 60 * 1000);
 }
 
 if (!process.env.VERCEL) {
