@@ -47,8 +47,8 @@ interface DSRDashboardProps {
   onAddAlert?: (alert: any) => void;
   onUpdateProject?: (updatedProject: Project) => void;
   adminEmails?: string[];
-  activeSubTab?: 'project_table' | 'frequency' | 'activity' | 'backlinks' | 'unworked_project' | 'keyword_section' | 'update_ranking';
-  onSubTabChange?: (tab: 'project_table' | 'frequency' | 'activity' | 'backlinks' | 'unworked_project' | 'keyword_section' | 'update_ranking') => void;
+  activeSubTab?: 'project_table' | 'activity' | 'backlinks' | 'unworked_project' | 'keyword_section' | 'update_ranking';
+  onSubTabChange?: (tab: 'project_table' | 'activity' | 'backlinks' | 'unworked_project' | 'keyword_section' | 'update_ranking') => void;
 }
 
 export default function DSRDashboard({ 
@@ -83,7 +83,7 @@ export default function DSRDashboard({
   const [freqFilterType, setFreqFilterType] = useState<'daily' | 'weekly' | 'monthly'>('weekly');
 
   // Navigation for the 5 horizontal buttons
-  const [localActiveTab, setLocalActiveTab] = useState<'project_table' | 'frequency' | 'activity' | 'backlinks' | 'unworked_project' | 'keyword_section' | 'update_ranking'>('project_table');
+  const [localActiveTab, setLocalActiveTab] = useState<'project_table' | 'activity' | 'backlinks' | 'unworked_project' | 'keyword_section' | 'update_ranking'>('project_table');
   const activeTab = activeSubTab !== undefined ? activeSubTab : localActiveTab;
   const setActiveTab = onSubTabChange !== undefined ? onSubTabChange : setLocalActiveTab;
 
@@ -195,7 +195,7 @@ export default function DSRDashboard({
 
   const [selectedPriorities, setSelectedPriorities] = useState<string[]>([]);
   const [isPriorityDropdownOpen, setIsPriorityDropdownOpen] = useState(false);
-  const PRIORITY_OPTIONS = ['P1', 'P2', 'P3', 'P4', 'P5'];
+  const PRIORITY_OPTIONS = ['X1', 'X2', 'X3', 'X4', 'X5'];
 
   const [commonSearchTerm, setCommonSearchTerm] = useState('');
   const [keywordSearchTerm, setKeywordSearchTerm] = useState('');
@@ -858,7 +858,7 @@ export default function DSRDashboard({
       };
     });
 
-    const weights: Record<string, number> = { P1: 1, P2: 2, P3: 3, P4: 4, P5: 5 };
+    const weights: Record<string, number> = { X1: 1, X2: 2, X3: 3, X4: 4, X5: 5 };
     rawList.sort((a, b) => {
       const wA = weights[a.priority || ''] || 999;
       const wB = weights[b.priority || ''] || 999;
@@ -962,53 +962,6 @@ export default function DSRDashboard({
     const uniqueUsers = Array.from(new Set(formattedUsers));
     return uniqueUsers.join(', ');
   };
-
-  // Tab 2: Frequency metric breakdown
-  const frequencyData = useMemo(() => {
-    const list = filteredProjectsForMetrics.map((p) => {
-      const pWorks = filteredWorks.filter(w => w.projectId === p.id);
-      const timesWorked = pWorks.length;
-      const assignedFrequency = pendingChanges[p.id]?.frequency !== undefined ? pendingChanges[p.id].frequency : p.frequency;
-
-      const pWorksAll = enrichedWorks.filter(w => w.projectId === p.id);
-      let lastWorkedRaw = 'Never';
-      if (pWorksAll.length > 0) {
-        const sortedDatesAll = [...pWorksAll]
-          .map(w => w.date)
-          .filter(Boolean)
-          .sort((a, b) => b.localeCompare(a));
-        if (sortedDatesAll.length > 0) {
-          lastWorkedRaw = sortedDatesAll[0];
-        }
-      }
-
-      return {
-        id: p.id,
-        name: p.name,
-        code: p.code,
-        domain: p.domain,
-        assignedFrequency,
-        timesWorked,
-        lastWorkedRaw
-      };
-    });
-
-    // Sort by lastWorkedRaw descending, "Never" at the bottom
-    list.sort((a, b) => {
-      const aNever = !a.lastWorkedRaw || a.lastWorkedRaw === 'Never';
-      const bNever = !b.lastWorkedRaw || b.lastWorkedRaw === 'Never';
-      if (aNever && bNever) return 0;
-      if (aNever) return 1;
-      if (bNever) return -1;
-      return b.lastWorkedRaw.localeCompare(a.lastWorkedRaw);
-    });
-
-    // Map srNo sequentially
-    return list.map((item, idx) => ({
-      ...item,
-      srNo: idx + 1
-    }));
-  }, [filteredProjectsForMetrics, filteredWorks, enrichedWorks, pendingChanges]);
 
   // Tab 3: Team performance computed scoreboard
   const teamPerformanceData = useMemo(() => {
@@ -1370,7 +1323,6 @@ export default function DSRDashboard({
 
   const tabsInfo = [
     { id: 'project_table' as const, label: 'Project Table', icon: FileSpreadsheet },
-    { id: 'frequency' as const, label: 'Frequency', icon: Clock },
     { id: 'activity' as const, label: isAdmin ? 'Team Activity' : 'Activity', icon: Calendar },
     { id: 'backlinks' as const, label: 'Backlinks', icon: Percent },
     { id: 'unworked_project' as const, label: 'Idle Projects', icon: FolderOpen },
@@ -1983,32 +1935,32 @@ export default function DSRDashboard({
                           )}
                         </td>
                         <td className="px-4 py-3">
-                          {item.priority === 'P1' && (
+                          {item.priority === 'X1' && (
                             <span className="inline-flex items-center gap-1 bg-red-50 text-red-700 text-[10px] font-black px-2 py-0.5 rounded border border-red-100 uppercase tracking-wider">
-                               P1
+                               X1
                             </span>
                           )}
-                          {item.priority === 'P2' && (
+                          {item.priority === 'X2' && (
                             <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-700 text-[10px] font-black px-2 py-0.5 rounded border border-amber-100 uppercase tracking-wider">
-                              P2
+                              X2
                             </span>
                           )}
-                          {item.priority === 'P3' && (
+                          {item.priority === 'X3' && (
                             <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-700 text-[10px] font-black px-2 py-0.5 rounded border border-blue-100 uppercase tracking-wider">
-                              P3
+                              X3
                             </span>
                           )}
-                          {item.priority === 'P4' && (
+                          {item.priority === 'X4' && (
                             <span className="inline-flex items-center gap-1 bg-purple-50 text-purple-700 text-[10px] font-black px-2 py-0.5 rounded border border-purple-100 uppercase tracking-wider">
-                              P4
+                              X4
                             </span>
                           )}
-                          {item.priority === 'P5' && (
+                          {item.priority === 'X5' && (
                             <span className="inline-flex items-center gap-1 bg-gray-50 text-gray-700 text-[10px] font-black px-2 py-0.5 rounded border border-gray-150 uppercase tracking-wider">
-                              P5
+                              X5
                             </span>
                           )}
-                          {!['P1', 'P2', 'P3', 'P4', 'P5'].includes(item.priority || '') && (
+                          {!['X1', 'X2', 'X3', 'X4', 'X5'].includes(item.priority || '') && (
                             <span className="text-[10px] font-bold text-gray-400 italic">
                               — none —
                             </span>
@@ -2049,221 +2001,13 @@ export default function DSRDashboard({
                                 className="px-1.5 py-0.5 text-[10px] font-bold bg-white border border-gray-200 rounded text-gray-800 cursor-pointer focus:outline-none"
                               >
                                 <option value="">- Priority -</option>
-                                <option value="P1">P1</option>
-                                <option value="P2">P2</option>
-                                <option value="P3">P3</option>
-                                <option value="P4">P4</option>
-                                <option value="P5">P5</option>
+                                <option value="X1">X1</option>
+                                <option value="X2">X2</option>
+                                <option value="X3">X3</option>
+                                <option value="X4">X4</option>
+                                <option value="X5">X5</option>
                               </select>
                             </div>
-                          </td>
-                        )}
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'frequency' && (
-          <div>
-            {applySuccessMessage && (
-              <div className="bg-emerald-50 text-emerald-800 text-xs font-bold px-4 py-3 border-b border-emerald-150 flex items-center justify-between animate-fade-in">
-                <span className="flex items-center gap-1.5">
-                  <CheckCircle size={14} className="text-emerald-600" />
-                  {applySuccessMessage}
-                </span>
-                <button onClick={() => setApplySuccessMessage(null)} className="hover:text-emerald-950 font-black text-sm">&times;</button>
-              </div>
-            )}
-            <div className="p-4 bg-gray-50/50 border-b border-gray-150 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div>
-                <h3 className="text-xs font-black text-gray-900 uppercase tracking-wider">Project Frequency</h3>
-              </div>
-
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-                {isAdmin && (
-                  <button
-                    onClick={handleApplyChanges}
-                    disabled={isSavingChanges || Object.keys(pendingChanges).length === 0}
-                    className={`flex items-center justify-center gap-1.5 text-[11px] font-black px-3.5 py-1.5 rounded-xl border transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
-                      Object.keys(pendingChanges).length > 0
-                        ? 'bg-indigo-600 hover:bg-indigo-700 text-white border-indigo-500 shadow-sm animate-pulse'
-                        : 'bg-gray-100 text-gray-400 border-gray-200'
-                    }`}
-                  >
-                    <Save className="w-3.5 h-3.5" />
-                    {isSavingChanges ? "Applying..." : `Apply Changes (${Object.keys(pendingChanges).length})`}
-                  </button>
-                )}
-
-                {/* Dynamic Period Slider Filter Option */}
-                <div className="bg-slate-100 p-1 rounded-xl flex items-center border border-slate-200/60 shadow-inner h-[32px]">
-                  <button
-                    type="button"
-                    onClick={() => setFreqFilterType('daily')}
-                    className={`px-3 py-1 text-[11px] font-extrabold rounded-lg uppercase tracking-wider transition-all duration-150 select-none cursor-pointer text-center ${
-                      freqFilterType === 'daily'
-                        ? 'bg-indigo-600 text-white shadow-xs'
-                        : 'text-slate-500 hover:text-indigo-600'
-                    }`}
-                  >
-                    Daily
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setFreqFilterType('weekly')}
-                    className={`px-3 py-1 text-[11px] font-extrabold rounded-lg uppercase tracking-wider transition-all duration-150 select-none cursor-pointer text-center ${
-                      freqFilterType === 'weekly'
-                        ? 'bg-indigo-600 text-white shadow-xs'
-                        : 'text-slate-500 hover:text-indigo-600'
-                    }`}
-                  >
-                    Weekly
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setFreqFilterType('monthly')}
-                    className={`px-3 py-1 text-[11px] font-extrabold rounded-lg uppercase tracking-wider transition-all duration-150 select-none cursor-pointer text-center ${
-                      freqFilterType === 'monthly'
-                        ? 'bg-indigo-600 text-white shadow-xs'
-                        : 'text-slate-500 hover:text-indigo-600'
-                    }`}
-                  >
-                    Monthly
-                  </button>
-                </div>
-              </div>
-            </div>
-            
-            <div className="overflow-x-auto max-h-[560px] overflow-y-auto">
-              <table className="w-full text-left text-xs min-w-[750px]">
-                <thead className="bg-slate-50 text-slate-500 font-extrabold text-[10px] uppercase border-b border-gray-150 sticky top-0 z-10">
-                  <tr>
-                    <th className="px-4 py-3 w-14 bg-slate-50">Sr No.</th>
-                    <th className="px-4 py-3 bg-slate-50">Project</th>
-                    <th className="px-4 py-3 bg-slate-50">Domain</th>
-                    <th className="px-4 py-3 text-center bg-slate-50">Assigned Frequency</th>
-                    <th className="px-4 py-3 text-center bg-slate-50">Worked Frequency</th>
-                    <th className="px-4 py-3 text-center bg-slate-50">Total Times Worked</th>
-                    {isAdmin && <th className="px-4 py-3 bg-slate-50">User</th>}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-150">
-                  {frequencyData.map((item) => {
-                    const timesWorked = item.timesWorked;
-
-                    // Calculate frequency expression
-                    let factor = 1;
-                    let suffix = 'day';
-                    if (freqFilterType === 'weekly') {
-                      factor = 7;
-                      suffix = 'wk';
-                    } else if (freqFilterType === 'monthly') {
-                      factor = 30;
-                      suffix = 'mo';
-                    }
-                    const rate = (timesWorked / (timeSpanDays || 1)) * factor;
-                    const formattedRate = rate % 1 === 0 ? rate.toFixed(0) : rate.toFixed(1);
-                    const freqValue = `${formattedRate}/${suffix}`;
-
-                    const assignedToName = getAssignedUsersForProject(item.id);
-
-                    return (
-                      <tr key={item.id} className="hover:bg-slate-50/40 transition-colors">
-                        <td className="px-4 py-3 font-mono font-bold text-gray-400">{item.srNo}</td>
-                        <td className="px-4 py-3">
-                          <div className="font-bold text-gray-900">
-                            {item.name}
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 font-mono font-bold text-gray-600">
-                          {item.domain ? (
-                            <a 
-                              href={`https://${item.domain}`} 
-                              target="_blank" 
-                              rel="noreferrer" 
-                              className="text-indigo-600 hover:underline inline-flex items-center gap-1"
-                            >
-                              {item.domain}
-                            </a>
-                          ) : (
-                            <span className="text-gray-350 italic font-normal text-[11px]">No Domain</span>
-                          )}
-                        </td>
-                        <td className="px-4 py-3 text-center animate-fade-in">
-                          {isAdmin ? (
-                            <div className="flex items-center justify-center gap-1 mx-auto">
-                              <input
-                                type="number"
-                                min="0"
-                                max="14"
-                                placeholder="..."
-                                value={item.assignedFrequency !== undefined && item.assignedFrequency !== null ? item.assignedFrequency : ''}
-                                onChange={(e) => {
-                                  const nextFreq = e.target.value;
-                                  setPendingChanges(prev => ({
-                                    ...prev,
-                                    [item.id]: {
-                                      ...prev[item.id],
-                                      frequency: nextFreq
-                                    }
-                                  }));
-                                }}
-                                className="w-14 px-1.5 py-1 text-xs font-mono text-center font-bold bg-white border border-gray-200 rounded-lg text-gray-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 h-[28px]"
-                              />
-                              <span className="text-gray-400 font-bold text-[10px]">/ wk</span>
-                            </div>
-                          ) : (
-                            item.assignedFrequency ? (
-                              (() => {
-                                const raw = Number(item.assignedFrequency);
-                                if (isNaN(raw)) {
-                                  return (
-                                    <span className="font-bold text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-100 text-[10px] uppercase tracking-wider">
-                                      {item.assignedFrequency}
-                                    </span>
-                                  );
-                                }
-                                let val = raw;
-                                let suffix = 'wk';
-                                if (freqFilterType === 'daily') {
-                                  val = raw / 7;
-                                  suffix = 'day';
-                                } else if (freqFilterType === 'weekly') {
-                                  val = raw;
-                                  suffix = 'wk';
-                                } else if (freqFilterType === 'monthly') {
-                                  val = raw * (30 / 7);
-                                  suffix = 'mo';
-                                }
-                                const formatted = val % 1 === 0 ? val.toFixed(0) : val.toFixed(1);
-                                return (
-                                  <span className="font-bold text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-100 text-[10.5px] uppercase tracking-wider font-mono">
-                                    {formatted}/{suffix}
-                                  </span>
-                                );
-                              })()
-                            ) : (
-                              <span className="text-gray-350 italic font-normal text-[11px]">Unassigned</span>
-                            )
-                          )}
-                        </td>
-                        <td className="px-4 py-3 text-center">
-                          <span className="font-mono font-black text-indigo-700 bg-indigo-50/60 px-3 py-1 rounded-lg border border-indigo-100 text-xs shadow-xs">
-                            {freqValue}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-center font-mono font-bold text-gray-700">
-                          {timesWorked}
-                        </td>
-                        {isAdmin && (
-                          <td className="px-4 py-3">
-                            <span className="font-bold text-gray-650 bg-slate-50 border border-slate-150 px-2.5 py-1 rounded-lg">
-                              {assignedToName}
-                            </span>
                           </td>
                         )}
                       </tr>
@@ -3164,32 +2908,32 @@ export default function DSRDashboard({
 
                         {/* Priority column */}
                         <td className="pl-1 pr-3 py-3.5 text-center">
-                          {proj.priority === 'P1' && (
+                          {proj.priority === 'X1' && (
                             <span className="inline-flex items-center gap-0.5 bg-red-50 text-red-700 text-[9px] font-black px-1.5 py-0.5 rounded border border-red-100 uppercase tracking-wider whitespace-nowrap">
-                              P1
+                              X1
                             </span>
                           )}
-                          {proj.priority === 'P2' && (
+                          {proj.priority === 'X2' && (
                             <span className="inline-flex items-center gap-0.5 bg-amber-50 text-amber-700 text-[9px] font-black px-1.5 py-0.5 rounded border border-amber-100 uppercase tracking-wider whitespace-nowrap">
-                              P2
+                              X2
                             </span>
                           )}
-                          {proj.priority === 'P3' && (
+                          {proj.priority === 'X3' && (
                             <span className="inline-flex items-center gap-0.5 bg-blue-50 text-blue-700 text-[9px] font-black px-1.5 py-0.5 rounded border border-blue-100 uppercase tracking-wider whitespace-nowrap">
-                              P3
+                              X3
                             </span>
                           )}
-                          {proj.priority === 'P4' && (
+                          {proj.priority === 'X4' && (
                             <span className="inline-flex items-center gap-0.5 bg-purple-50 text-purple-700 text-[9px] font-black px-1.5 py-0.5 rounded border border-purple-100 uppercase tracking-wider whitespace-nowrap">
-                              P4
+                              X4
                             </span>
                           )}
-                          {proj.priority === 'P5' && (
+                          {proj.priority === 'X5' && (
                             <span className="inline-flex items-center gap-0.5 bg-gray-50 text-gray-700 text-[9px] font-black px-1.5 py-0.5 rounded border border-gray-150 uppercase tracking-wider whitespace-nowrap">
-                              P5
+                              X5
                             </span>
                           )}
-                          {!['P1', 'P2', 'P3', 'P4', 'P5'].includes(proj.priority || '') && (
+                          {!['X1', 'X2', 'X3', 'X4', 'X5'].includes(proj.priority || '') && (
                             <span className="text-[10px] font-bold text-gray-300 italic">—</span>
                           )}
                         </td>
