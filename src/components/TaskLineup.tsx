@@ -337,9 +337,7 @@ export default function TaskLineup({
             </div>
             <div>
               <h2 className="text-sm font-black text-gray-900">Task Lineup</h2>
-              <p className="text-[11px] text-gray-500 font-semibold">
-                Auto-assigned daily work, weighted by X1–X5 priority. No lineup runs on Sundays.
-              </p>
+            
             </div>
           </div>
 
@@ -543,10 +541,8 @@ export default function TaskLineup({
       {isAdmin && (
         <div className="bg-white rounded-2xl border border-gray-150 overflow-hidden shadow-xs">
           <div className="px-5 py-3 bg-gray-50 border-b border-gray-150">
-            <p className="text-xs font-black text-gray-900">Team Pause Controls</p>
-            <p className="text-[10px] font-bold text-gray-400 mt-0.5">
-              Pausing a user skips them the next time the lineup generates. It doesn't affect assignments already made.
-            </p>
+            <p className="text-xs font-black text-gray-900"> Controls</p>
+            
           </div>
           {allowedUsers.length === 0 ? (
             <p className="px-5 py-4 text-xs font-bold text-gray-400">No users configured yet.</p>
@@ -595,7 +591,6 @@ export default function TaskLineup({
           ) : groupedByUser.length === 0 ? (
             <div className="bg-white rounded-2xl border border-gray-150 p-8 text-center">
               <p className="text-sm font-bold text-gray-500">No lineup generated for this date yet.</p>
-              <p className="text-xs text-gray-400 mt-1">Hit "Start Cycle" above to auto-assign today's work.</p>
             </div>
           ) : (
             groupedByUser.map(([displayName, list]) => {
