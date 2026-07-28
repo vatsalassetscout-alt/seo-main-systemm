@@ -1395,7 +1395,7 @@ export default function App() {
                     )}
                     {!isAdmin && (
                       <>
-                        <span className="text-gray-400">,</span>
+                        <span className="text-gray-400">|</span>
                         <button
                           type="button"
                           onClick={() => setActiveTab('logs')}
@@ -1420,7 +1420,7 @@ export default function App() {
                         >
                           Submission
                         </button>
-                        <span className="text-gray-400">,</span>
+                        <span className="text-gray-400">|</span>
                         <button
                           type="button"
                           onClick={() => setActiveTab('logs')}
