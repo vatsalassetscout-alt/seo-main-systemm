@@ -1028,18 +1028,20 @@ export default function App() {
                 </button>
               )}
 
-              <button
-                id="tab-logs"
-                onClick={() => setActiveTab('logs')}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold cursor-pointer transition ${
-                  activeTab === 'logs'
-                    ? 'bg-indigo-50 text-indigo-700'
-                    : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'
-                }`}
-              >
-                <Database size={14} />
-                Work Log History
-              </button>
+              {isAdmin && (
+                <button
+                  id="tab-logs"
+                  onClick={() => setActiveTab('logs')}
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold cursor-pointer transition ${
+                    activeTab === 'logs'
+                      ? 'bg-indigo-50 text-indigo-700'
+                      : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'
+                  }`}
+                >
+                  <Database size={14} />
+                  Work Log History
+                </button>
+              )}
 
               <button
                 id="tab-dashboard"
@@ -1316,15 +1318,17 @@ export default function App() {
             </button>
           )}
 
-          <button
-            onClick={() => setActiveTab('logs')}
-            className={`flex flex-col items-center gap-1 py-1.5 px-1 rounded-xl text-[10px] font-bold w-1/4 transition cursor-pointer ${
-              activeTab === 'logs' ? 'text-indigo-600 bg-indigo-50/50' : 'text-gray-400 hover:text-gray-700'
-            }`}
-          >
-            <Database size={15} />
-            History Logs
-          </button>
+          {isAdmin && (
+            <button
+              onClick={() => setActiveTab('logs')}
+              className={`flex flex-col items-center gap-1 py-1.5 px-1 rounded-xl text-[10px] font-bold w-1/4 transition cursor-pointer ${
+                activeTab === 'logs' ? 'text-indigo-600 bg-indigo-50/50' : 'text-gray-400 hover:text-gray-700'
+              }`}
+            >
+              <Database size={15} />
+              History Logs
+            </button>
+          )}
 
           <button
             onClick={() => setActiveTab('dashboard')}
@@ -1391,6 +1395,8 @@ export default function App() {
                   onSendAdminMessage={handleSendUserMessage}
                   preFill={assignmentPreFill}
                   onClearPreFill={() => setAssignmentPreFill(null)}
+                  entries={entries}
+                  onUpdateStatus={handleUpdateDSRStatus}
                 />
               )}
 
