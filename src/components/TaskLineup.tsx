@@ -278,17 +278,29 @@ export default function TaskLineup({
 
   const nameFor = (email: string) => allowedUsers.find(u => u.email.trim().toLowerCase() === email.trim().toLowerCase())?.name || email;
 
-  // Grouped strictly by normalized (trimmed + lowercased) email, so two rows
-  // for the same real person never render as two separate "duplicate" cards
-  // just because of stray casing/whitespace differences in stored data.
+  // Grouped by display NAME (not raw email). Two app_users rows can share the
+  // same name with different emails (a known duplicate-account issue — see
+  // Admin Settings > Users) which used to render as two separate cards for
+  // the same person. Merging by name here means it self-heals immediately in
+  // the UI, even for a lineup that was generated before the account
+  // duplication got cleaned up or before the backend fix went in.
   const groupedByUser = useMemo(() => {
-    const map = new Map<string, TaskAssignment[]>();
+    const map = new Map<string, { displayName: string; itemsByProject: Map<string, TaskAssignment> }>();
     assignments.forEach(a => {
-      const key = String(a.userEmail || '').trim().toLowerCase();
-      if (!map.has(key)) map.set(key, []);
-      map.get(key)!.push(a);
+      const displayName = nameFor(a.userEmail);
+      const key = displayName.trim().toLowerCase();
+      if (!map.has(key)) map.set(key, { displayName, itemsByProject: new Map() });
+      const bucket = map.get(key)!;
+      const existing = bucket.itemsByProject.get(a.projectId);
+      // If the same project shows up twice for this person (once per
+      // duplicate account), keep whichever copy is further along.
+      if (!existing || (a.status === 'Done' && existing.status !== 'Done')) {
+        bucket.itemsByProject.set(a.projectId, a);
+      }
     });
-    return Array.from(map.entries()).sort((a, b) => nameFor(a[0]).localeCompare(nameFor(b[0])));
+    return Array.from(map.entries())
+      .map(([key, v]) => [v.displayName, Array.from(v.itemsByProject.values())] as [string, TaskAssignment[]])
+      .sort((a, b) => a[0].localeCompare(b[0]));
   }, [assignments, allowedUsers]);
 
   const myAssignments = useMemo(
@@ -580,13 +592,13 @@ export default function TaskLineup({
               <p className="text-xs text-gray-400 mt-1">Hit "Start Cycle" above to auto-assign today's work.</p>
             </div>
           ) : (
-            groupedByUser.map(([userEmailKey, list]) => {
+            groupedByUser.map(([displayName, list]) => {
               const doneCount = list.filter(a => a.status === 'Done').length;
               return (
-                <div key={userEmailKey} className="bg-white rounded-2xl border border-gray-150 overflow-hidden shadow-xs">
+                <div key={displayName} className="bg-white rounded-2xl border border-gray-150 overflow-hidden shadow-xs">
                   <div className="flex items-center justify-between px-5 py-3 bg-gray-50 border-b border-gray-150">
                     <div>
-                      <p className="text-xs font-black text-gray-900">{nameFor(userEmailKey)}</p>
+                      <p className="text-xs font-black text-gray-900">{displayName}</p>
                       <p className="text-[10px] font-bold text-gray-400">{doneCount}/{list.length} completed today</p>
                     </div>
                   </div>
