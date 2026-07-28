@@ -7,7 +7,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { AppUser, TaskAssignment } from '../types';
 import {
   Sparkles,
-  RefreshCw,
+  Trash2,
   Play,
   Pause,
   CheckCircle2,
@@ -48,6 +48,7 @@ export default function TaskLineup({
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [generateMsg, setGenerateMsg] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const [yesterdayPending, setYesterdayPending] = useState<TaskAssignment[]>([]);
   const [totalPendingCount, setTotalPendingCount] = useState<number>(0);
 
@@ -108,6 +109,35 @@ export default function TaskLineup({
       setGenerateMsg('Something went wrong generating the lineup — check server logs.');
     } finally {
       setGenerating(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    const confirmed = window.confirm(
+      `Delete the entire lineup for ${date}? This removes every project assigned to every user for this date — it will not be regenerated automatically.`
+    );
+    if (!confirmed) return;
+
+    setDeleting(true);
+    setGenerateMsg(null);
+    try {
+      const res = await fetch('/api/task-lineup/delete', {
+        method: 'POST',
+        headers: authHeaders,
+        body: JSON.stringify({ date }),
+      });
+      const data = await res.json();
+      setGenerateMsg(
+        data.success
+          ? `Deleted ${data.deletedCount} assignment${data.deletedCount === 1 ? '' : 's'} for ${date}.`
+          : 'Failed to delete the lineup — check server logs.'
+      );
+      await loadLineup(date);
+    } catch (err) {
+      console.error('Failed to delete lineup:', err);
+      setGenerateMsg('Something went wrong deleting the lineup — check server logs.');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -195,13 +225,13 @@ export default function TaskLineup({
                   Start Cycle
                 </button>
                 <button
-                  onClick={() => handleGenerate(true)}
-                  disabled={generating || isSunday}
-                  className="flex items-center gap-1.5 px-3 py-2 bg-gray-100 hover:bg-gray-200 disabled:opacity-40 disabled:cursor-not-allowed text-gray-700 text-xs font-bold rounded-xl transition cursor-pointer"
-                  title="Delete and regenerate this date's lineup from scratch"
+                  onClick={handleDelete}
+                  disabled={deleting || generating}
+                  className="flex items-center gap-1.5 px-3 py-2 bg-red-50 hover:bg-red-100 disabled:opacity-40 disabled:cursor-not-allowed text-red-700 text-xs font-bold rounded-xl transition cursor-pointer"
+                  title="Delete every project assigned to every user for this date — does not regenerate"
                 >
-                  <RefreshCw size={13} className={generating ? 'animate-spin' : ''} />
-                  Regenerate
+                  <Trash2 size={13} />
+                  Delete
                 </button>
               </>
             )}
@@ -248,7 +278,48 @@ export default function TaskLineup({
         </div>
       )}
 
-      {/* Admin: per-user grouped lineup with pause controls */}
+      {/* Admin: standalone pause controls — always visible, independent of
+          whether a lineup has been generated for the selected date yet.
+          Pausing a user here excludes them from the NEXT time Start Cycle
+          runs; it doesn't touch assignments already generated. */}
+      {isAdmin && (
+        <div className="bg-white rounded-2xl border border-gray-150 overflow-hidden shadow-xs">
+          <div className="px-5 py-3 bg-gray-50 border-b border-gray-150">
+            <p className="text-xs font-black text-gray-900">Team Pause Controls</p>
+            <p className="text-[10px] font-bold text-gray-400 mt-0.5">
+              Pausing a user skips them the next time a lineup is generated. It doesn't affect assignments already made.
+            </p>
+          </div>
+          {allowedUsers.length === 0 ? (
+            <p className="px-5 py-4 text-xs font-bold text-gray-400">No users configured yet.</p>
+          ) : (
+            <div className="divide-y divide-gray-100">
+              {[...allowedUsers].sort((a, b) => a.name.localeCompare(b.name)).map((u) => {
+                const paused = !!u.paused;
+                return (
+                  <div key={u.email} className="flex items-center justify-between px-5 py-2.5">
+                    <div>
+                      <p className="text-xs font-bold text-gray-800">{u.name}</p>
+                      <p className="text-[10px] text-gray-400 font-semibold">{u.email}</p>
+                    </div>
+                    <button
+                      onClick={() => togglePause(u.email, !paused)}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition cursor-pointer ${
+                        paused ? 'bg-amber-100 text-amber-700 hover:bg-amber-200' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                      }`}
+                    >
+                      {paused ? <Play size={12} /> : <Pause size={12} />}
+                      {paused ? 'Paused' : 'Pause'}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Admin: per-user grouped lineup for the selected date */}
       {isAdmin ? (
         <div className="space-y-4">
           {loading ? (
@@ -260,8 +331,6 @@ export default function TaskLineup({
             </div>
           ) : (
             groupedByUser.map(([userEmail, list]) => {
-              const user = allowedUsers.find(u => u.email.trim().toLowerCase() === userEmail.trim().toLowerCase());
-              const paused = !!user?.paused;
               const doneCount = list.filter(a => a.status === 'Done').length;
               return (
                 <div key={userEmail} className="bg-white rounded-2xl border border-gray-150 overflow-hidden shadow-xs">
@@ -270,15 +339,6 @@ export default function TaskLineup({
                       <p className="text-xs font-black text-gray-900">{nameFor(userEmail)}</p>
                       <p className="text-[10px] font-bold text-gray-400">{doneCount}/{list.length} completed today</p>
                     </div>
-                    <button
-                      onClick={() => togglePause(userEmail, !paused)}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition cursor-pointer ${
-                        paused ? 'bg-amber-100 text-amber-700 hover:bg-amber-200' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-                      }`}
-                    >
-                      {paused ? <Play size={12} /> : <Pause size={12} />}
-                      {paused ? 'Paused' : 'Pause'}
-                    </button>
                   </div>
                   <div className="divide-y divide-gray-100">
                     {list.map((a) => (
