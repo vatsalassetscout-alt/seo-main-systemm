@@ -1390,7 +1390,7 @@ export default function App() {
                         onClick={() => setActiveTab('submit')}
                         className="text-xl font-black text-gray-900 tracking-tight sm:text-2xl cursor-pointer"
                       >
-                        Work Log Submissions
+                        Work Log
                       </button>
                     )}
                     {!isAdmin && (
