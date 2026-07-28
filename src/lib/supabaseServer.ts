@@ -1078,7 +1078,7 @@ function weekStartMonday(dateStr: string): string {
 export async function generateLineupForDate(
   dateStr: string,
   projects: any[],
-  pausedEmails: Set<string>,
+  users: { email: string; name: string; paused?: boolean }[],
   force: boolean = false
 ): Promise<{ generated: boolean; reason?: string; count: number; date: string }> {
   const dow = new Date(dateStr + "T00:00:00Z").getUTCDay();
@@ -1094,6 +1094,37 @@ export async function generateLineupForDate(
     await deleteTaskAssignmentsForDateDb(dateStr);
   }
 
+  // Two app_users rows can end up sharing the same display name (a known
+  // duplicate-account issue — see Admin Settings > Users). Without this,
+  // the generator treats them as two different people and assigns the same
+  // project to both, which is exactly what shows up as "the same person
+  // twice" in the Task Lineup. Collapse every email that shares a name onto
+  // one canonical email (the first one encountered for that name) so a real
+  // person's work is only ever assigned once, no matter how many logins
+  // they have on file.
+  const canonicalEmailByRawEmail = new Map<string, string>();
+  const canonicalEmailByName = new Map<string, string>();
+  const pausedEmails = new Set<string>();
+  users.forEach((u) => {
+    const email = String(u.email || "").trim().toLowerCase();
+    if (!email) return;
+    if (u.paused) pausedEmails.add(email);
+    const nameKey = String(u.name || "").trim().toLowerCase();
+    if (nameKey) {
+      if (!canonicalEmailByName.has(nameKey)) canonicalEmailByName.set(nameKey, email);
+      canonicalEmailByRawEmail.set(email, canonicalEmailByName.get(nameKey)!);
+    } else {
+      canonicalEmailByRawEmail.set(email, email);
+    }
+  });
+  const canonicalOf = (rawEmail: string): string => {
+    const email = rawEmail.trim().toLowerCase();
+    return canonicalEmailByRawEmail.get(email) || email;
+  };
+  // A person counts as paused if any of their duplicate accounts is paused.
+  const rawPausedByCanonical = new Set<string>();
+  pausedEmails.forEach((e) => rawPausedByCanonical.add(canonicalOf(e)));
+
   const weekStart = weekStartMonday(dateStr);
   const yesterday = addDays(dateStr, -1);
 
@@ -1102,7 +1133,7 @@ export async function generateLineupForDate(
   const weekSoFar = await getTaskAssignmentsDb({ dateFrom: weekStart, dateTo: yesterday });
   const countThisWeek = new Map<string, number>(); // `${userEmail}::${projectId}` -> count
   weekSoFar.forEach((a) => {
-    const key = `${a.userEmail}::${a.projectId}`;
+    const key = `${canonicalOf(a.userEmail)}::${a.projectId}`;
     countThisWeek.set(key, (countThisWeek.get(key) || 0) + 1);
   });
 
@@ -1111,7 +1142,7 @@ export async function generateLineupForDate(
   const yesterdayPending = new Set<string>();
   weekSoFar
     .filter((a) => a.date === yesterday && a.status === "Pending")
-    .forEach((a) => yesterdayPending.add(`${a.userEmail}::${a.projectId}`));
+    .forEach((a) => yesterdayPending.add(`${canonicalOf(a.userEmail)}::${a.projectId}`));
 
   type Candidate = {
     userEmail: string;
@@ -1132,12 +1163,12 @@ export async function generateLineupForDate(
     const rawUsers: string[] = Array.isArray(p.users) ? p.users : [];
     const emails = new Set<string>();
     rawUsers.forEach((u: string) => {
-      if (u && String(u).trim()) emails.add(String(u).trim().toLowerCase());
+      if (u && String(u).trim()) emails.add(canonicalOf(String(u).trim()));
     });
-    if (p.userId && String(p.userId).trim()) emails.add(String(p.userId).trim().toLowerCase());
+    if (p.userId && String(p.userId).trim()) emails.add(canonicalOf(String(p.userId).trim()));
 
     emails.forEach((userEmail) => {
-      if (pausedEmails.has(userEmail)) return; // paused users are skipped entirely for new generation
+      if (rawPausedByCanonical.has(userEmail)) return; // paused users are skipped entirely for new generation
       const key = `${userEmail}::${p.id}`;
       const doneThisWeek = countThisWeek.get(key) || 0;
       const deficit = weeklyTarget - doneThisWeek;
@@ -1244,8 +1275,7 @@ export async function ensureTodayLineupIfEngineActive(): Promise<void> {
     if (existing.length > 0) return;
     const projects = await getProjectsDb();
     const users = await getUsersDb();
-    const pausedEmails = new Set(users.filter((u: any) => u.paused).map((u: any) => u.email.trim().toLowerCase()));
-    await generateLineupForDate(today, projects, pausedEmails, false);
+    await generateLineupForDate(today, projects, users, false);
   } catch (err) {
     console.error("ensureTodayLineupIfEngineActive error:", err);
   }
