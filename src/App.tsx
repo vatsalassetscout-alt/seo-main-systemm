@@ -1146,11 +1146,11 @@ export default function App() {
                                 <div className="space-y-1">
                                   {isUserMsg ? (
                                     <span className="inline-block bg-emerald-50 text-emerald-800 font-black px-2 py-0.5 rounded-lg text-[9px] uppercase tracking-wider border border-emerald-100 shadow-3xs">
-                                      📬 User Note
+                                       User Note
                                     </span>
                                   ) : isRemark ? (
                                     <span className="inline-block bg-violet-50 text-violet-800 font-black px-2 py-0.5 rounded-lg text-[9px] uppercase tracking-wider border border-violet-150 shadow-3xs">
-                                      💬 Message from Admin
+                                       Message from Admin
                                     </span>
                                   ) : (
                                     <span className="inline-block bg-amber-50 text-amber-900 font-black px-2.5 py-0.5 rounded-lg text-[10px] uppercase tracking-wider border border-amber-200 shadow-3xs">
@@ -1390,7 +1390,7 @@ export default function App() {
                         onClick={() => setActiveTab('submit')}
                         className="text-xl font-black text-gray-900 tracking-tight sm:text-2xl cursor-pointer"
                       >
-                        Work Log
+                        Submission
                       </button>
                     )}
                     {!isAdmin && (
