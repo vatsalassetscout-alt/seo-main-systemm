@@ -235,7 +235,7 @@ export default function TaskLineup({
 
   const handleDelete = async () => {
     const confirmed = window.confirm(
-      `Delete the entire lineup for ${activeDate}? This removes every project assigned to every user for this date — it will not be regenerated automatically.`
+      `Full reset: this deletes EVERY task assignment for EVERY user on EVERY date (not just ${activeDate}), clears Yesterday Pending and Total Pending back to 0, and stops the cycle — you'll need to hit "Start Cycle" again afterwards. This cannot be undone. Continue?`
     );
     if (!confirmed) return;
 
@@ -245,18 +245,24 @@ export default function TaskLineup({
       const res = await fetch('/api/task-lineup/delete', {
         method: 'POST',
         headers: authHeaders,
-        body: JSON.stringify({ date: activeDate }),
       });
       const data = await res.json();
       setGenerateMsg(
         data.success
-          ? `Deleted ${data.deletedCount} assignment${data.deletedCount === 1 ? '' : 's'} for ${activeDate}.`
-          : 'Failed to delete the lineup — check server logs.'
+          ? `Full reset complete — deleted ${data.deletedCount} assignment${data.deletedCount === 1 ? '' : 's'}. All pending counts are back to 0. Hit "Start Cycle" to begin again.`
+          : 'Failed to reset — check server logs.'
       );
-      await loadLineup(activeDate);
+      // Refresh everything the screen shows, not just the lineup list —
+      // otherwise the pending counts and the Start/Resume button would keep
+      // showing stale numbers until a full page reload.
+      await Promise.all([
+        loadLineup(activeDate),
+        loadEngineStatus(),
+        isAdmin ? loadPendingAllUsers() : loadPendingSummary(),
+      ]);
     } catch (err) {
-      console.error('Failed to delete lineup:', err);
-      setGenerateMsg('Something went wrong deleting the lineup — check server logs.');
+      console.error('Failed to reset lineup:', err);
+      setGenerateMsg('Something went wrong resetting the lineup — check server logs.');
     } finally {
       setDeleting(false);
     }
@@ -365,7 +371,7 @@ export default function TaskLineup({
                 onClick={handleDelete}
                 disabled={deleting || generating}
                 className="flex items-center gap-1.5 px-3 py-2 bg-red-50 hover:bg-red-100 disabled:opacity-40 disabled:cursor-not-allowed text-red-700 text-xs font-bold rounded-xl transition cursor-pointer"
-                title="Delete every project assigned to every user for this date — does not regenerate"
+                title="Full reset: deletes every assignment for every user on every date and stops the cycle (Start Cycle required again)"
               >
                 <Trash2 size={13} />
                 Delete
