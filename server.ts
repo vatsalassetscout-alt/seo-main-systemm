@@ -34,7 +34,8 @@ import {
   setUserPausedDb,
   getTaskAssignmentsDb,
   generateLineupForDate,
-  markTaskAssignmentDoneDb
+  markTaskAssignmentDoneDb,
+  deleteTaskAssignmentsForDateDb
 } from "./src/lib/supabaseServer";
 import { detectColumns } from "./src/lib/columnMapper";
 
@@ -1096,6 +1097,21 @@ app.post("/api/task-lineup/generate", requireAdmin, async (req, res) => {
     return res.json(result);
   } catch (err: any) {
     console.error("POST /api/task-lineup/generate error:", err);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// POST wipe a date's lineup with no regeneration afterwards. This is the
+// "Delete" button — every project assigned to every user for that date is
+// removed, and nothing new gets picked in its place. Admin-only.
+app.post("/api/task-lineup/delete", requireAdmin, async (req, res) => {
+  try {
+    const date = req.body?.date || new Date().toISOString().slice(0, 10);
+    const existing = await getTaskAssignmentsDb({ date });
+    const ok = await deleteTaskAssignmentsForDateDb(date);
+    return res.json({ success: ok, date, deletedCount: existing.length });
+  } catch (err: any) {
+    console.error("POST /api/task-lineup/delete error:", err);
     return res.status(500).json({ error: err.message });
   }
 });
