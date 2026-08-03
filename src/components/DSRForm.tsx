@@ -65,11 +65,13 @@ export default function DSRForm({
       linkCount: '',
       blog: '',
       customValues: {},
-      workTypes: ['seo_backlink'], // default to SEO backlink submission
+      workTypes: [], // nothing pre-selected by default
       contentUpdates: [],
       selectedKeywords: [],
       workSummary: '',
       extraWorkNote: '',
+      workedStatus: '',
+      notWorkedNote: '',
     }
   ]);
 
@@ -117,11 +119,13 @@ export default function DSRForm({
           linkCount: '',
           blog: '',
           customValues: {},
-          workTypes: ['seo_backlink'],
+          workTypes: [],
           contentUpdates: [],
           selectedKeywords: [],
           workSummary: '',
           extraWorkNote: '',
+          workedStatus: '',
+          notWorkedNote: '',
         }]);
       }
       if (onClearPreFill) {
@@ -137,13 +141,17 @@ export default function DSRForm({
         if (idx !== index) return item;
         const next = { ...item, ...updates };
         
-        // If changing projectId, sync projectName and reset keywords
+        // If changing projectId, sync projectName and reset dependent fields
         if (updates.projectId) {
           const matchedProj = projects.find((p) => p.id === updates.projectId);
           if (matchedProj) {
             next.projectName = matchedProj.name;
           }
           next.selectedKeywords = [];
+          next.workedStatus = '';
+          next.workTypes = [];
+          next.contentUpdates = [];
+          next.notWorkedNote = '';
         }
         return next;
       })
@@ -165,11 +173,13 @@ export default function DSRForm({
         linkCount: '',
         blog: '',
         customValues: {},
-        workTypes: ['seo_backlink'],
+        workTypes: [],
         contentUpdates: [],
         selectedKeywords: [],
         workSummary: '',
         extraWorkNote: '',
+        workedStatus: '',
+        notWorkedNote: '',
       }
     ]);
     setIsSuccess(false);
@@ -216,75 +226,93 @@ export default function DSRForm({
       return num;
     };
 
+    let notWorkedNoteTrimmed = '';
+
     // Only run the Domain-block-specific validations when the user actually chose a domain
     if (isDomainBlockUsed) {
-      workTypes = work.workTypes || [];
-      if (workTypes.length === 0) {
-        setValidationError('Please select at least one Work Type (SEO Backlink and/or Content Update).');
+      // Worked / Not Worked status is mandatory once a domain is chosen
+      if (work.workedStatus !== 'worked' && work.workedStatus !== 'not_worked') {
+        setValidationError('Please choose either "Worked" or "Not Worked" for the selected domain.');
         return;
       }
 
-      hasSEO = workTypes.includes('seo_backlink');
-      hasContentUpdate = workTypes.includes('content_update');
-
-      listingCount = hasSEO ? parseVal(work.listingCount) : 0;
-      blogCount = hasSEO ? parseVal(work.blogCount) : 0;
-      forumCount = hasSEO ? parseVal(work.forumCount) : 0;
-      pdfCount = hasSEO ? parseVal(work.pdfCount) : 0;
-      imageCount = hasSEO ? parseVal(work.imageCount) : 0;
-      videoPptCount = hasSEO ? parseVal(work.videoPptCount) : 0;
-      profileCount = hasSEO ? parseVal(work.profileCount) : 0;
-      linkCount = hasSEO ? parseVal(work.linkCount) : 0;
-
-      if (hasSEO && (
-        isNaN(listingCount) || isNaN(blogCount) || isNaN(forumCount) || isNaN(pdfCount) ||
-        isNaN(imageCount) || isNaN(videoPptCount) || isNaN(profileCount) || isNaN(linkCount)
-      )) {
-        setValidationError('Please enter a valid number for all count inputs under SEO Backlink Submission.');
-        return;
-      }
-
-      if (hasSEO && (
-        listingCount < 0 || blogCount < 0 || forumCount < 0 || pdfCount < 0 ||
-        imageCount < 0 || videoPptCount < 0 || profileCount < 0 || linkCount < 0
-      )) {
-        setValidationError('Negative numbers are strictly not allowed for count inputs under SEO Backlink Submission.');
-        return;
-      }
-
-      if (hasContentUpdate && (!work.contentUpdates || work.contentUpdates.length === 0)) {
-        setValidationError('Please select at least one content update option (check box).');
-        return;
-      }
-
-      // Keyword selection is mandatory whenever the selected domain has keywords configured
-      const selectedProjForKeywords = projects.find((p) => p.id === work.projectId);
-      const availableKeywords = (selectedProjForKeywords?.keywords || []).filter(Boolean);
-      if (availableKeywords.length > 0 && (!work.selectedKeywords || work.selectedKeywords.length === 0)) {
-        setValidationError('Please select at least one keyword for the chosen domain.');
-        return;
-      }
-
-      // Parse and validate custom submission types
-      if (hasSEO) {
-        for (const cType of customSubmissionTypes) {
-          const rawVal = work.customValues?.[cType.id];
-          const parsed = parseVal(rawVal);
-          if (isNaN(parsed)) {
-            setValidationError(`Please enter a valid number for "${cType.name}".`);
-            return;
-          }
-          if (parsed < 0) {
-            setValidationError(`Negative values are not allowed for "${cType.name}".`);
-            return;
-          }
-          cleanCustomValues[cType.id] = parsed;
+      if (work.workedStatus === 'not_worked') {
+        notWorkedNoteTrimmed = (work.notWorkedNote || '').trim();
+        if (!notWorkedNoteTrimmed) {
+          setValidationError('Please write a note explaining why this domain was not worked on.');
+          return;
         }
-      }
+        // Nothing else to validate/select when Not Worked is chosen
+      } else {
+        // workedStatus === 'worked'
+        workTypes = work.workTypes || [];
+        if (workTypes.length === 0) {
+          setValidationError('Please select at least one Work Type (SEO Backlink and/or Content Update).');
+          return;
+        }
 
-      // Put selectedKeywords inside customValues for flexible sheets storage if chosen
-      if (work.selectedKeywords && work.selectedKeywords.length > 0) {
-        cleanCustomValues['selectedKeywords'] = work.selectedKeywords;
+        hasSEO = workTypes.includes('seo_backlink');
+        hasContentUpdate = workTypes.includes('content_update');
+
+        listingCount = hasSEO ? parseVal(work.listingCount) : 0;
+        blogCount = hasSEO ? parseVal(work.blogCount) : 0;
+        forumCount = hasSEO ? parseVal(work.forumCount) : 0;
+        pdfCount = hasSEO ? parseVal(work.pdfCount) : 0;
+        imageCount = hasSEO ? parseVal(work.imageCount) : 0;
+        videoPptCount = hasSEO ? parseVal(work.videoPptCount) : 0;
+        profileCount = hasSEO ? parseVal(work.profileCount) : 0;
+        linkCount = hasSEO ? parseVal(work.linkCount) : 0;
+
+        if (hasSEO && (
+          isNaN(listingCount) || isNaN(blogCount) || isNaN(forumCount) || isNaN(pdfCount) ||
+          isNaN(imageCount) || isNaN(videoPptCount) || isNaN(profileCount) || isNaN(linkCount)
+        )) {
+          setValidationError('Please enter a valid number for all count inputs under SEO Backlink Submission.');
+          return;
+        }
+
+        if (hasSEO && (
+          listingCount < 0 || blogCount < 0 || forumCount < 0 || pdfCount < 0 ||
+          imageCount < 0 || videoPptCount < 0 || profileCount < 0 || linkCount < 0
+        )) {
+          setValidationError('Negative numbers are strictly not allowed for count inputs under SEO Backlink Submission.');
+          return;
+        }
+
+        if (hasContentUpdate && (!work.contentUpdates || work.contentUpdates.length === 0)) {
+          setValidationError('Please select at least one content update option (check box).');
+          return;
+        }
+
+        // Keyword selection is mandatory whenever SEO Backlink is chosen and the domain has keywords configured
+        const selectedProjForKeywords = projects.find((p) => p.id === work.projectId);
+        const availableKeywords = (selectedProjForKeywords?.keywords || []).filter(Boolean);
+        if (hasSEO && availableKeywords.length > 0 && (!work.selectedKeywords || work.selectedKeywords.length === 0)) {
+          setValidationError('Please select at least one keyword for the chosen domain.');
+          return;
+        }
+
+        // Parse and validate custom submission types
+        if (hasSEO) {
+          for (const cType of customSubmissionTypes) {
+            const rawVal = work.customValues?.[cType.id];
+            const parsed = parseVal(rawVal);
+            if (isNaN(parsed)) {
+              setValidationError(`Please enter a valid number for "${cType.name}".`);
+              return;
+            }
+            if (parsed < 0) {
+              setValidationError(`Negative values are not allowed for "${cType.name}".`);
+              return;
+            }
+            cleanCustomValues[cType.id] = parsed;
+          }
+        }
+
+        // Put selectedKeywords inside customValues for flexible sheets storage if chosen
+        if (work.selectedKeywords && work.selectedKeywords.length > 0) {
+          cleanCustomValues['selectedKeywords'] = work.selectedKeywords;
+        }
       }
     }
 
@@ -307,6 +335,8 @@ export default function DSRForm({
         selectedKeywords: work.selectedKeywords || [],
         workSummary: work.workSummary || '',
         extraWorkNote: extraWorkNoteTrimmed,
+        workedStatus: isDomainBlockUsed ? (work.workedStatus || '') : '',
+        notWorkedNote: notWorkedNoteTrimmed,
       }
     ];
 
@@ -506,58 +536,75 @@ export default function DSRForm({
                         </div>
                       </div>
 
-                      {/* Dynamic Keywords Multi-Select Sub-Section (Placed Under Domain) */}
-                      {(() => {
-                        const matchedProj = projects.find((p) => p.id === work.projectId);
-                        const kws = (matchedProj?.keywords || []).filter(Boolean);
-                        if (kws.length === 0) return null;
-
-                        return (
-                          <div id="keywords-selector-container" className="space-y-2 p-4 bg-slate-50/50 rounded-2xl border border-gray-150 shadow-3xs">
-                            <span className="block text-[10px] font-black text-slate-500 uppercase tracking-wider">
-                              Select Keywords <span className="text-rose-500">*</span>
-                            </span>
-                            <div className="flex flex-wrap gap-2">
-                              {kws.map((kw) => {
-                                const currentKeywords = work.selectedKeywords || [];
-                                const selected = currentKeywords.includes(kw);
-                                const selectedIdx = currentKeywords.indexOf(kw);
-                                const selectionNumber = selectedIdx !== -1 ? selectedIdx + 1 : null;
-
-                                return (
-                                  <button
-                                    key={kw}
-                                    type="button"
-                                    onClick={() => {
-                                      const next = selected
-                                        ? currentKeywords.filter((k: string) => k !== kw)
-                                        : [...currentKeywords, kw];
-                                      if (next.length <= 8) {
-                                        handleUpdateWorkBlock(idx, { selectedKeywords: next });
-                                      }
-                                    }}
-                                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-bold transition select-none cursor-pointer ${
-                                      selected
-                                        ? 'bg-amber-100 text-amber-900 border-amber-300'
-                                        : 'bg-white hover:bg-slate-100 border-gray-200 text-gray-700'
-                                    }`}
-                                  >
-                                    {selected ? (
-                                      <span className="w-4 h-4 rounded-full bg-amber-500 text-white flex items-center justify-center text-[9px] font-black shrink-0 leading-none">
-                                        {selectionNumber}
-                                      </span>
-                                    ) : (
-                                      <span className="text-[10px] text-gray-400">#</span>
-                                    )}
-                                    <span className="truncate leading-none select-none">{kw}</span>
-                                  </button>
-                                );
-                              })}
-                            </div>
+                      {/* Worked / Not Worked horizontal toggle (shown once a domain is selected) */}
+                      {!!work.projectId && (
+                        <div className="space-y-2">
+                          <span className="block text-[10px] font-black text-slate-500 uppercase tracking-wider">
+                            Status <span className="text-rose-500">*</span>
+                          </span>
+                          <div className="flex gap-3">
+                            <label
+                              className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl border cursor-pointer select-none transition text-xs font-bold ${
+                                work.workedStatus === 'worked'
+                                  ? 'border-emerald-600 bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600'
+                                  : 'border-gray-200 bg-white hover:bg-gray-50 text-gray-700'
+                              }`}
+                            >
+                              <input
+                                type="radio"
+                                name={`worked-status-${idx}`}
+                                className="hidden"
+                                checked={work.workedStatus === 'worked'}
+                                onChange={() => handleUpdateWorkBlock(idx, { workedStatus: 'worked', notWorkedNote: '' })}
+                              />
+                              <CheckCircle2 size={14} className="shrink-0" />
+                              Worked
+                            </label>
+                            <label
+                              className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl border cursor-pointer select-none transition text-xs font-bold ${
+                                work.workedStatus === 'not_worked'
+                                  ? 'border-rose-600 bg-rose-50 text-rose-700 ring-1 ring-rose-600'
+                                  : 'border-gray-200 bg-white hover:bg-gray-50 text-gray-700'
+                              }`}
+                            >
+                              <input
+                                type="radio"
+                                name={`worked-status-${idx}`}
+                                className="hidden"
+                                checked={work.workedStatus === 'not_worked'}
+                                onChange={() => handleUpdateWorkBlock(idx, {
+                                  workedStatus: 'not_worked',
+                                  workTypes: [],
+                                  contentUpdates: [],
+                                  selectedKeywords: [],
+                                })}
+                              />
+                              Not Worked
+                            </label>
                           </div>
-                        );
-                      })()}
-                    </div>                    {/* Section: Work Type */}
+                        </div>
+                      )}
+
+                      {/* Not Worked: just a required note, nothing else selectable */}
+                      {work.workedStatus === 'not_worked' && (
+                        <div className="space-y-2 p-4 bg-rose-50/40 rounded-2xl border border-rose-150 shadow-3xs">
+                          <label htmlFor={`not-worked-note-${idx}`} className="block text-[10px] font-black text-slate-500 uppercase tracking-wider">
+                            Note <span className="text-rose-500">*</span>
+                          </label>
+                          <textarea
+                            id={`not-worked-note-${idx}`}
+                            rows={3}
+                            value={work.notWorkedNote || ''}
+                            placeholder="Write the reason this domain was not worked on..."
+                            onChange={(e) => handleUpdateWorkBlock(idx, { notWorkedNote: e.target.value })}
+                            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 focus:border-indigo-600 focus:bg-white rounded-xl text-xs text-gray-950 font-medium placeholder-gray-400 focus:outline-none transition leading-relaxed"
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Section: Work Type — only shown once "Worked" is chosen */}
+                    {work.workedStatus === 'worked' && (
                     <div className="space-y-6">
                       <div className="flex items-center gap-2 border-b border-gray-150 pb-3">
                         <div className="w-6 h-6 rounded-md bg-indigo-50 text-indigo-700 flex items-center justify-center">
@@ -594,6 +641,58 @@ export default function DSRForm({
                               <span className="block text-[10px] text-gray-400 font-medium">Log submission counts for listings, blogs, PDFs, and images.</span>
                             </div>
                           </label>
+
+                          {/* Keywords Multi-Select — shown only when SEO Backlink is checked, before the quantities panel */}
+                          {(work.workTypes || []).includes('seo_backlink') && (() => {
+                            const matchedProj = projects.find((p) => p.id === work.projectId);
+                            const kws = (matchedProj?.keywords || []).filter(Boolean);
+                            if (kws.length === 0) return null;
+
+                            return (
+                              <div id="keywords-selector-container" className="space-y-2 p-4 bg-slate-50/50 rounded-2xl border border-gray-150 shadow-3xs">
+                                <span className="block text-[10px] font-black text-slate-500 uppercase tracking-wider">
+                                  Select Keywords <span className="text-rose-500">*</span>
+                                </span>
+                                <div className="flex flex-wrap gap-2">
+                                  {kws.map((kw) => {
+                                    const currentKeywords = work.selectedKeywords || [];
+                                    const selected = currentKeywords.includes(kw);
+                                    const selectedIdx = currentKeywords.indexOf(kw);
+                                    const selectionNumber = selectedIdx !== -1 ? selectedIdx + 1 : null;
+
+                                    return (
+                                      <button
+                                        key={kw}
+                                        type="button"
+                                        onClick={() => {
+                                          const next = selected
+                                            ? currentKeywords.filter((k: string) => k !== kw)
+                                            : [...currentKeywords, kw];
+                                          if (next.length <= 8) {
+                                            handleUpdateWorkBlock(idx, { selectedKeywords: next });
+                                          }
+                                        }}
+                                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-bold transition select-none cursor-pointer ${
+                                          selected
+                                            ? 'bg-amber-100 text-amber-900 border-amber-300'
+                                            : 'bg-white hover:bg-slate-100 border-gray-200 text-gray-700'
+                                        }`}
+                                      >
+                                        {selected ? (
+                                          <span className="w-4 h-4 rounded-full bg-amber-500 text-white flex items-center justify-center text-[9px] font-black shrink-0 leading-none">
+                                            {selectionNumber}
+                                          </span>
+                                        ) : (
+                                          <span className="text-[10px] text-gray-400">#</span>
+                                        )}
+                                        <span className="truncate leading-none select-none">{kw}</span>
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            );
+                          })()}
 
                           {/* Dynamic Content Panel 1: SEO Backlink Submission Counts */}
                           {(work.workTypes || []).includes('seo_backlink') && (
@@ -910,6 +1009,7 @@ export default function DSRForm({
                         />
                       </div>
                     </div>
+                    )}
 
                   </div>
                 </div>
