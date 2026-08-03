@@ -36,6 +36,8 @@ export interface ProjectWork {
   selectedKeywords?: string[]; // Array of project keyword selections
   workSummary?: string; // Work Type note / summary
   extraWorkNote?: string; // Free-text note for "Extra / New Work Done" work type
+  workedStatus?: 'worked' | 'not_worked' | ''; // Worked / Not Worked toggle under Domain
+  notWorkedNote?: string; // Required note when workedStatus is 'not_worked'
 }
 
 export interface CustomSubmissionType {
@@ -92,6 +94,3 @@ export const PRIORITY_WEEKLY_TARGET: Record<string, number> = {
 };
 
 export const DAILY_LINEUP_CAP_PER_USER = 25;
-
-
-
