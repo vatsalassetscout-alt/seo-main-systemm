@@ -1925,8 +1925,5 @@ async function startServer() {
   }, 15 * 60 * 1000);
 }
 
-if (!process.env.VERCEL) {
-  startServer();
-}
 
 export default app;
