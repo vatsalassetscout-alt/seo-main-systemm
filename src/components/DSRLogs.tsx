@@ -975,43 +975,43 @@ export default function DSRLogs({
                                           <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2.5">
                                             {work.listingCount > 0 && (
                                                 <div className="bg-white border border-slate-150 p-2.5 rounded-xl text-center space-y-0.5 shadow-3xs">
-                                                  <span className="block text-[9px] font-black text-slate-400 uppercase tracking-wider font-sans">Listings Done</span>
+                                                  <span className="block text-[9px] font-black text-slate-400 uppercase tracking-wider font-sans">Listings</span>
                                                   <span className="block font-mono text-xs font-black text-slate-905">{work.listingCount}</span>
                                                 </div>
                                               )}
                                               {work.blogCount > 0 && (
                                                 <div className="bg-white border border-slate-150 p-2.5 rounded-xl text-center space-y-0.5 shadow-3xs">
-                                                  <span className="block text-[9px] font-black text-slate-400 uppercase tracking-wider font-sans">Blogs Published</span>
+                                                  <span className="block text-[9px] font-black text-slate-400 uppercase tracking-wider font-sans">Blogs</span>
                                                   <span className="block font-mono text-xs font-black text-slate-905">{work.blogCount}</span>
                                                 </div>
                                               )}
                                               {work.forumCount > 0 && (
                                                 <div className="bg-white border border-slate-150 p-2.5 rounded-xl text-center space-y-0.5 shadow-3xs">
-                                                  <span className="block text-[9px] font-black text-slate-400 uppercase tracking-wider font-sans">Forums Posted</span>
+                                                  <span className="block text-[9px] font-black text-slate-400 uppercase tracking-wider font-sans">Forums</span>
                                                   <span className="block font-mono text-xs font-black text-slate-905">{work.forumCount}</span>
                                                 </div>
                                               )}
                                               {work.pdfCount > 0 && (
                                                 <div className="bg-white border border-slate-150 p-2.5 rounded-xl text-center space-y-0.5 shadow-3xs">
-                                                  <span className="block text-[9px] font-black text-slate-400 uppercase tracking-wider font-sans">PDFs Handled</span>
+                                                  <span className="block text-[9px] font-black text-slate-400 uppercase tracking-wider font-sans">PDFs</span>
                                                   <span className="block font-mono text-xs font-black text-slate-905">{work.pdfCount}</span>
                                                 </div>
                                               )}
                                               {work.imageCount > 0 && (
                                                 <div className="bg-white border border-slate-150 p-2.5 rounded-xl text-center space-y-0.5 shadow-3xs">
-                                                  <span className="block text-[9px] font-black text-slate-400 uppercase tracking-wider font-sans">Images Optimized</span>
+                                                  <span className="block text-[9px] font-black text-slate-400 uppercase tracking-wider font-sans">Images</span>
                                                   <span className="block font-mono text-xs font-black text-slate-905">{work.imageCount}</span>
                                                 </div>
                                               )}
                                               {work.videoPptCount > 0 && (
                                                 <div className="bg-white border border-slate-150 p-2.5 rounded-xl text-center space-y-0.5 shadow-3xs">
-                                                  <span className="block text-[9px] font-black text-slate-400 uppercase tracking-wider font-sans">Video/PPT Inputs</span>
+                                                  <span className="block text-[9px] font-black text-slate-400 uppercase tracking-wider font-sans">Video/PPT</span>
                                                   <span className="block font-mono text-xs font-black text-slate-905">{work.videoPptCount}</span>
                                                 </div>
                                               )}
                                               {work.profileCount > 0 && (
                                                 <div className="bg-white border border-slate-150 p-2.5 rounded-xl text-center space-y-0.5 shadow-3xs">
-                                                  <span className="block text-[9px] font-black text-slate-400 uppercase tracking-wider font-sans">Profiles Created</span>
+                                                  <span className="block text-[9px] font-black text-slate-400 uppercase tracking-wider font-sans">Profile</span>
                                                   <span className="block font-mono text-xs font-black text-slate-905">{work.profileCount}</span>
                                                 </div>
                                               )}
@@ -1193,7 +1193,7 @@ export default function DSRLogs({
             >
               <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
                 <span className="text-xs font-black text-gray-800 uppercase tracking-wider flex items-center gap-1.5">
-                  💬 Send Remark
+                  Send Remark
                 </span>
                 <button
                   onClick={() => setRemarkModalItem(null)}
