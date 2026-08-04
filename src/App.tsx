@@ -889,10 +889,8 @@ export default function App() {
         setEntries(data.list);
         localStorage.setItem('dsr_entries', JSON.stringify(data.list));
       }
-      // Removed the extra full syncWithBackend() call that used to run here —
-      // it re-fetched projects/filters/alerts/submissions right after every
-      // approve/status change, forcing a full page re-render that reset scroll
-      // and made the just-approved log appear to "jump" to the bottom.
+
+      await syncWithBackend().catch((e) => console.warn(e));
     } catch (err) {
       console.error('Error updating DSR status:', err);
       setEntries(previousEntries);
@@ -1381,7 +1379,7 @@ export default function App() {
         </div>
 
         {/* Dynamic header descriptions */}
-        {activeTab !== 'dashboard' && (
+        {activeTab !== 'dashboard' && activeTab !== 'task-lineup' && (
           <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-150 pb-6">
             <div className="space-y-1">
               <h1 className="text-xl font-black text-gray-900 tracking-tight sm:text-2xl flex items-center gap-2">
