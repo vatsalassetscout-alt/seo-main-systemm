@@ -558,7 +558,6 @@ export default function DSRForm({
                         </div>
                       </div>
 
-                      {/* On/Off Page Activity vs No Activity horizontal toggle — mandatory, single choice, shown once a domain is picked */}
                       {work.projectId && (
                         <div className="space-y-2">
                           <span className="block text-[10px] font-black text-slate-500 uppercase tracking-wider">
@@ -575,7 +574,7 @@ export default function DSRForm({
                               }`}
                             >
                               <CheckCircle2 size={14} className="shrink-0" />
-                              On / Off Page Activity
+                              On Page / Off Page Activities
                             </button>
                             <button
                               type="button"
@@ -587,7 +586,7 @@ export default function DSRForm({
                               }`}
                             >
                               <XCircle size={14} className="shrink-0" />
-                              No Activity
+                              No Activities
                             </button>
                           </div>
                         </div>
@@ -693,7 +692,7 @@ export default function DSRForm({
                               className="border border-indigo-100 bg-indigo-50/10 rounded-2xl p-5 space-y-4"
                             >
                               <span className="block text-[10px] font-extrabold text-indigo-950 uppercase tracking-widest">
-                                🚀 SEO Submission Quantities
+                                 SEO Submission Quantities
                               </span>
                                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                                 {/* 1. Blogs / Articles count */}
