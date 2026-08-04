@@ -156,7 +156,7 @@ export default function DSRForm({
     );
   };
 
-  // Worked / Not Worked is a single-choice (radio-style) toggle for the selected domain.
+  // On / Off Page Activity vs No Activity is a single-choice (radio-style) toggle for the selected domain.
   const handleSetWorkStatus = (index: number, status: 'worked' | 'not_worked') => {
     setValidationError(null);
     if (status === 'not_worked') {
@@ -177,7 +177,7 @@ export default function DSRForm({
         customValues: {},
       });
     } else {
-      handleUpdateWorkBlock(index, { workStatus: status });
+      handleUpdateWorkBlock(index, { workStatus: status, workSummary: '' });
     }
   };
 
@@ -250,14 +250,14 @@ export default function DSRForm({
 
     // Only run the Domain-block-specific validations when the user actually chose a domain
     if (isDomainBlockUsed) {
-      // Worked / Not Worked is mandatory once a domain is chosen
+      // On/Off Page Activity vs No Activity is mandatory once a domain is chosen
       if (!work.workStatus) {
-        setValidationError('Please select whether work was done for the selected domain (Worked / Not Worked).');
+        setValidationError('Please select the work status for the selected domain (On / Off Page Activity / No Activity).');
         return;
       }
 
       if (work.workStatus === 'not_worked') {
-        // Not Worked: no work type, keyword, or count selection applies — only the note is used.
+        // No Activity: no work type, keyword, or count selection applies — only the note is used.
         workTypes = [];
       } else {
         // Worked: run the full Work Type / keyword / count validations
@@ -352,7 +352,7 @@ export default function DSRForm({
         workTypes,
         contentUpdates: work.contentUpdates || [],
         selectedKeywords: work.selectedKeywords || [],
-        workSummary: work.workSummary || '',
+        workSummary: work.workStatus === 'not_worked' ? (work.workSummary || '') : '',
         extraWorkNote: extraWorkNoteTrimmed,
       }
     ];
@@ -414,10 +414,10 @@ export default function DSRForm({
               {worksList.map((work, idx) => (
                 <div
                   key={idx}
-                  className="bg-white rounded-3xl border border-gray-150 shadow-xs overflow-hidden relative group"
+                  className="bg-white rounded-3xl border border-gray-150 shadow-xs relative group"
                 >
                   {/* Block Header Tab */}
-                  <div className="bg-gray-50/50 px-6 py-4 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="bg-gray-50/50 px-6 py-4 border-b border-gray-100 rounded-t-3xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div className="flex items-center gap-3">
                       <span className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-700 font-extrabold text-xs flex items-center justify-center">
                         ✓
@@ -553,7 +553,7 @@ export default function DSRForm({
                         </div>
                       </div>
 
-                      {/* Worked / Not Worked horizontal toggle — mandatory, single choice, shown once a domain is picked */}
+                      {/* On/Off Page Activity vs No Activity horizontal toggle — mandatory, single choice, shown once a domain is picked */}
                       {work.projectId && (
                         <div className="space-y-2">
                           <span className="block text-[10px] font-black text-slate-500 uppercase tracking-wider">
@@ -570,7 +570,7 @@ export default function DSRForm({
                               }`}
                             >
                               <CheckCircle2 size={14} className="shrink-0" />
-                              Worked
+                              On / Off Page Activity
                             </button>
                             <button
                               type="button"
@@ -582,7 +582,7 @@ export default function DSRForm({
                               }`}
                             >
                               <XCircle size={14} className="shrink-0" />
-                              Not Worked
+                              No Activity
                             </button>
                           </div>
                         </div>
@@ -984,20 +984,22 @@ export default function DSRForm({
                     </div>
                     )}
 
-                    {/* Notes — always available: the write-up area for both Worked and Not Worked domains */}
+                    {/* Note — only appears when "No Activity" is selected; hidden by default and hidden for On/Off Page Activity */}
+                    {work.workStatus === 'not_worked' && (
                     <div className="space-y-2">
                         <label htmlFor={`work-summary-${idx}`} className="block text-xs font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1.5">
-                            {work.workStatus === 'not_worked' ? 'Note' : 'Notes'}
+                            Note
                         </label>
                         <textarea
                           id={`work-summary-${idx}`}
                           rows={3}
                           value={work.workSummary || ''}
-                          placeholder={work.workStatus === 'not_worked' ? 'Write a note about why this domain was not worked on...' : 'Type details or list references here...'}
+                          placeholder="Write a note about why this domain was not worked on..."
                           onChange={(e) => handleUpdateWorkBlock(idx, { workSummary: e.target.value })}
                           className="w-full px-4 py-3 bg-gray-50 border border-gray-200 focus:border-indigo-600 focus:bg-white rounded-xl text-xs text-gray-950 font-medium placeholder-gray-400 focus:outline-none transition leading-relaxed"
                         />
                     </div>
+                    )}
 
                   </div>
                 </div>
