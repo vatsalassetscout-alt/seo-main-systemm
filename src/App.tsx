@@ -889,8 +889,10 @@ export default function App() {
         setEntries(data.list);
         localStorage.setItem('dsr_entries', JSON.stringify(data.list));
       }
-
-      await syncWithBackend().catch((e) => console.warn(e));
+      // Removed the extra full syncWithBackend() call that used to run here —
+      // it re-fetched projects/filters/alerts/submissions right after every
+      // approve/status change, forcing a full page re-render that reset scroll
+      // and made the just-approved log appear to "jump" to the bottom.
     } catch (err) {
       console.error('Error updating DSR status:', err);
       setEntries(previousEntries);
@@ -1556,5 +1558,3 @@ export default function App() {
     </div>
   );
 }
-
-      
