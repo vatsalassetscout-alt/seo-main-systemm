@@ -107,7 +107,7 @@ export default function TaskLineup({
   onSetAllowedUsers,
   onJumpToWorkLog,
 }: TaskLineupProps) {
-  // Local sub-navigation: "Task Lineup" (today's / a chosen day's projects)
+  // Local sub-navigation: "" (today's / a chosen day's projects)
   // vs "History" (Yesterday Pending + Today Pending), styled the same way
   // the top-level Work Log / Work Log History tabs are.
   const [view, setView] = useState<'lineup' | 'history'>('lineup');
@@ -124,7 +124,7 @@ export default function TaskLineup({
 
   // History tab: today's still-pending tasks, loaded independently of the
   // date filter above so History always reflects "today", not whatever day
-  // is currently selected on the Task Lineup tab.
+  // is currently selected on the  tab.
   const [todayPending, setTodayPending] = useState<TaskAssignment[]>([]);
   const [todayPendingLoading, setTodayPendingLoading] = useState(false);
 
