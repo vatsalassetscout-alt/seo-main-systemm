@@ -37,6 +37,7 @@ import {
   markTaskAssignmentDoneDb,
   markTaskAssignmentPendingDb,
   deleteTaskAssignmentsForDateDb,
+  deleteTaskAssignmentsForUserPendingOnDateDb,
   deleteAllTaskAssignmentsDb,
   getLineupEngineStateDb,
   setLineupEngineStateDb,
@@ -1157,16 +1158,41 @@ app.get("/api/task-lineup/pending-summary", async (req, res) => {
   }
 });
 
-// POST toggle a user's pause state (admin only). A paused user is skipped
-// entirely the next time the lineup is generated; their existing pending
-// queue is left untouched (frozen) until they're unpaused.
+// POST toggle a user's pause state (admin only).
+//
+// Pausing: the user is skipped entirely the next time the lineup is
+// generated, AND today's still-PENDING queue for that user is cleared right
+// away (their already-Submitted work today is left untouched). Clearing —
+// rather than just freezing — matters because it takes that unfinished
+// project back out of this week's "already assigned" tally, so the engine
+// doesn't wrongly treat the weekly quota as met.
+//
+// Resuming: the same day's lineup for that one user is immediately topped
+// back up with whatever the (now-accurate) deficit says is still owed —
+// same projects, same order they'd have come up in — instead of waiting
+// for tomorrow's cycle. Net effect: nothing in anyone's queue is ever
+// silently skipped because of a pause, no matter when in the day it happens.
 app.post("/api/task-lineup/pause", requireAdmin, async (req, res) => {
   try {
     const { userEmail, paused } = req.body;
     if (!userEmail || typeof paused !== "boolean") {
       return res.status(400).json({ error: "userEmail and paused (boolean) are required." });
     }
-    const ok = await setUserPausedDb(String(userEmail).trim().toLowerCase(), paused);
+    const email = String(userEmail).trim().toLowerCase();
+    const ok = await setUserPausedDb(email, paused);
+    const today = new Date().toISOString().slice(0, 10);
+
+    if (paused) {
+      await deleteTaskAssignmentsForUserPendingOnDateDb(today, email);
+    } else {
+      try {
+        const [projects, users] = await Promise.all([getProjectsDb(), getUsersDb()]);
+        await generateLineupForDate(today, projects, users, false, email);
+      } catch (regenErr) {
+        console.error("Failed to top up lineup after resume:", regenErr);
+      }
+    }
+
     return res.json({ success: ok });
   } catch (err: any) {
     console.error("POST /api/task-lineup/pause error:", err);
