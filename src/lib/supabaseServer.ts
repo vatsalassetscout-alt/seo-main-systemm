@@ -938,14 +938,6 @@ function fromRow(r: any) {
   };
 }
 
-// Collapses any rows that share the same (date, user, project) down to one.
-// This is what fixes the "same user's card showing twice" bug in the Task
-// Lineup UI — it doesn't matter whether the duplicate rows came from an old
-// pre-deterministic-id version of the generator or a double-click race,
-// this guarantees the API never hands the frontend two rows for the same
-// (date, user, project) triple. When duplicates exist we keep the one
-// marked "Done" over "Pending" (so a completed row never gets hidden by a
-// stale duplicate), and otherwise the most recently created row.
 function dedupeAssignments(rows: any[]): any[] {
   const byKey = new Map<string, any>();
   rows.forEach((r) => {
@@ -1073,7 +1065,6 @@ export async function markTaskAssignmentDoneDb(date: string, userEmail: string, 
     return false;
   }
 }
-
 // Reverse of markTaskAssignmentDoneDb — when the Work Log entry that flipped
 // an assignment to "Done" gets deleted, the assignment goes back to
 // "Pending" so Task Lineup / History reflect that the work is, once again,
@@ -1099,6 +1090,7 @@ export async function markTaskAssignmentPendingDb(date: string, userEmail: strin
     return false;
   }
 }
+
 
 function ymd(d: Date): string {
   return d.toISOString().slice(0, 10);
