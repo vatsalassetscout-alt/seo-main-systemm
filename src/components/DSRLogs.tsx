@@ -632,9 +632,9 @@ export default function DSRLogs({
                 className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-950 focus:outline-none transition cursor-pointer h-[40px]"
               >
                 <option value="all">All Status</option>
-                <option value="Pending">Pending</option>
-                <option value="Approved">Approved</option>
-                <option value="Remark">Remark</option>
+                <option value="Pending">Pending Only</option>
+                <option value="Approved">Approved Only</option>
+                <option value="Remark">Remark Only</option>
               </select>
             </div>
           )}
@@ -797,7 +797,7 @@ export default function DSRLogs({
                             item.status === 'Remark' ? 'bg-violet-50 text-violet-800 border-violet-150' :
                             'bg-amber-50 text-amber-855 border-amber-100'
                           }`}>
-                            {item.status === 'Remark' ? 'Remark' : item.status}
+                            {item.status === 'Remark' ? '💬 Remark' : item.status}
                           </span>
                         )}
 
@@ -829,37 +829,58 @@ export default function DSRLogs({
                           <div className="space-y-6">
                             {(() => {
                               // Show Work Note entries first (no projectId), then
-                              // domain/project entries in their original submitted
-                              // order - even if the note was filled in last on the
-                              // form. Sort is stable so same-group order is preserved.
-                              const orderedWorks = item.works
-                                .map((w: any, originalIdx: number) => ({ w, originalIdx }))
-                                .sort((a: any, b: any) => {
-                                  const aHasDomain = !!a.w.projectId;
-                                  const bHasDomain = !!b.w.projectId;
-                                  if (aHasDomain === bHasDomain) return a.originalIdx - b.originalIdx;
-                                  return aHasDomain ? 1 : -1;
-                                });
+                              // domain/project entries — grouped by PROJECT rather than
+                              // raw submission order. So if the same project (Project A)
+                              // is submitted again later the same day (e.g. 6:41 then again
+                              // at 7:00, with B/C/D submitted in between), the second A
+                              // submission is pulled up to sit right under Project A's
+                              // existing block instead of trailing at the very end after
+                              // B, C, D. Each project's own submissions stay in their
+                              // original chronological order relative to each other; only
+                              // the project GROUPS are reordered, by each group's first
+                              // appearance.
+                              const keyOf = (w: any) => {
+                                if (!w.projectId) return '';
+                                const matched = projects.find(p => String(p.id) === String(w.projectId));
+                                return String(matched?.id ?? w.projectId ?? w.projectName ?? '').trim().toLowerCase();
+                              };
+
+                              const withMeta = item.works.map((w: any, originalIdx: number) => ({
+                                w,
+                                originalIdx,
+                                hasDomain: !!w.projectId,
+                                key: keyOf(w)
+                              }));
+
+                              // Order in which each project key first appears (by original
+                              // submission order) — this decides the position of each group.
+                              const firstSeenOrder: string[] = [];
+                              withMeta.forEach(({ hasDomain, key }) => {
+                                if (hasDomain && key && !firstSeenOrder.includes(key)) {
+                                  firstSeenOrder.push(key);
+                                }
+                              });
+
+                              const orderedWorks = [...withMeta].sort((a, b) => {
+                                if (a.hasDomain !== b.hasDomain) return a.hasDomain ? 1 : -1;
+                                if (!a.hasDomain && !b.hasDomain) return a.originalIdx - b.originalIdx;
+                                const aGroupIdx = firstSeenOrder.indexOf(a.key);
+                                const bGroupIdx = firstSeenOrder.indexOf(b.key);
+                                if (aGroupIdx !== bGroupIdx) return aGroupIdx - bGroupIdx;
+                                // Same project group — keep original chronological order.
+                                return a.originalIdx - b.originalIdx;
+                              });
                               let domainCounter = 0;
                               const seenProjectKeys = new Set<string>();
                               return orderedWorks.map(({ w: work, originalIdx }: any) => {
                               const workMatchedProj = projects.find(p => String(p.id) === String(work.projectId));
                               const hasDomain = !!work.projectId;
-                              // Same project submitted again the same day — don't treat it as a new
-                              // "Project N", it's the same project, so skip the heading/name row and
-                              // just show this entry's own timestamp + details underneath.
-                              // Key is normalized (resolved project id when it matches the projects
-                              // list, else a trimmed/lowercased id or name) so that a repeat submission
-                              // for the SAME project always collapses under its original block instead
-                              // of only working for a lucky subset of projects.
-                              const projectKey = hasDomain
-                                ? String(
-                                    workMatchedProj?.id ??
-                                    work.projectId ??
-                                    work.projectName ??
-                                    ''
-                                  ).trim().toLowerCase()
-                                : '';
+                              // Same project submitted again (even later the same day, after other
+                              // projects came in between) — don't treat it as a new "Project N".
+                              // It's the same project, so skip the heading/name row and just show
+                              // this entry's own timestamp + details underneath, now positioned
+                              // directly under that project's block thanks to the grouped ordering above.
+                              const projectKey = (orderedWorks.find((ow: any) => ow.w === work)?.key) || '';
                               const isRepeatOfSameProject = hasDomain && !!projectKey && seenProjectKeys.has(projectKey);
                               let projectDisplayNumber = 0;
                               if (hasDomain && !isRepeatOfSameProject) {
@@ -876,7 +897,7 @@ export default function DSRLogs({
                                           {hasDomain ? `Project ${projectDisplayNumber}` : 'Note'}
                                         </h4>
                                         <p className="text-sm font-black text-slate-900 mt-1 flex items-center gap-2">
-                                           {hasDomain ? (workMatchedProj?.name || work.projectName || 'Work Note') : 'Work Note'}
+                                          📂 {hasDomain ? (workMatchedProj?.name || work.projectName || 'Work Note') : 'Work Note'}
                                           {workMatchedProj?.domain && (
                                             <span className="font-mono text-xs text-slate-500 font-bold bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-lg">
                                               {workMatchedProj.domain}
