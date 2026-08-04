@@ -421,6 +421,7 @@ export default function DSRLogs({
           linkCount: w.linkCount || 0,
           blog: w.blog || '',
           workSummary: w.workSummary || '',
+          workStatus: w.workStatus || '',
           workTypes: w.workTypes || [],
           contentUpdates: w.contentUpdates || [],
           extraWorkNote: w.extraWorkNote || '',
@@ -889,8 +890,29 @@ export default function DSRLogs({
                                     </div>
                                   )}
 
-                                  {/* Submissions — only numerical quantities live here; only rendered when at least one is > 0 */}
-                                  {(() => {
+                                  {/* On/Off Page Activity vs No Activity — only rendered for real domain entries */}
+                                  {hasDomain && (() => {
+                                    // Legacy entries (submitted before this status field existed) have no
+                                    // workStatus saved — treat them the same as "On / Off Page Activity"
+                                    // so old history keeps showing Submissions/Keywords exactly as before.
+                                    const isNoActivity = work.workStatus === 'not_worked';
+
+                                    if (isNoActivity) {
+                                      return (
+                                        <div className="space-y-1.5">
+                                          <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">No Activity</h4>
+                                          <div className="bg-white p-3.5 rounded-2xl border border-slate-150 shadow-3xs text-xs text-slate-805 leading-relaxed font-semibold">
+                                            {work.workSummary ? (
+                                              <p className="whitespace-pre-wrap">{work.workSummary}</p>
+                                            ) : (
+                                              <p className="text-slate-404 italic">No note for this log block.</p>
+                                            )}
+                                          </div>
+                                        </div>
+                                      );
+                                    }
+
+                                    const keywordsList = (((work.selectedKeywords || work.customValues?.selectedKeywords || []) as string[]).filter(Boolean));
                                     const hasNumericMetrics = (
                                       work.listingCount > 0 ||
                                       work.blogCount > 0 ||
@@ -903,76 +925,96 @@ export default function DSRLogs({
                                       (customSubmissionTypes || []).some((type) => Number(work.customValues?.[type.id]) > 0)
                                     );
 
-                                    if (!hasNumericMetrics) return null;
+                                    if (keywordsList.length === 0 && !hasNumericMetrics) return null;
 
                                     return (
                                       <div className="space-y-3">
-                                        <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">Submissions</h4>
+                                        <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">On / Off Page Activity</h4>
 
-                                        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2.5">
-                                          {work.listingCount > 0 && (
-                                              <div className="bg-white border border-slate-150 p-2.5 rounded-xl text-center space-y-0.5 shadow-3xs">
-                                                <span className="block text-[9px] font-black text-slate-400 uppercase tracking-wider font-sans">Listings Done</span>
-                                                <span className="block font-mono text-xs font-black text-slate-905">{work.listingCount}</span>
-                                              </div>
-                                            )}
-                                            {work.blogCount > 0 && (
-                                              <div className="bg-white border border-slate-150 p-2.5 rounded-xl text-center space-y-0.5 shadow-3xs">
-                                                <span className="block text-[9px] font-black text-slate-400 uppercase tracking-wider font-sans">Blogs Published</span>
-                                                <span className="block font-mono text-xs font-black text-slate-905">{work.blogCount}</span>
-                                              </div>
-                                            )}
-                                            {work.forumCount > 0 && (
-                                              <div className="bg-white border border-slate-150 p-2.5 rounded-xl text-center space-y-0.5 shadow-3xs">
-                                                <span className="block text-[9px] font-black text-slate-400 uppercase tracking-wider font-sans">Forums Posted</span>
-                                                <span className="block font-mono text-xs font-black text-slate-905">{work.forumCount}</span>
-                                              </div>
-                                            )}
-                                            {work.pdfCount > 0 && (
-                                              <div className="bg-white border border-slate-150 p-2.5 rounded-xl text-center space-y-0.5 shadow-3xs">
-                                                <span className="block text-[9px] font-black text-slate-400 uppercase tracking-wider font-sans">PDFs Handled</span>
-                                                <span className="block font-mono text-xs font-black text-slate-905">{work.pdfCount}</span>
-                                              </div>
-                                            )}
-                                            {work.imageCount > 0 && (
-                                              <div className="bg-white border border-slate-150 p-2.5 rounded-xl text-center space-y-0.5 shadow-3xs">
-                                                <span className="block text-[9px] font-black text-slate-400 uppercase tracking-wider font-sans">Images Optimized</span>
-                                                <span className="block font-mono text-xs font-black text-slate-905">{work.imageCount}</span>
-                                              </div>
-                                            )}
-                                            {work.videoPptCount > 0 && (
-                                              <div className="bg-white border border-slate-150 p-2.5 rounded-xl text-center space-y-0.5 shadow-3xs">
-                                                <span className="block text-[9px] font-black text-slate-400 uppercase tracking-wider font-sans">Video/PPT Inputs</span>
-                                                <span className="block font-mono text-xs font-black text-slate-905">{work.videoPptCount}</span>
-                                              </div>
-                                            )}
-                                            {work.profileCount > 0 && (
-                                              <div className="bg-white border border-slate-150 p-2.5 rounded-xl text-center space-y-0.5 shadow-3xs">
-                                                <span className="block text-[9px] font-black text-slate-400 uppercase tracking-wider font-sans">Profiles Created</span>
-                                                <span className="block font-mono text-xs font-black text-slate-905">{work.profileCount}</span>
-                                              </div>
-                                            )}
-                                            {work.linkCount > 0 && (
-                                              <div className="bg-white border border-slate-150 p-2.5 rounded-xl text-center space-y-0.5 shadow-3xs">
-                                                <span className="block text-[9px] font-black text-slate-400 uppercase tracking-wider font-sans">Links</span>
-                                                <span className="block font-mono text-xs font-black text-slate-905">{work.linkCount}</span>
-                                              </div>
-                                            )}
-
-                                            {customSubmissionTypes && customSubmissionTypes.map((type) => {
-                                              const rawVal = work.customValues?.[type.id];
-                                              const count = rawVal !== undefined ? Number(rawVal) : 0;
-                                              if (count <= 0) return null;
-                                              return (
-                                                <div key={type.id} className="bg-white border border-slate-150 p-2.5 rounded-xl text-center space-y-0.5 shadow-3xs">
-                                                  <span className="block text-[9px] font-black text-purple-600 uppercase tracking-wider truncate font-sans" title={type.name}>
-                                                    {type.name}
+                                        {/* Target Keywords block */}
+                                        {keywordsList.length > 0 && (
+                                          <div className="bg-white p-3.5 rounded-2xl border border-slate-150 shadow-3xs flex flex-wrap items-center gap-2">
+                                            <span className="text-[9.5px] font-black text-slate-405 uppercase tracking-wide font-sans">Target Keywords:</span>
+                                            <div className="flex flex-wrap gap-1.5">
+                                              {keywordsList.map((kw: string, kwIdx: number) => (
+                                                <span key={kw} className="bg-amber-100/50 border border-amber-205 text-amber-900 px-2 py-0.5 rounded-md font-sans text-[10px] font-black flex items-center gap-1.5">
+                                                  <span className="bg-amber-500 text-white w-3.5 h-3.5 rounded-full flex items-center justify-center text-[8px] font-bold shrink-0 font-mono leading-none">
+                                                    {kwIdx + 1}
                                                   </span>
-                                                  <span className="block font-mono text-xs font-black text-purple-905">{count}</span>
-                                                </div>
-                                              );
-                                            })}
+                                                  {kw}
+                                                </span>
+                                              ))}
+                                            </div>
                                           </div>
+                                        )}
+
+                                        {/* All types of submissions */}
+                                        {hasNumericMetrics && (
+                                          <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2.5">
+                                            {work.listingCount > 0 && (
+                                                <div className="bg-white border border-slate-150 p-2.5 rounded-xl text-center space-y-0.5 shadow-3xs">
+                                                  <span className="block text-[9px] font-black text-slate-400 uppercase tracking-wider font-sans">Listings Done</span>
+                                                  <span className="block font-mono text-xs font-black text-slate-905">{work.listingCount}</span>
+                                                </div>
+                                              )}
+                                              {work.blogCount > 0 && (
+                                                <div className="bg-white border border-slate-150 p-2.5 rounded-xl text-center space-y-0.5 shadow-3xs">
+                                                  <span className="block text-[9px] font-black text-slate-400 uppercase tracking-wider font-sans">Blogs Published</span>
+                                                  <span className="block font-mono text-xs font-black text-slate-905">{work.blogCount}</span>
+                                                </div>
+                                              )}
+                                              {work.forumCount > 0 && (
+                                                <div className="bg-white border border-slate-150 p-2.5 rounded-xl text-center space-y-0.5 shadow-3xs">
+                                                  <span className="block text-[9px] font-black text-slate-400 uppercase tracking-wider font-sans">Forums Posted</span>
+                                                  <span className="block font-mono text-xs font-black text-slate-905">{work.forumCount}</span>
+                                                </div>
+                                              )}
+                                              {work.pdfCount > 0 && (
+                                                <div className="bg-white border border-slate-150 p-2.5 rounded-xl text-center space-y-0.5 shadow-3xs">
+                                                  <span className="block text-[9px] font-black text-slate-400 uppercase tracking-wider font-sans">PDFs Handled</span>
+                                                  <span className="block font-mono text-xs font-black text-slate-905">{work.pdfCount}</span>
+                                                </div>
+                                              )}
+                                              {work.imageCount > 0 && (
+                                                <div className="bg-white border border-slate-150 p-2.5 rounded-xl text-center space-y-0.5 shadow-3xs">
+                                                  <span className="block text-[9px] font-black text-slate-400 uppercase tracking-wider font-sans">Images Optimized</span>
+                                                  <span className="block font-mono text-xs font-black text-slate-905">{work.imageCount}</span>
+                                                </div>
+                                              )}
+                                              {work.videoPptCount > 0 && (
+                                                <div className="bg-white border border-slate-150 p-2.5 rounded-xl text-center space-y-0.5 shadow-3xs">
+                                                  <span className="block text-[9px] font-black text-slate-400 uppercase tracking-wider font-sans">Video/PPT Inputs</span>
+                                                  <span className="block font-mono text-xs font-black text-slate-905">{work.videoPptCount}</span>
+                                                </div>
+                                              )}
+                                              {work.profileCount > 0 && (
+                                                <div className="bg-white border border-slate-150 p-2.5 rounded-xl text-center space-y-0.5 shadow-3xs">
+                                                  <span className="block text-[9px] font-black text-slate-400 uppercase tracking-wider font-sans">Profiles Created</span>
+                                                  <span className="block font-mono text-xs font-black text-slate-905">{work.profileCount}</span>
+                                                </div>
+                                              )}
+                                              {work.linkCount > 0 && (
+                                                <div className="bg-white border border-slate-150 p-2.5 rounded-xl text-center space-y-0.5 shadow-3xs">
+                                                  <span className="block text-[9px] font-black text-slate-400 uppercase tracking-wider font-sans">Links</span>
+                                                  <span className="block font-mono text-xs font-black text-slate-905">{work.linkCount}</span>
+                                                </div>
+                                              )}
+
+                                              {customSubmissionTypes && customSubmissionTypes.map((type) => {
+                                                const rawVal = work.customValues?.[type.id];
+                                                const count = rawVal !== undefined ? Number(rawVal) : 0;
+                                                if (count <= 0) return null;
+                                                return (
+                                                  <div key={type.id} className="bg-white border border-slate-150 p-2.5 rounded-xl text-center space-y-0.5 shadow-3xs">
+                                                    <span className="block text-[9px] font-black text-purple-600 uppercase tracking-wider truncate font-sans" title={type.name}>
+                                                      {type.name}
+                                                    </span>
+                                                    <span className="block font-mono text-xs font-black text-purple-905">{count}</span>
+                                                  </div>
+                                                );
+                                              })}
+                                          </div>
+                                        )}
                                       </div>
                                     );
                                   })()}
@@ -992,37 +1034,6 @@ export default function DSRLogs({
                                       >
                                         {work.blog}
                                       </a>
-                                    </div>
-                                  )}
-
-                                  {/* Work summary descriptive report block — only shown for real domain/project entries, not standalone Extra/New Work */}
-                                  {hasDomain && (
-                                    <div className="space-y-1.5">
-                                      <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">Note</h4>
-                                      <div className="bg-white p-3.5 rounded-2xl border border-slate-150 shadow-3xs text-xs text-slate-805 leading-relaxed font-semibold">
-                                        {work.workSummary ? (
-                                          <p className="whitespace-pre-wrap">{work.workSummary}</p>
-                                        ) : (
-                                          <p className="text-slate-404 italic">No Note for this log block.</p>
-                                        )}
-
-                                        {/* Keywords attached logs */}
-                                        {((work.selectedKeywords && work.selectedKeywords.length > 0) || (work.customValues?.selectedKeywords && Array.isArray(work.customValues.selectedKeywords) && work.customValues.selectedKeywords.length > 0)) && (
-                                          <div className="mt-3.5 pt-3 border-t border-slate-150 flex flex-wrap items-center gap-2">
-                                            <span className="text-[9.5px] font-black text-slate-405 uppercase tracking-wide font-sans">Target Keywords:</span>
-                                            <div className="flex flex-wrap gap-1.5">
-                                              {(((work.selectedKeywords || work.customValues?.selectedKeywords || []) as string[]).filter(Boolean)).map((kw: string, idx: number) => (
-                                                <span key={kw} className="bg-amber-100/50 border border-amber-205 text-amber-900 px-2 py-0.5 rounded-md font-sans text-[10px] font-black flex items-center gap-1.5">
-                                                  <span className="bg-amber-500 text-white w-3.5 h-3.5 rounded-full flex items-center justify-center text-[8px] font-bold shrink-0 font-mono leading-none">
-                                                    {idx + 1}
-                                                  </span>
-                                                  {kw}
-                                                </span>
-                                              ))}
-                                            </div>
-                                          </div>
-                                        )}
-                                      </div>
                                     </div>
                                   )}
                                 </div>
