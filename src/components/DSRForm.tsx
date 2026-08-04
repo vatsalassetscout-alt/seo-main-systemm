@@ -257,8 +257,13 @@ export default function DSRForm({
       }
 
       if (work.workStatus === 'not_worked') {
-        // No Activity: no work type, keyword, or count selection applies — only the note is used.
+        // No Activity: no work type, keyword, or count selection applies — only the note is used,
+        // and that note is mandatory so there's always a reason on record for no activity.
         workTypes = [];
+        if (!(work.workSummary || '').trim()) {
+          setValidationError('Please write a note explaining why there was no activity for this domain.');
+          return;
+        }
       } else {
         // Worked: run the full Work Type / keyword / count validations
         workTypes = work.workTypes || [];
@@ -988,11 +993,12 @@ export default function DSRForm({
                     {work.workStatus === 'not_worked' && (
                     <div className="space-y-2">
                         <label htmlFor={`work-summary-${idx}`} className="block text-xs font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1.5">
-                            Note
+                            Note <span className="text-rose-500">*</span>
                         </label>
                         <textarea
                           id={`work-summary-${idx}`}
                           rows={3}
+                          required
                           value={work.workSummary || ''}
                           placeholder="Write a note about why this domain was not worked on..."
                           onChange={(e) => handleUpdateWorkBlock(idx, { workSummary: e.target.value })}
