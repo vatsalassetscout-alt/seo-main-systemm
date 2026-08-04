@@ -922,7 +922,7 @@ export default function DSRLogs({
                                     if (isNoActivity) {
                                       return (
                                         <div className="space-y-1.5">
-                                          <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">No Activity</h4>
+                                          <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">No Activities</h4>
                                           <div className="bg-white p-3.5 rounded-2xl border border-slate-150 shadow-3xs text-xs text-slate-805 leading-relaxed font-semibold">
                                             {work.workSummary ? (
                                               <p className="whitespace-pre-wrap">{work.workSummary}</p>
@@ -951,7 +951,7 @@ export default function DSRLogs({
 
                                     return (
                                       <div className="space-y-3">
-                                        <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">On / Off Page Activity</h4>
+                                        <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">ON Page / Off Page Activities</h4>
 
                                         {/* Target Keywords block */}
                                         {keywordsList.length > 0 && (
@@ -1325,7 +1325,7 @@ export default function DSRLogs({
                           </span>
                           <div className="space-y-0.5">
                             <p className="text-xs font-bold text-gray-800">
-                              {projectNames.length > 0 ? projectNames.join(', ') : 'Extra / New Work'}
+                              {projectNames.length > 0 ? projectNames.join(', ') : 'Work Note'}
                             </p>
                             <p className="text-[10px] text-gray-400 font-mono uppercase">
                               Submitted {entry?.createdAt ? new Date(entry.createdAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Unknown time'}
