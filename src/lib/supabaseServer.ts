@@ -1078,8 +1078,7 @@ export async function markTaskAssignmentPendingDb(date: string, userEmail: strin
       .update({ status: "Pending" })
       .eq("date", date)
       .eq("user_email", userEmail.trim().toLowerCase())
-      .eq("project_id", projectId)
-      .eq("status", "Done");
+      .eq("project_id", projectId);
     if (error) {
       console.warn("Supabase mark task_assignment pending failed:", error.message);
       return false;
