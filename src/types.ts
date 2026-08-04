@@ -31,6 +31,7 @@ export interface ProjectWork {
   imageUri?: string; // Legacy Base64 image preview URL
   imageName?: string; // Legacy Image file name
   customValues: Record<string, any>; // id -> value, can also store selectedKeywords dynamic list
+  workStatus?: 'worked' | 'not_worked' | ''; // Whether work was actually done on the selected domain
   workTypes?: string[]; // e.g. ["seo_backlink", "content_update"]
   contentUpdates?: string[]; // e.g. ["meta_title_desc", "keyword_update", "section_update", "restructure"]
   selectedKeywords?: string[]; // Array of project keyword selections
@@ -92,6 +93,3 @@ export const PRIORITY_WEEKLY_TARGET: Record<string, number> = {
 };
 
 export const DAILY_LINEUP_CAP_PER_USER = 25;
-
-
-
