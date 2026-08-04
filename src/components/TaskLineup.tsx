@@ -18,6 +18,7 @@ import {
   ChevronDown,
   ChevronUp,
   CalendarDays,
+  History,
 } from 'lucide-react';
 
 interface TaskLineupProps {
@@ -50,34 +51,47 @@ function todayStr(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
+// Pending ("not yet worked") tasks always float to the top; a Submitted
+// (formerly "Done") task has already been handled, so it sinks to the
+// bottom of whichever list it appears in.
+function sortPendingFirst(list: TaskAssignment[]): TaskAssignment[] {
+  return [...list].sort((a, b) => (a.status === 'Done' ? 1 : 0) - (b.status === 'Done' ? 1 : 0));
+}
+
 const Badge = ({ priority }: { priority: string }) => (
   <span className={`inline-flex items-center px-2 py-0.5 rounded border text-[10px] font-black uppercase tracking-wider ${PRIORITY_BADGE[priority] || 'bg-gray-50 text-gray-500 border-gray-150'}`}>
     {priority || '—'}
   </span>
 );
 
+// "Done" is renamed to "Submitted" for display only — the underlying status
+// value in the data model is still 'Done'.
 const StatusBadge = ({ status }: { status: string }) => (
   status === 'Done' ? (
-    <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700">
-      <CheckCircle2 size={12} /> Done
+    <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-700">
+      <CheckCircle2 size={13} /> Submitted
     </span>
   ) : (
-    <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-700">
-      <Clock size={12} /> Pending
+    <span className="inline-flex items-center gap-1 text-xs font-bold text-amber-700">
+      <Clock size={13} /> Pending
     </span>
   )
 );
 
 // Small reusable "list of pending projects" block used for both Yesterday
-// Pending and Total Pending — project names, not just a bare count.
-const PendingProjectList = ({ items }: { items: TaskAssignment[] }) => (
+// Pending and Today Pending — project names, not just a bare count.
+// `getOwner`, when passed (admin/History view), shows whose task it is.
+const PendingProjectList = ({ items, getOwner }: { items: TaskAssignment[]; getOwner?: (a: TaskAssignment) => string }) => (
   items.length === 0 ? (
     <p className="text-xs font-semibold text-gray-400">Nothing pending — all caught up.</p>
   ) : (
     <div className="space-y-1.5 max-h-64 overflow-y-auto pr-1">
       {items.map((a) => (
-        <div key={a.id} className="flex items-center justify-between text-xs font-bold text-gray-700">
-          <span className="truncate pr-2">{a.projectName}</span>
+        <div key={a.id} className="flex items-center justify-between text-sm font-bold text-gray-700">
+          <span className="truncate pr-2">
+            {a.projectName}
+            {getOwner && <span className="block text-[10px] text-gray-400 font-semibold">{getOwner(a)}</span>}
+          </span>
           <div className="flex items-center gap-2 shrink-0">
             <Badge priority={a.priority} />
             <span className="text-[10px] text-gray-400 font-semibold">{a.date}</span>
@@ -95,6 +109,11 @@ export default function TaskLineup({
   onSetAllowedUsers,
   onJumpToWorkLog,
 }: TaskLineupProps) {
+  // Local sub-navigation: "Task Lineup" (today's / a chosen day's projects)
+  // vs "History" (Yesterday Pending + Today Pending), styled the same way
+  // the top-level Work Log / Work Log History tabs are.
+  const [view, setView] = useState<'lineup' | 'history'>('lineup');
+
   const [date, setDate] = useState<string>(''); // optional filter — empty means "just show the current lineup"
   const [assignments, setAssignments] = useState<TaskAssignment[]>([]);
   const [loading, setLoading] = useState(false);
@@ -104,6 +123,12 @@ export default function TaskLineup({
   const [yesterdayPending, setYesterdayPending] = useState<TaskAssignment[]>([]);
   const [totalPending, setTotalPending] = useState<TaskAssignment[]>([]);
   const [totalPendingCount, setTotalPendingCount] = useState<number>(0);
+
+  // History tab: today's still-pending tasks, loaded independently of the
+  // date filter above so History always reflects "today", not whatever day
+  // is currently selected on the Task Lineup tab.
+  const [todayPending, setTodayPending] = useState<TaskAssignment[]>([]);
+  const [todayPendingLoading, setTodayPendingLoading] = useState(false);
 
   // Lifetime engine controls (admin) — once started, the cycle never needs
   // a manual daily click again; "paused" is the long-vacation switch.
@@ -152,6 +177,23 @@ export default function TaskLineup({
     }
   }, [authHeaders, isAdmin, currentUserEmail]);
 
+  // Today's still-pending tasks — for History. Non-admins only see their own;
+  // admins see everyone's.
+  const loadTodayPending = useCallback(async () => {
+    setTodayPendingLoading(true);
+    try {
+      const res = await fetch(`/api/task-lineup?date=${encodeURIComponent(todayStr())}`, { headers: authHeaders });
+      const data = await res.json();
+      const list: TaskAssignment[] = Array.isArray(data.assignments) ? data.assignments : [];
+      const mine = (a: TaskAssignment) => a.userEmail.trim().toLowerCase() === (currentUserEmail || '').trim().toLowerCase();
+      setTodayPending(list.filter(a => a.status === 'Pending' && (isAdmin || mine(a))));
+    } catch (err) {
+      console.error('Failed to load today pending:', err);
+    } finally {
+      setTodayPendingLoading(false);
+    }
+  }, [authHeaders, isAdmin, currentUserEmail]);
+
   const loadEngineStatus = useCallback(async () => {
     try {
       const res = await fetch('/api/task-lineup/engine-status', { headers: authHeaders });
@@ -188,6 +230,16 @@ export default function TaskLineup({
       loadPendingAllUsers();
     }
   }, [isAdmin, loadEngineStatus, loadPendingAllUsers]);
+
+  // Load History data lazily, only once the History tab is opened.
+  useEffect(() => {
+    if (view === 'history') {
+      loadTodayPending();
+      if (isAdmin) loadPendingAllUsers();
+      else loadPendingSummary();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view]);
 
   const handleStartEngine = async () => {
     setEngineBusy(true);
@@ -259,6 +311,7 @@ export default function TaskLineup({
         loadLineup(activeDate),
         loadEngineStatus(),
         isAdmin ? loadPendingAllUsers() : loadPendingSummary(),
+        loadTodayPending(),
       ]);
     } catch (err) {
       console.error('Failed to reset lineup:', err);
@@ -305,12 +358,12 @@ export default function TaskLineup({
       }
     });
     return Array.from(map.entries())
-      .map(([key, v]) => [v.displayName, Array.from(v.itemsByProject.values())] as [string, TaskAssignment[]])
+      .map(([key, v]) => [v.displayName, sortPendingFirst(Array.from(v.itemsByProject.values()))] as [string, TaskAssignment[]])
       .sort((a, b) => a[0].localeCompare(b[0]));
   }, [assignments, allowedUsers]);
 
   const myAssignments = useMemo(
-    () => assignments.filter(a => a.userEmail.trim().toLowerCase() === (currentUserEmail || '').trim().toLowerCase()),
+    () => sortPendingFirst(assignments.filter(a => a.userEmail.trim().toLowerCase() === (currentUserEmail || '').trim().toLowerCase())),
     [assignments, currentUserEmail]
   );
 
@@ -327,18 +380,39 @@ export default function TaskLineup({
     [selectedPendingEmail, pendingAllUsers]
   );
 
+  // History tab's "Yesterday Pending" — pooled across everyone for admins,
+  // just the current user's for everyone else.
+  const historyYesterdayPending = useMemo(
+    () => (isAdmin ? pendingAllUsers.flatMap(u => u.yesterdayPending) : yesterdayPending),
+    [isAdmin, pendingAllUsers, yesterdayPending]
+  );
+
+  const maxDate = todayStr();
+
   return (
     <div className="space-y-6">
       <div className="bg-white rounded-2xl border border-gray-150 p-5 shadow-xs">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600">
-              <Sparkles size={18} />
-            </div>
-            <div>
-              <h2 className="text-sm font-black text-gray-900">Task Lineup</h2>
-            
-            </div>
+          {/* Local sub-nav — same tab treatment as Work Log / Work Log History */}
+          <div className="flex items-center gap-1 bg-gray-50 rounded-xl p-1">
+            <button
+              onClick={() => setView('lineup')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold cursor-pointer transition ${
+                view === 'lineup' ? 'bg-white text-indigo-700 shadow-xs' : 'text-gray-500 hover:text-gray-800'
+              }`}
+            >
+              <Sparkles size={14} />
+              Task Lineup
+            </button>
+            <button
+              onClick={() => setView('history')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold cursor-pointer transition ${
+                view === 'history' ? 'bg-white text-indigo-700 shadow-xs' : 'text-gray-500 hover:text-gray-800'
+              }`}
+            >
+              <History size={14} />
+              History
+            </button>
           </div>
 
           {isAdmin && (
@@ -374,22 +448,24 @@ export default function TaskLineup({
                 <Trash2 size={13} />
                 Delete
               </button>
-              <button
-                onClick={() => setShowCheckPendings(v => !v)}
-                className={`flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-xl transition cursor-pointer ${
-                  showCheckPendings ? 'bg-indigo-600 text-white' : 'bg-indigo-50 hover:bg-indigo-100 text-indigo-700'
-                }`}
-                title="Check every user's total and yesterday's pending tasks"
-              >
-                <ListChecks size={13} />
-                Check Pendings
-                {showCheckPendings ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
-              </button>
+              {view === 'lineup' && (
+                <button
+                  onClick={() => setShowCheckPendings(v => !v)}
+                  className={`flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-xl transition cursor-pointer ${
+                    showCheckPendings ? 'bg-indigo-600 text-white' : 'bg-indigo-50 hover:bg-indigo-100 text-indigo-700'
+                  }`}
+                  title="Check every user's total and yesterday's pending tasks"
+                >
+                  <ListChecks size={13} />
+                  Check Pendings
+                  {showCheckPendings ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                </button>
+              )}
             </div>
           )}
         </div>
 
-        {isSunday && (
+        {isSunday && view === 'lineup' && (
           <div className="mt-4 flex items-center gap-2 bg-amber-50 border border-amber-100 text-amber-800 text-xs font-bold px-3 py-2 rounded-xl">
             <AlertTriangle size={14} />
             Sundays are a rest day — the lineup engine doesn't generate assignments for this date.
@@ -403,221 +479,262 @@ export default function TaskLineup({
         )}
       </div>
 
-      {/* Admin: "Check Pendings" drill-down — one button per user; pick
-          someone to see their total + yesterday pending lists. */}
-      {isAdmin && showCheckPendings && (
-        <div className="bg-white rounded-2xl border border-gray-150 overflow-hidden shadow-xs">
-          <div className="px-5 py-3 bg-gray-50 border-b border-gray-150">
-            <p className="text-xs font-black text-gray-900">Check Pendings — by user</p>
-            <p className="text-[10px] font-bold text-gray-400 mt-0.5">Pick a user to see their total and yesterday's pending tasks.</p>
-          </div>
-          <div className="p-4 flex flex-wrap gap-2 border-b border-gray-100">
-            {pendingAllLoading ? (
-              <p className="text-xs font-bold text-gray-400 px-1">Loading users…</p>
-            ) : pendingAllUsers.length === 0 ? (
-              <p className="text-xs font-bold text-gray-400 px-1">No users configured yet.</p>
-            ) : (
-              [...pendingAllUsers].sort((a, b) => a.name.localeCompare(b.name)).map(u => (
-                <button
-                  key={u.email}
-                  onClick={() => setSelectedPendingEmail(u.email)}
-                  className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition cursor-pointer ${
-                    selectedPendingEmail && selectedPendingEmail.trim().toLowerCase() === u.email.trim().toLowerCase()
-                      ? 'bg-indigo-600 text-white'
-                      : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
-                  }`}
-                >
-                  {u.name} · {u.totalPendingCount} pending
-                </button>
-              ))
-            )}
-          </div>
-          {selectedPendingSummary && (
-            <div className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">
-                  {selectedPendingSummary.name} — Yesterday Pending ({selectedPendingSummary.yesterdayPendingCount})
-                </p>
-                <PendingProjectList items={selectedPendingSummary.yesterdayPending} />
+      {/* ================= TASK LINEUP TAB ================= */}
+      {view === 'lineup' && (
+        <>
+          {/* Admin: "Check Pendings" drill-down — one button per user; pick
+              someone to see their total + yesterday pending lists. */}
+          {isAdmin && showCheckPendings && (
+            <div className="bg-white rounded-2xl border border-gray-150 overflow-hidden shadow-xs">
+              <div className="px-5 py-3 bg-gray-50 border-b border-gray-150">
+                <p className="text-xs font-black text-gray-900">Check Pendings — by user</p>
+                <p className="text-[10px] font-bold text-gray-400 mt-0.5">Pick a user to see their total and yesterday's pending tasks.</p>
               </div>
-              <div>
-                <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">
-                  {selectedPendingSummary.name} — Total Pending ({selectedPendingSummary.totalPendingCount})
-                </p>
-                <PendingProjectList items={selectedPendingSummary.totalPending} />
+              <div className="p-4 flex flex-wrap gap-2 border-b border-gray-100">
+                {pendingAllLoading ? (
+                  <p className="text-xs font-bold text-gray-400 px-1">Loading users…</p>
+                ) : pendingAllUsers.length === 0 ? (
+                  <p className="text-xs font-bold text-gray-400 px-1">No users configured yet.</p>
+                ) : (
+                  [...pendingAllUsers].sort((a, b) => a.name.localeCompare(b.name)).map(u => (
+                    <button
+                      key={u.email}
+                      onClick={() => setSelectedPendingEmail(u.email)}
+                      className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition cursor-pointer ${
+                        selectedPendingEmail && selectedPendingEmail.trim().toLowerCase() === u.email.trim().toLowerCase()
+                          ? 'bg-indigo-600 text-white'
+                          : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                      }`}
+                    >
+                      {u.name} · {u.totalPendingCount} pending
+                    </button>
+                  ))
+                )}
               </div>
-              <div className="sm:col-span-2 text-[11px] text-gray-400 font-semibold">
-                Total tasks ever assigned to {selectedPendingSummary.name}: <span className="text-gray-600 font-bold">{selectedPendingSummary.totalTasks}</span>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Non-admin: Today's Assignments comes first — this is what people
-          open the tab to see, so it's the very first thing on screen. */}
-      {!isAdmin && (
-        <div className="bg-white rounded-2xl border border-gray-150 overflow-hidden shadow-xs">
-          <div className="px-5 py-3 bg-gray-50 border-b border-gray-150">
-            <p className="text-xs font-black text-gray-900">Today's Assignments</p>
-          </div>
-          {loading ? (
-            <p className="px-5 py-6 text-xs font-bold text-gray-400">Loading…</p>
-          ) : myAssignments.length === 0 ? (
-            <p className="px-5 py-6 text-xs font-bold text-gray-400">No tasks assigned to you for this date yet.</p>
-          ) : (
-            <div className="divide-y divide-gray-100">
-              {myAssignments.map((a) => (
-                <div key={a.id} className="flex items-center justify-between px-5 py-3">
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs font-bold text-gray-700">{a.projectName}</span>
-                    <Badge priority={a.priority} />
+              {selectedPendingSummary && (
+                <div className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">
+                      {selectedPendingSummary.name} — Yesterday Pending ({selectedPendingSummary.yesterdayPendingCount})
+                    </p>
+                    <PendingProjectList items={selectedPendingSummary.yesterdayPending} />
                   </div>
-                  <div className="flex items-center gap-3">
-                    <StatusBadge status={a.status} />
-                    {a.status === 'Pending' && (
-                      <button
-                        onClick={() => onJumpToWorkLog(a.projectId, a.date)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-black rounded-lg transition cursor-pointer"
-                      >
-                        <PenTool size={11} />
-                        Log Work
-                      </button>
-                    )}
+                  <div>
+                    <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">
+                      {selectedPendingSummary.name} — Total Pending ({selectedPendingSummary.totalPendingCount})
+                    </p>
+                    <PendingProjectList items={selectedPendingSummary.totalPending} />
+                  </div>
+                  <div className="sm:col-span-2 text-[11px] text-gray-400 font-semibold">
+                    Total tasks ever assigned to {selectedPendingSummary.name}: <span className="text-gray-600 font-bold">{selectedPendingSummary.totalTasks}</span>
                   </div>
                 </div>
-              ))}
+              )}
             </div>
           )}
-        </div>
-      )}
 
-      {/* Optional date filter — leave it blank and you just see the current
-          lineup (today's projects); only touch this to look at another day. */}
-      <div className="bg-white rounded-2xl border border-gray-150 p-4 shadow-xs flex flex-col sm:flex-row sm:items-center gap-3">
-        <div className="flex items-center gap-2 text-gray-500">
-          <CalendarDays size={14} />
-          <span className="text-[11px] font-bold uppercase tracking-wider">Date filter (optional)</span>
-        </div>
-        <input
-          type="date"
-          value={date}
-          onChange={(e) => setDate(e.target.value)}
-          className="px-3 py-2 text-xs font-bold border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-200"
-        />
-        {date && (
-          <button
-            onClick={() => setDate('')}
-            className="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 cursor-pointer"
-          >
-            Clear — back to today
-          </button>
-        )}
-        <span className="text-[11px] text-gray-400 font-semibold sm:ml-auto">
-          {date ? `Showing ${activeDate}` : "Leave blank to just see today's projects"}
-        </span>
-      </div>
-
-      {/* Non-admin: personal pending summary — both lists show project
-          names, not just a bare count. */}
-      {!isAdmin && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="bg-white rounded-2xl border border-gray-150 p-4 shadow-xs">
-            <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">Yesterday Pending ({yesterdayPending.length})</p>
-            <PendingProjectList items={yesterdayPending} />
-          </div>
-          <div className="bg-white rounded-2xl border border-gray-150 p-4 shadow-xs">
-            <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">Total Pending ({totalPendingCount})</p>
-            <PendingProjectList items={totalPending} />
-          </div>
-        </div>
-      )}
-
-      {/* Admin: standalone pause controls — always visible, independent of
-          whether a lineup has been generated for the selected date yet.
-          Pausing a user here excludes them from the NEXT time the cycle
-          runs; it doesn't touch assignments already generated. Each row now
-          also shows total tasks, yesterday pending, and total pending. */}
-      {isAdmin && (
-        <div className="bg-white rounded-2xl border border-gray-150 overflow-hidden shadow-xs">
-          <div className="px-5 py-3 bg-gray-50 border-b border-gray-150">
-            <p className="text-xs font-black text-gray-900"> Controls</p>
-            
-          </div>
-          {allowedUsers.length === 0 ? (
-            <p className="px-5 py-4 text-xs font-bold text-gray-400">No users configured yet.</p>
-          ) : (
-            <div className="divide-y divide-gray-100">
-              {[...allowedUsers].sort((a, b) => a.name.localeCompare(b.name)).map((u) => {
-                const paused = !!u.paused;
-                const stats = pendingStatsByEmail.get(u.email.trim().toLowerCase());
-                return (
-                  <div key={u.email} className="flex items-center justify-between px-5 py-2.5 gap-3">
-                    <div className="min-w-0">
-                      <p className="text-xs font-bold text-gray-800 truncate">{u.name}</p>
-                      <p className="text-[10px] text-gray-400 font-semibold truncate">{u.email}</p>
+          {/* Non-admin: Today's Lineup — the date filter now lives in this
+              card's own header, right-aligned, capped so a future date can't
+              be picked. */}
+          {!isAdmin && (
+            <div className="bg-white rounded-2xl border border-gray-150 overflow-hidden shadow-xs">
+              <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5 bg-gray-50 border-b border-gray-150">
+                <p className="text-sm font-black text-gray-900">Today's Lineup</p>
+                <div className="flex items-center gap-2">
+                  <CalendarDays size={13} className="text-gray-400" />
+                  <input
+                    type="date"
+                    value={date}
+                    max={maxDate}
+                    onChange={(e) => setDate(e.target.value)}
+                    className="px-2.5 py-1.5 text-xs font-bold border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                  />
+                  {date && (
+                    <button
+                      onClick={() => setDate('')}
+                      className="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 cursor-pointer"
+                    >
+                      Today
+                    </button>
+                  )}
+                </div>
+              </div>
+              {loading ? (
+                <p className="px-5 py-6 text-xs font-bold text-gray-400">Loading…</p>
+              ) : myAssignments.length === 0 ? (
+                <p className="px-5 py-6 text-xs font-bold text-gray-400">No tasks assigned to you for this date yet.</p>
+              ) : (
+                <div className="divide-y divide-gray-100">
+                  {myAssignments.map((a) => (
+                    <div key={a.id} className="flex items-center justify-between px-5 py-3.5">
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm font-bold text-gray-700">{a.projectName}</span>
+                        <Badge priority={a.priority} />
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <StatusBadge status={a.status} />
+                        {a.status === 'Pending' && (
+                          <button
+                            onClick={() => onJumpToWorkLog(a.projectId, a.date)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-black rounded-lg transition cursor-pointer"
+                          >
+                            <PenTool size={12} />
+                            Log Work
+                          </button>
+                        )}
+                      </div>
                     </div>
-                    <div className="flex items-center gap-4 shrink-0">
-                      {stats && (
-                        <div className="hidden md:flex items-center gap-3 text-[10px] font-bold text-gray-500">
-                          <span title="Total tasks ever assigned">Total: <span className="text-gray-800">{stats.totalTasks}</span></span>
-                          <span title="Still pending from yesterday">Yesterday: <span className="text-amber-700">{stats.yesterdayPendingCount}</span></span>
-                          <span title="All-time pending">Pending: <span className="text-red-700">{stats.totalPendingCount}</span></span>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Admin: date filter — checking the lineup as it stood on a given
+              day; future dates are disabled since there's nothing to show
+              yet. */}
+          {isAdmin && (
+            <div className="bg-white rounded-2xl border border-gray-150 p-4 shadow-xs flex flex-col sm:flex-row sm:items-center gap-3">
+              <div className="flex items-center gap-2 text-gray-500">
+                <CalendarDays size={14} />
+                <span className="text-[11px] font-bold uppercase tracking-wider">Date filter (optional)</span>
+              </div>
+              <input
+                type="date"
+                value={date}
+                max={maxDate}
+                onChange={(e) => setDate(e.target.value)}
+                className="px-3 py-2 text-xs font-bold border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-200"
+              />
+              {date && (
+                <button
+                  onClick={() => setDate('')}
+                  className="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 cursor-pointer"
+                >
+                  Clear — back to today
+                </button>
+              )}
+              <span className="text-[11px] text-gray-400 font-semibold sm:ml-auto">
+                {date ? `Showing ${activeDate}` : "Leave blank to just see today's projects"}
+              </span>
+            </div>
+          )}
+
+          {/* Admin: standalone pause controls — always visible, independent of
+              whether a lineup has been generated for the selected date yet.
+              Pausing a user here excludes them from the NEXT time the cycle
+              runs; it doesn't touch assignments already generated. Each row now
+              also shows total tasks, yesterday pending, and total pending. */}
+          {isAdmin && (
+            <div className="bg-white rounded-2xl border border-gray-150 overflow-hidden shadow-xs">
+              <div className="px-5 py-3 bg-gray-50 border-b border-gray-150">
+                <p className="text-xs font-black text-gray-900"> Controls</p>
+              </div>
+              {allowedUsers.length === 0 ? (
+                <p className="px-5 py-4 text-xs font-bold text-gray-400">No users configured yet.</p>
+              ) : (
+                <div className="divide-y divide-gray-100">
+                  {[...allowedUsers].sort((a, b) => a.name.localeCompare(b.name)).map((u) => {
+                    const paused = !!u.paused;
+                    const stats = pendingStatsByEmail.get(u.email.trim().toLowerCase());
+                    return (
+                      <div key={u.email} className="flex items-center justify-between px-5 py-2.5 gap-3">
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold text-gray-800 truncate">{u.name}</p>
+                          <p className="text-[10px] text-gray-400 font-semibold truncate">{u.email}</p>
                         </div>
-                      )}
-                      <button
-                        onClick={() => togglePause(u.email, !paused)}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition cursor-pointer ${
-                          paused ? 'bg-amber-100 text-amber-700 hover:bg-amber-200' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-                        }`}
-                      >
-                        {paused ? <Play size={12} /> : <Pause size={12} />}
-                        {paused ? 'Paused' : 'Pause'}
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Admin: per-user grouped lineup for the selected date */}
-      {isAdmin && (
-        <div className="space-y-4">
-          {loading ? (
-            <p className="text-xs font-bold text-gray-400">Loading lineup…</p>
-          ) : groupedByUser.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-gray-150 p-8 text-center">
-              <p className="text-sm font-bold text-gray-500">No lineup generated for this date yet.</p>
-            </div>
-          ) : (
-            groupedByUser.map(([displayName, list]) => {
-              const doneCount = list.filter(a => a.status === 'Done').length;
-              return (
-                <div key={displayName} className="bg-white rounded-2xl border border-gray-150 overflow-hidden shadow-xs">
-                  <div className="flex items-center justify-between px-5 py-3 bg-gray-50 border-b border-gray-150">
-                    <div>
-                      <p className="text-xs font-black text-gray-900">{displayName}</p>
-                      <p className="text-[10px] font-bold text-gray-400">{doneCount}/{list.length} completed today</p>
-                    </div>
-                  </div>
-                  <div className="divide-y divide-gray-100">
-                    {list.map((a) => (
-                      <div key={a.id} className="flex items-center justify-between px-5 py-2.5">
-                        <span className="text-xs font-bold text-gray-700">{a.projectName}</span>
-                        <div className="flex items-center gap-3">
-                          <Badge priority={a.priority} />
-                          <StatusBadge status={a.status} />
+                        <div className="flex items-center gap-4 shrink-0">
+                          {stats && (
+                            <div className="hidden md:flex items-center gap-3 text-[10px] font-bold text-gray-500">
+                              <span title="Total tasks ever assigned">Total: <span className="text-gray-800">{stats.totalTasks}</span></span>
+                              <span title="Still pending from yesterday">Yesterday: <span className="text-amber-700">{stats.yesterdayPendingCount}</span></span>
+                              <span title="All-time pending">Pending: <span className="text-red-700">{stats.totalPendingCount}</span></span>
+                            </div>
+                          )}
+                          <button
+                            onClick={() => togglePause(u.email, !paused)}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition cursor-pointer ${
+                              paused ? 'bg-amber-100 text-amber-700 hover:bg-amber-200' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                            }`}
+                          >
+                            {paused ? <Play size={12} /> : <Pause size={12} />}
+                            {paused ? 'Paused' : 'Pause'}
+                          </button>
                         </div>
                       </div>
-                    ))}
-                  </div>
+                    );
+                  })}
                 </div>
-              );
-            })
+              )}
+            </div>
           )}
+
+          {/* Admin: per-user grouped lineup for the selected date — Pending
+              tasks list first, Submitted ones last. */}
+          {isAdmin && (
+            <div className="space-y-4">
+              {loading ? (
+                <p className="text-xs font-bold text-gray-400">Loading lineup…</p>
+              ) : groupedByUser.length === 0 ? (
+                <div className="bg-white rounded-2xl border border-gray-150 p-8 text-center">
+                  <p className="text-sm font-bold text-gray-500">No lineup generated for this date yet.</p>
+                </div>
+              ) : (
+                groupedByUser.map(([displayName, list]) => {
+                  const doneCount = list.filter(a => a.status === 'Done').length;
+                  return (
+                    <div key={displayName} className="bg-white rounded-2xl border border-gray-150 overflow-hidden shadow-xs">
+                      <div className="flex items-center justify-between px-5 py-3 bg-gray-50 border-b border-gray-150">
+                        <div>
+                          <p className="text-xs font-black text-gray-900">{displayName}</p>
+                          <p className="text-[10px] font-bold text-gray-400">{doneCount}/{list.length} completed today</p>
+                        </div>
+                      </div>
+                      <div className="divide-y divide-gray-100">
+                        {list.map((a) => (
+                          <div key={a.id} className="flex items-center justify-between px-5 py-2.5">
+                            <span className="text-sm font-bold text-gray-700">{a.projectName}</span>
+                            <div className="flex items-center gap-3">
+                              <Badge priority={a.priority} />
+                              <StatusBadge status={a.status} />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          )}
+        </>
+      )}
+
+      {/* ================= HISTORY TAB ================= */}
+      {view === 'history' && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="bg-white rounded-2xl border border-gray-150 p-4 shadow-xs">
+            <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">
+              Yesterday Pending ({historyYesterdayPending.length})
+            </p>
+            <PendingProjectList
+              items={historyYesterdayPending}
+              getOwner={isAdmin ? (a) => nameFor(a.userEmail) : undefined}
+            />
+          </div>
+          <div className="bg-white rounded-2xl border border-gray-150 p-4 shadow-xs">
+            <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">
+              Today Pending ({todayPending.length})
+            </p>
+            {todayPendingLoading ? (
+              <p className="text-xs font-semibold text-gray-400">Loading…</p>
+            ) : (
+              <PendingProjectList
+                items={todayPending}
+                getOwner={isAdmin ? (a) => nameFor(a.userEmail) : undefined}
+              />
+            )}
+          </div>
         </div>
       )}
     </div>
