@@ -6,7 +6,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { AppUser, TaskAssignment } from '../types';
 import {
-  Sparkles,
   Trash2,
   Play,
   Pause,
@@ -18,7 +17,6 @@ import {
   ChevronDown,
   ChevronUp,
   CalendarDays,
-  History,
 } from 'lucide-react';
 
 interface TaskLineupProps {
@@ -391,30 +389,32 @@ export default function TaskLineup({
 
   return (
     <div className="space-y-6">
-      <div className="bg-white rounded-2xl border border-gray-150 p-5 shadow-xs">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          {/* Local sub-nav — same tab treatment as Work Log / Work Log History */}
-          <div className="flex items-center gap-1 bg-gray-50 rounded-xl p-1">
-            <button
-              onClick={() => setView('lineup')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold cursor-pointer transition ${
-                view === 'lineup' ? 'bg-white text-indigo-700 shadow-xs' : 'text-gray-500 hover:text-gray-800'
-              }`}
-            >
-              <Sparkles size={14} />
-              Task Lineup
-            </button>
-            <button
-              onClick={() => setView('history')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold cursor-pointer transition ${
-                view === 'history' ? 'bg-white text-indigo-700 shadow-xs' : 'text-gray-500 hover:text-gray-800'
-              }`}
-            >
-              <History size={14} />
-              History
-            </button>
-          </div>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-150 pb-6">
+        {/* Page-level heading toggle — same "Submission | History" treatment
+            used on the Work Log tab, available to admin and non-admin alike. */}
+        <h1 className="text-xl font-black tracking-tight sm:text-2xl flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setView('lineup')}
+            className={`text-xl font-black tracking-tight sm:text-2xl transition cursor-pointer ${
+              view === 'lineup' ? 'text-gray-900' : 'text-gray-400 hover:text-indigo-600'
+            }`}
+          >
+            Task Lineup
+          </button>
+          <span className="text-gray-400">|</span>
+          <button
+            type="button"
+            onClick={() => setView('history')}
+            className={`text-xl font-black tracking-tight sm:text-2xl transition cursor-pointer ${
+              view === 'history' ? 'text-gray-900' : 'text-gray-400 hover:text-indigo-600'
+            }`}
+          >
+            History
+          </button>
+        </h1>
 
+        <div className="flex flex-col items-end gap-2">
           {isAdmin && (
             <div className="flex flex-wrap items-center gap-2">
               {!engineActive ? (
@@ -464,20 +464,20 @@ export default function TaskLineup({
             </div>
           )}
         </div>
-
-        {isSunday && view === 'lineup' && (
-          <div className="mt-4 flex items-center gap-2 bg-amber-50 border border-amber-100 text-amber-800 text-xs font-bold px-3 py-2 rounded-xl">
-            <AlertTriangle size={14} />
-            Sundays are a rest day — the lineup engine doesn't generate assignments for this date.
-          </div>
-        )}
-
-        {generateMsg && (
-          <div className="mt-4 text-xs font-bold text-gray-600 bg-gray-50 border border-gray-150 px-3 py-2 rounded-xl">
-            {generateMsg}
-          </div>
-        )}
       </div>
+
+      {isSunday && view === 'lineup' && (
+        <div className="flex items-center gap-2 bg-amber-50 border border-amber-100 text-amber-800 text-xs font-bold px-3 py-2 rounded-xl">
+          <AlertTriangle size={14} />
+          Sundays are a rest day — the lineup engine doesn't generate assignments for this date.
+        </div>
+      )}
+
+      {generateMsg && (
+        <div className="text-xs font-bold text-gray-600 bg-gray-50 border border-gray-150 px-3 py-2 rounded-xl">
+          {generateMsg}
+        </div>
+      )}
 
       {/* ================= TASK LINEUP TAB ================= */}
       {view === 'lineup' && (
