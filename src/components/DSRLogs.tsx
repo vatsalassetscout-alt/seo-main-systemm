@@ -365,7 +365,15 @@ export default function DSRLogs({
       works: any[];
     }> = {};
 
-    filteredEntries.forEach((entry) => {
+    // Walk entries in true chronological (submission) order — the `entries` list itself is
+    // newest-first (new submissions are prepended), so without this sort the "first" work
+    // item pushed into a day's group would actually be the most recently submitted one,
+    // which threw off the Project numbering / sequence shown below and in the Delete modal.
+    const chronologicalEntries = [...filteredEntries].sort((a, b) =>
+      (a.createdAt || '').localeCompare(b.createdAt || '')
+    );
+
+    chronologicalEntries.forEach((entry) => {
       const emailLower = (entry.userEmail || '').trim().toLowerCase();
       const rawDate = entry.date || '';
       const dateStr = rawDate.includes('T') ? rawDate.split('T')[0] : rawDate;
@@ -833,25 +841,39 @@ export default function DSRLogs({
                                   return aHasDomain ? 1 : -1;
                                 });
                               let domainCounter = 0;
+                              const seenProjectKeys = new Set<string>();
                               return orderedWorks.map(({ w: work, originalIdx }: any) => {
                               const workMatchedProj = projects.find(p => p.id === work.projectId);
                               const hasDomain = !!work.projectId;
-                              const projectDisplayNumber = hasDomain ? ++domainCounter : 0;
+                              // Same project submitted again the same day — don't treat it as a new
+                              // "Project N", it's the same project, so skip the heading/name row and
+                              // just show this entry's own timestamp + details underneath.
+                              const projectKey = hasDomain ? (work.projectId || work.projectName || '') : '';
+                              const isRepeatOfSameProject = hasDomain && !!projectKey && seenProjectKeys.has(projectKey);
+                              let projectDisplayNumber = 0;
+                              if (hasDomain && !isRepeatOfSameProject) {
+                                projectDisplayNumber = ++domainCounter;
+                                if (projectKey) seenProjectKeys.add(projectKey);
+                              }
                               return (
                                 <div key={work.workId || originalIdx} className="space-y-4 pb-6 last:pb-0 border-b border-dashed border-slate-200 last:border-b-0">
                                   {/* Inner details header */}
                                   <div className="pb-2">
-                                    <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">
-                                      {hasDomain ? `Project ${projectDisplayNumber}` : 'Note'}
-                                    </h4>
-                                    <p className="text-sm font-black text-slate-900 mt-1 flex items-center gap-2">
-                                      📂 {hasDomain ? (workMatchedProj?.name || work.projectName || 'Work Note') : 'Work Note'}
-                                      {workMatchedProj?.domain && (
-                                        <span className="font-mono text-xs text-slate-500 font-bold bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-lg">
-                                          {workMatchedProj.domain}
-                                        </span>
-                                      )}
-                                    </p>
+                                    {!isRepeatOfSameProject && (
+                                      <>
+                                        <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">
+                                          {hasDomain ? `Project ${projectDisplayNumber}` : 'Note'}
+                                        </h4>
+                                        <p className="text-sm font-black text-slate-900 mt-1 flex items-center gap-2">
+                                          📂 {hasDomain ? (workMatchedProj?.name || work.projectName || 'Work Note') : 'Work Note'}
+                                          {workMatchedProj?.domain && (
+                                            <span className="font-mono text-xs text-slate-500 font-bold bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-lg">
+                                              {workMatchedProj.domain}
+                                            </span>
+                                          )}
+                                        </p>
+                                      </>
+                                    )}
                                     {(() => {
                                       const workDateObj = work.entryCreatedAt ? new Date(work.entryCreatedAt) : null;
                                       const hasValidDate = workDateObj && !isNaN(workDateObj.getTime());
@@ -862,7 +884,7 @@ export default function DSRLogs({
                                         ? workDateObj!.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
                                         : submittedTimeStr;
                                       return (
-                                        <p className="text-[10.5px] text-slate-450 font-bold mt-1 flex items-center gap-1">
+                                        <p className={`text-[10.5px] text-slate-450 font-bold flex items-center gap-1 ${isRepeatOfSameProject ? '' : 'mt-1'}`}>
                                           📅 {workDateStr} • {workTimeStr}
                                         </p>
                                       );
@@ -1275,7 +1297,13 @@ export default function DSRLogs({
                   </div>
 
                   <div className="space-y-2">
-                    {idsForDay.map((id) => {
+                    {[...idsForDay]
+                      .sort((idA, idB) => {
+                        const entryA = entries.find((e) => e.id === idA);
+                        const entryB = entries.find((e) => e.id === idB);
+                        return (entryA?.createdAt || '').localeCompare(entryB?.createdAt || '');
+                      })
+                      .map((id, sequenceIdx) => {
                       const entry = entries.find((e) => e.id === id);
                       const projectNames = Array.from(
                         new Set((entry?.works || []).map((w: any) => w.projectName).filter(Boolean))
@@ -1292,6 +1320,9 @@ export default function DSRLogs({
                             onChange={(e) => setDeleteSelectedIds((prev) => ({ ...prev, [id]: e.target.checked }))}
                             className="mt-0.5 w-4 h-4 accent-rose-600 cursor-pointer shrink-0"
                           />
+                          <span className="mt-0.5 w-5 h-5 rounded-full bg-gray-150 text-gray-600 text-[10px] font-black flex items-center justify-center shrink-0">
+                            {sequenceIdx + 1}
+                          </span>
                           <div className="space-y-0.5">
                             <p className="text-xs font-bold text-gray-800">
                               {projectNames.length > 0 ? projectNames.join(', ') : 'Extra / New Work'}
