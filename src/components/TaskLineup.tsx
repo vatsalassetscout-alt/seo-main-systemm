@@ -49,6 +49,11 @@ function todayStr(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
+const MONTH_NAMES = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December'
+];
+
 // Pending ("not yet worked") tasks always float to the top; a Submitted
 // (formerly "Done") task has already been handled, so it sinks to the
 // bottom of whichever list it appears in.
@@ -141,6 +146,17 @@ export default function TaskLineup({
   const [pendingAllLoading, setPendingAllLoading] = useState(false);
   const [selectedPendingEmail, setSelectedPendingEmail] = useState<string | null>(null);
 
+  // History tab: day-by-day assignment calendar — click any past/today date
+  // to see every user's assigned projects for that day and whether each one
+  // was Submitted or Not Submitted. Separate from the main "lineup" state
+  // above so browsing the calendar never disturbs the Task Lineup tab.
+  const [historyCalMonth, setHistoryCalMonth] = useState(() => new Date().getMonth());
+  const [historyCalYear, setHistoryCalYear] = useState(() => new Date().getFullYear());
+  const [historyCalDay, setHistoryCalDay] = useState<string | null>(null);
+  const [historyCalAssignments, setHistoryCalAssignments] = useState<TaskAssignment[]>([]);
+  const [historyCalLoading, setHistoryCalLoading] = useState(false);
+  const [historyCalUser, setHistoryCalUser] = useState<string>('all');
+
   const activeDate = date || todayStr();
 
   const authHeaders = useMemo(() => ({
@@ -213,6 +229,21 @@ export default function TaskLineup({
       console.error('Failed to load per-user pending summary:', err);
     } finally {
       setPendingAllLoading(false);
+    }
+  }, [authHeaders]);
+
+  // Fetch every user's assignments for one specific calendar day (History tab).
+  const loadHistoryCalDay = useCallback(async (d: string) => {
+    setHistoryCalLoading(true);
+    try {
+      const res = await fetch(`/api/task-lineup?date=${encodeURIComponent(d)}`, { headers: authHeaders });
+      const data = await res.json();
+      setHistoryCalAssignments(Array.isArray(data.assignments) ? data.assignments : []);
+    } catch (err) {
+      console.error('Failed to load calendar day assignments:', err);
+      setHistoryCalAssignments([]);
+    } finally {
+      setHistoryCalLoading(false);
     }
   }, [authHeaders]);
 
@@ -384,6 +415,38 @@ export default function TaskLineup({
     () => (isAdmin ? pendingAllUsers.flatMap(u => u.yesterdayPending) : yesterdayPending),
     [isAdmin, pendingAllUsers, yesterdayPending]
   );
+
+  // Calendar grid cells (blank leading slots + actual day numbers) for the
+  // History tab's assignment-status calendar.
+  const historyCalMonthDays = useMemo(() => {
+    const firstDayOfWeek = new Date(historyCalYear, historyCalMonth, 1).getDay();
+    const daysInMonth = new Date(historyCalYear, historyCalMonth + 1, 0).getDate();
+    return {
+      blanks: Array.from({ length: firstDayOfWeek }),
+      days: Array.from({ length: daysInMonth }, (_, i) => i + 1),
+    };
+  }, [historyCalMonth, historyCalYear]);
+
+  // Assignments for the currently selected calendar day, narrowed to the
+  // chosen user (or everyone, when "All Users" is selected).
+  const historyCalFilteredAssignments = useMemo(() => {
+    if (historyCalUser === 'all') return historyCalAssignments;
+    return historyCalAssignments.filter(
+      (a) => a.userEmail.trim().toLowerCase() === historyCalUser.trim().toLowerCase()
+    );
+  }, [historyCalAssignments, historyCalUser]);
+
+  // Same list, grouped by display name — used when "All Users" is selected
+  // so the panel reads as one block per person rather than one flat list.
+  const historyCalGroupedByUser = useMemo(() => {
+    const map = new Map<string, TaskAssignment[]>();
+    historyCalFilteredAssignments.forEach((a) => {
+      const displayName = nameFor(a.userEmail);
+      if (!map.has(displayName)) map.set(displayName, []);
+      map.get(displayName)!.push(a);
+    });
+    return Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+  }, [historyCalFilteredAssignments, allowedUsers]);
 
   const maxDate = todayStr();
 
@@ -702,29 +765,195 @@ export default function TaskLineup({
 
       {/* ================= HISTORY TAB ================= */}
       {view === 'history' && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="bg-white rounded-2xl border border-gray-150 p-4 shadow-xs">
-            <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">
-              Yesterday Pending ({historyYesterdayPending.length})
-            </p>
-            <PendingProjectList
-              items={historyYesterdayPending}
-              getOwner={isAdmin ? (a) => nameFor(a.userEmail) : undefined}
-            />
-          </div>
-          <div className="bg-white rounded-2xl border border-gray-150 p-4 shadow-xs">
-            <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">
-              Today Pending ({todayPending.length})
-            </p>
-            {todayPendingLoading ? (
-              <p className="text-xs font-semibold text-gray-400">Loading…</p>
-            ) : (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="bg-white rounded-2xl border border-gray-150 p-4 shadow-xs">
+              <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">
+                Yesterday Pending ({historyYesterdayPending.length})
+              </p>
               <PendingProjectList
-                items={todayPending}
+                items={historyYesterdayPending}
                 getOwner={isAdmin ? (a) => nameFor(a.userEmail) : undefined}
               />
-            )}
+            </div>
+            <div className="bg-white rounded-2xl border border-gray-150 p-4 shadow-xs">
+              <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">
+                Today Pending ({todayPending.length})
+              </p>
+              {todayPendingLoading ? (
+                <p className="text-xs font-semibold text-gray-400">Loading…</p>
+              ) : (
+                <PendingProjectList
+                  items={todayPending}
+                  getOwner={isAdmin ? (a) => nameFor(a.userEmail) : undefined}
+                />
+              )}
+            </div>
           </div>
+
+          {/* Day-by-day assignment status calendar — pick any date, see every
+              user's assigned projects for that day and whether each was
+              Submitted or Not Submitted. */}
+          {isAdmin && (
+            <div className="bg-white rounded-2xl border border-gray-150 shadow-xs overflow-hidden">
+              <div className="p-4 bg-gray-50/50 border-b border-gray-150 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <h3 className="text-xs font-black text-gray-900 uppercase tracking-wider flex items-center gap-1.5">
+                  <CalendarDays size={14} className="text-indigo-600" />
+                  Daily Assignment Status
+                </h3>
+
+                <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200/60 shadow-inner h-[32px] self-start sm:self-center">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (historyCalMonth === 0) {
+                        setHistoryCalMonth(11);
+                        setHistoryCalYear((y) => y - 1);
+                      } else {
+                        setHistoryCalMonth((m) => m - 1);
+                      }
+                    }}
+                    className="px-2 py-1 text-slate-500 hover:text-indigo-600 transition-colors cursor-pointer"
+                  >
+                    <ChevronDown className="rotate-90" size={13} />
+                  </button>
+                  <span className="font-extrabold text-[11px] uppercase tracking-wider text-slate-700 min-w-[110px] text-center select-none">
+                    {MONTH_NAMES[historyCalMonth]} {historyCalYear}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (historyCalMonth === 11) {
+                        setHistoryCalMonth(0);
+                        setHistoryCalYear((y) => y + 1);
+                      } else {
+                        setHistoryCalMonth((m) => m + 1);
+                      }
+                    }}
+                    className="px-2 py-1 text-slate-500 hover:text-indigo-600 transition-colors cursor-pointer"
+                  >
+                    <ChevronUp className="rotate-90" size={13} />
+                  </button>
+                </div>
+              </div>
+
+              <div className="p-5 grid grid-cols-1 lg:grid-cols-12 gap-6">
+                {/* Left: calendar grid */}
+                <div className="lg:col-span-7 bg-slate-50/50 p-5 rounded-2xl border border-slate-150/60 shadow-inner">
+                  <div className="grid grid-cols-7 gap-2 mb-3 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                    <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
+                  </div>
+                  <div className="grid grid-cols-7 gap-2">
+                    {historyCalMonthDays.blanks.map((_, idx) => (
+                      <div
+                        key={`hcal-blank-${idx}`}
+                        className="aspect-square bg-slate-50/30 rounded-xl border border-dashed border-slate-200/20 opacity-20 select-none"
+                      />
+                    ))}
+                    {historyCalMonthDays.days.map((day) => {
+                      const dateStr = `${historyCalYear}-${String(historyCalMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                      const isSelected = historyCalDay === dateStr;
+                      const isFuture = dateStr > todayStr();
+                      return (
+                        <button
+                          key={`hcal-day-${day}`}
+                          type="button"
+                          disabled={isFuture}
+                          onClick={() => {
+                            setHistoryCalDay(dateStr);
+                            loadHistoryCalDay(dateStr);
+                          }}
+                          className={`aspect-square rounded-2xl flex items-center justify-center text-[12px] font-black transition-all duration-200 select-none ${
+                            isFuture
+                              ? 'bg-slate-50 text-slate-300 cursor-not-allowed'
+                              : isSelected
+                              ? 'bg-indigo-600 text-white shadow-xs ring-2 ring-indigo-300 ring-offset-1 scale-105 cursor-pointer'
+                              : 'bg-white border border-slate-200 text-slate-600 hover:bg-indigo-50 hover:border-indigo-200 cursor-pointer'
+                          }`}
+                        >
+                          {day}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <p className="mt-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                    Click any day to see every user's assigned projects and submission status.
+                  </p>
+                </div>
+
+                {/* Right: user dropdown + project/status list for the selected day */}
+                <div className="lg:col-span-5 flex flex-col">
+                  <select
+                    value={historyCalUser}
+                    onChange={(e) => setHistoryCalUser(e.target.value)}
+                    className="mb-3 w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold text-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                  >
+                    <option value="all">All Users</option>
+                    {[...allowedUsers].sort((a, b) => a.name.localeCompare(b.name)).map((u) => (
+                      <option key={u.email} value={u.email}>{u.name}</option>
+                    ))}
+                  </select>
+
+                  {!historyCalDay ? (
+                    <div className="flex-1 flex items-center justify-center text-center p-8 bg-slate-50/50 rounded-2xl border border-dashed border-slate-200 min-h-[220px]">
+                      <p className="text-xs font-bold text-slate-400">Select a day from the calendar to view assignment status.</p>
+                    </div>
+                  ) : historyCalLoading ? (
+                    <p className="text-xs font-bold text-gray-400 p-4">Loading…</p>
+                  ) : historyCalFilteredAssignments.length === 0 ? (
+                    <div className="flex-1 flex items-center justify-center text-center p-8 bg-slate-50/50 rounded-2xl border border-dashed border-slate-200 min-h-[220px]">
+                      <p className="text-xs font-bold text-slate-400">No assignments found for {historyCalDay}.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4 max-h-[420px] overflow-y-auto pr-1">
+                      {historyCalUser === 'all' ? (
+                        historyCalGroupedByUser.map(([userName, items]) => (
+                          <div key={userName} className="bg-white rounded-xl border border-gray-150 overflow-hidden">
+                            <div className="px-3.5 py-2 bg-gray-50 border-b border-gray-150">
+                              <p className="text-[11px] font-black text-gray-900">{userName}</p>
+                            </div>
+                            <div className="divide-y divide-gray-100">
+                              {items.map((a) => (
+                                <div key={a.id} className="flex items-center justify-between px-3.5 py-2">
+                                  <span className="text-xs font-bold text-gray-700 truncate pr-2">{a.projectName}</span>
+                                  {a.status === 'Done' ? (
+                                    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 shrink-0">
+                                      <CheckCircle2 size={12} /> Submitted
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-red-600 shrink-0">
+                                      <Clock size={12} /> Not Submitted
+                                    </span>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="bg-white rounded-xl border border-gray-150 divide-y divide-gray-100">
+                          {historyCalFilteredAssignments.map((a) => (
+                            <div key={a.id} className="flex items-center justify-between px-3.5 py-2.5">
+                              <span className="text-xs font-bold text-gray-700 truncate pr-2">{a.projectName}</span>
+                              {a.status === 'Done' ? (
+                                <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 shrink-0">
+                                  <CheckCircle2 size={12} /> Submitted
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 text-[11px] font-bold text-red-600 shrink-0">
+                                  <Clock size={12} /> Not Submitted
+                                </span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
