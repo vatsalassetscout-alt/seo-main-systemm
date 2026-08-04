@@ -843,12 +843,23 @@ export default function DSRLogs({
                               let domainCounter = 0;
                               const seenProjectKeys = new Set<string>();
                               return orderedWorks.map(({ w: work, originalIdx }: any) => {
-                              const workMatchedProj = projects.find(p => p.id === work.projectId);
+                              const workMatchedProj = projects.find(p => String(p.id) === String(work.projectId));
                               const hasDomain = !!work.projectId;
                               // Same project submitted again the same day — don't treat it as a new
                               // "Project N", it's the same project, so skip the heading/name row and
                               // just show this entry's own timestamp + details underneath.
-                              const projectKey = hasDomain ? (work.projectId || work.projectName || '') : '';
+                              // Key is normalized (resolved project id when it matches the projects
+                              // list, else a trimmed/lowercased id or name) so that a repeat submission
+                              // for the SAME project always collapses under its original block instead
+                              // of only working for a lucky subset of projects.
+                              const projectKey = hasDomain
+                                ? String(
+                                    workMatchedProj?.id ??
+                                    work.projectId ??
+                                    work.projectName ??
+                                    ''
+                                  ).trim().toLowerCase()
+                                : '';
                               const isRepeatOfSameProject = hasDomain && !!projectKey && seenProjectKeys.has(projectKey);
                               let projectDisplayNumber = 0;
                               if (hasDomain && !isRepeatOfSameProject) {
