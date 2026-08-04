@@ -569,7 +569,7 @@ export default function DSRForm({
                               onClick={() => handleSetWorkStatus(idx, 'worked')}
                               className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl border text-xs font-bold transition cursor-pointer select-none ${
                                 work.workStatus === 'worked'
-                                  ? 'border-emerald-600 bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600'
+                                  ? 'border-gray-800 bg-gray-100 text-gray-800 ring-1 ring-gray-800'
                                   : 'border-gray-200 bg-white hover:bg-gray-50 text-gray-700'
                               }`}
                             >
@@ -581,7 +581,7 @@ export default function DSRForm({
                               onClick={() => handleSetWorkStatus(idx, 'not_worked')}
                               className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl border text-xs font-bold transition cursor-pointer select-none ${
                                 work.workStatus === 'not_worked'
-                                  ? 'border-rose-600 bg-rose-50 text-rose-700 ring-1 ring-rose-600'
+                                  ? 'border-gray-800 bg-gray-100 text-gray-800 ring-1 ring-gray-800'
                                   : 'border-gray-200 bg-white hover:bg-gray-50 text-gray-700'
                               }`}
                             >
