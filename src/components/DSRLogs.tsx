@@ -1124,12 +1124,17 @@ export default function DSRLogs({
                                 <button
                                   onClick={() => {
                                     const nextStatus = item.status === 'Approved' ? 'Pending' : 'Approved';
+                                    const scrollY = window.scrollY;
+
                                     item.entryIds.forEach((id: string) => {
                                       onUpdateStatus(id, nextStatus);
                                     });
                                     if (nextStatus === 'Approved') {
                                       setExpandedEntries(prev => ({ ...prev, [item.uniqueId]: false }));
                                     }
+
+                                    // Keep the page exactly where it was — just close the card, no jump/movement.
+                                    requestAnimationFrame(() => window.scrollTo(0, scrollY));
                                   }}
                                   className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition cursor-pointer select-none font-sans ${
                                     item.status === 'Approved'
