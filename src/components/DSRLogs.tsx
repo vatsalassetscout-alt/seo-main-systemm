@@ -632,9 +632,9 @@ export default function DSRLogs({
                 className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-950 focus:outline-none transition cursor-pointer h-[40px]"
               >
                 <option value="all">All Status</option>
-                <option value="Pending">Pending Only</option>
-                <option value="Approved">Approved Only</option>
-                <option value="Remark">Remark Only</option>
+                <option value="Pending">Pending</option>
+                <option value="Approved">Approved</option>
+                <option value="Remark">Remark</option>
               </select>
             </div>
           )}
@@ -797,7 +797,7 @@ export default function DSRLogs({
                             item.status === 'Remark' ? 'bg-violet-50 text-violet-800 border-violet-150' :
                             'bg-amber-50 text-amber-855 border-amber-100'
                           }`}>
-                            {item.status === 'Remark' ? '💬 Remark' : item.status}
+                            {item.status === 'Remark' ? 'Remark' : item.status}
                           </span>
                         )}
 
@@ -876,7 +876,7 @@ export default function DSRLogs({
                                           {hasDomain ? `Project ${projectDisplayNumber}` : 'Note'}
                                         </h4>
                                         <p className="text-sm font-black text-slate-900 mt-1 flex items-center gap-2">
-                                          📂 {hasDomain ? (workMatchedProj?.name || work.projectName || 'Work Note') : 'Work Note'}
+                                           {hasDomain ? (workMatchedProj?.name || work.projectName || 'Work Note') : 'Work Note'}
                                           {workMatchedProj?.domain && (
                                             <span className="font-mono text-xs text-slate-500 font-bold bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-lg">
                                               {workMatchedProj.domain}
