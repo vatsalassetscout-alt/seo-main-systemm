@@ -35,6 +35,7 @@ import {
   getTaskAssignmentsDb,
   generateLineupForDate,
   markTaskAssignmentDoneDb,
+  markTaskAssignmentPendingDb,
   deleteTaskAssignmentsForDateDb,
   deleteAllTaskAssignmentsDb,
   getLineupEngineStateDb,
@@ -1351,9 +1352,29 @@ app.delete("/api/submissions/:id", requireAdmin, async (req, res) => {
   }
 
   try {
+    // Grab the submission BEFORE deleting it — we need its date/user/project
+    // list afterwards to flip the matching Task Lineup assignment(s) back to
+    // "Pending", now that the Work Log that marked them "Done" is gone.
+    const allSubmissions = await getSubmissionsDb();
+    const target = allSubmissions.find((s: any) => s.id === id);
+
     const deleted = await deleteSubmissionDb(id);
     if (!deleted) {
       return res.status(500).json({ error: "Failed to delete submission from database." });
+    }
+
+    if (target && Array.isArray(target.works)) {
+      try {
+        const seenProjectIds = new Set<string>();
+        for (const w of target.works) {
+          if (w.projectId && !seenProjectIds.has(w.projectId)) {
+            seenProjectIds.add(w.projectId);
+            await markTaskAssignmentPendingDb(target.date, target.userEmail, w.projectId);
+          }
+        }
+      } catch (lineupErr: any) {
+        console.error("Failed to revert Task Lineup status after deleting submission:", lineupErr.message);
+      }
     }
 
     await logActivityLocally(actorEmail, "Delete Log", `Permanently deleted work log submission "${id}".`);
