@@ -107,7 +107,7 @@ export default function TaskLineup({
   onSetAllowedUsers,
   onJumpToWorkLog,
 }: TaskLineupProps) {
-  // Local sub-navigation: "" (today's / a chosen day's projects)
+  // Local sub-navigation: "Task Lineup" (today's / a chosen day's projects)
   // vs "History" (Yesterday Pending + Today Pending), styled the same way
   // the top-level Work Log / Work Log History tabs are.
   const [view, setView] = useState<'lineup' | 'history'>('lineup');
@@ -124,7 +124,7 @@ export default function TaskLineup({
 
   // History tab: today's still-pending tasks, loaded independently of the
   // date filter above so History always reflects "today", not whatever day
-  // is currently selected on the  tab.
+  // is currently selected on the Task Lineup tab.
   const [todayPending, setTodayPending] = useState<TaskAssignment[]>([]);
   const [todayPendingLoading, setTodayPendingLoading] = useState(false);
 
@@ -461,6 +461,26 @@ export default function TaskLineup({
                   {showCheckPendings ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
                 </button>
               )}
+              {view === 'lineup' && (
+                <div className="flex items-center gap-1.5 pl-1">
+                  <CalendarDays size={14} className="text-gray-400" />
+                  <input
+                    type="date"
+                    value={date}
+                    max={maxDate}
+                    onChange={(e) => setDate(e.target.value)}
+                    className="px-2.5 py-2 text-xs font-bold border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                  />
+                  {date && (
+                    <button
+                      onClick={() => setDate('')}
+                      className="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 cursor-pointer"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -587,36 +607,6 @@ export default function TaskLineup({
                   ))}
                 </div>
               )}
-            </div>
-          )}
-
-          {/* Admin: date filter — checking the lineup as it stood on a given
-              day; future dates are disabled since there's nothing to show
-              yet. */}
-          {isAdmin && (
-            <div className="bg-white rounded-2xl border border-gray-150 p-4 shadow-xs flex flex-col sm:flex-row sm:items-center gap-3">
-              <div className="flex items-center gap-2 text-gray-500">
-                <CalendarDays size={14} />
-                <span className="text-[11px] font-bold uppercase tracking-wider">Date filter (optional)</span>
-              </div>
-              <input
-                type="date"
-                value={date}
-                max={maxDate}
-                onChange={(e) => setDate(e.target.value)}
-                className="px-3 py-2 text-xs font-bold border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-200"
-              />
-              {date && (
-                <button
-                  onClick={() => setDate('')}
-                  className="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 cursor-pointer"
-                >
-                  Clear — back to today
-                </button>
-              )}
-              <span className="text-[11px] text-gray-400 font-semibold sm:ml-auto">
-                {date ? `Showing ${activeDate}` : "Leave blank to just see today's projects"}
-              </span>
             </div>
           )}
 
