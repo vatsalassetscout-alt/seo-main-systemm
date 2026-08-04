@@ -1074,6 +1074,32 @@ export async function markTaskAssignmentDoneDb(date: string, userEmail: string, 
   }
 }
 
+// Reverse of markTaskAssignmentDoneDb — when the Work Log entry that flipped
+// an assignment to "Done" gets deleted, the assignment goes back to
+// "Pending" so Task Lineup / History reflect that the work is, once again,
+// not actually logged.
+export async function markTaskAssignmentPendingDb(date: string, userEmail: string, projectId: string): Promise<boolean> {
+  const sb = getSupabase();
+  if (!sb) return false;
+  try {
+    const { error } = await sb
+      .from("task_assignments")
+      .update({ status: "Pending" })
+      .eq("date", date)
+      .eq("user_email", userEmail.trim().toLowerCase())
+      .eq("project_id", projectId)
+      .eq("status", "Done");
+    if (error) {
+      console.warn("Supabase mark task_assignment pending failed:", error.message);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error("Supabase mark task_assignment pending exception:", err);
+    return false;
+  }
+}
+
 function ymd(d: Date): string {
   return d.toISOString().slice(0, 10);
 }
