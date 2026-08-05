@@ -358,6 +358,12 @@ export default function TaskLineup({
         headers: authHeaders,
         body: JSON.stringify({ userEmail, paused }),
       });
+      // Pausing clears today's pending queue for this user; resuming tops it
+      // right back up. Refresh what's on screen so it doesn't look stale.
+      await Promise.all([
+        loadLineup(activeDate),
+        loadPendingAllUsers(),
+      ]);
     } catch (err) {
       console.error('Failed to toggle pause:', err);
     }
@@ -426,8 +432,10 @@ export default function TaskLineup({
     };
   }, [historyCalMonth, historyCalYear]);
 
-  // Assignments for the currently selected calendar day, grouped by user —
-  // no dropdown, this always shows everyone's status at once.
+  // Assignments for the currently selected calendar day, grouped by display
+  // name — admins see every user's projects for that day, non-admins see
+  // just their own (the backend already scopes the response accordingly).
+  // Shown directly, no dropdown to pick a user first.
   const historyCalGroupedByUser = useMemo(() => {
     const map = new Map<string, TaskAssignment[]>();
     historyCalAssignments.forEach((a) => {
@@ -665,9 +673,12 @@ export default function TaskLineup({
 
           {/* Admin: standalone pause controls — always visible, independent of
               whether a lineup has been generated for the selected date yet.
-              Pausing a user here excludes them from the NEXT time the cycle
-              runs; it doesn't touch assignments already generated. Each row now
-              also shows total tasks, yesterday pending, and total pending. */}
+              Pausing a user clears today's still-pending queue for them
+              (already-Submitted work today is untouched) and excludes them
+              from the next cycle; resuming immediately tops today's lineup
+              back up with the same queue, in order, so nothing gets skipped.
+              Each row now also shows total tasks, yesterday pending, and
+              total pending. */}
           {isAdmin && (
             <div className="bg-white rounded-2xl border border-gray-150 overflow-hidden shadow-xs">
               <div className="px-5 py-3 bg-gray-50 border-b border-gray-150">
@@ -781,10 +792,11 @@ export default function TaskLineup({
             </div>
           </div>
 
-          {/* Day-by-day assignment status calendar — pick any date, see every
-              user's assigned projects for that day and whether each was
-              Submitted or Not Submitted. */}
-          {isAdmin && (
+          {/* Day-by-day assignment status calendar — pick any date, see all
+              of that day's assigned projects (everyone's, for admins; just
+              your own, for everyone else) and whether each was Submitted or
+              Not Submitted. Available to every user, not just admins. */}
+          {(
             <div className="bg-white rounded-2xl border border-gray-150 shadow-xs overflow-hidden">
               <div className="p-4 bg-gray-50/50 border-b border-gray-150 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <h3 className="text-xs font-black text-gray-900 uppercase tracking-wider flex items-center gap-1.5">
@@ -871,7 +883,7 @@ export default function TaskLineup({
                   </p>
                 </div>
 
-                {/* Right: every user's projects + status for the selected day */}
+                {/* Right: all of that day's data, shown directly — no dropdown */}
                 <div className="lg:col-span-5 flex flex-col">
                   {!historyCalDay ? (
                     <div className="flex-1 flex items-center justify-center text-center p-8 bg-slate-50/50 rounded-2xl border border-dashed border-slate-200 min-h-[220px]">
@@ -887,9 +899,11 @@ export default function TaskLineup({
                     <div className="space-y-4 max-h-[420px] overflow-y-auto pr-1">
                       {historyCalGroupedByUser.map(([userName, items]) => (
                         <div key={userName} className="bg-white rounded-xl border border-gray-150 overflow-hidden">
-                          <div className="px-3.5 py-2 bg-gray-50 border-b border-gray-150">
-                            <p className="text-[11px] font-black text-gray-900">{userName}</p>
-                          </div>
+                          {isAdmin && (
+                            <div className="px-3.5 py-2 bg-gray-50 border-b border-gray-150">
+                              <p className="text-[11px] font-black text-gray-900">{userName}</p>
+                            </div>
+                          )}
                           <div className="divide-y divide-gray-100">
                             {items.map((a) => (
                               <div key={a.id} className="flex items-center justify-between px-3.5 py-2">
