@@ -1022,35 +1022,6 @@ export async function deleteTaskAssignmentsForDateDb(date: string): Promise<bool
   }
 }
 
-// Clears one user's still-PENDING queue for a single date only — used when
-// an admin pauses that user mid-cycle. Already-Submitted ("Done") work for
-// that day is left alone; only the not-yet-done items are cleared, which
-// takes them back out of this week's "already assigned" count so the
-// generator doesn't wrongly treat that project's weekly quota as met. The
-// project simply re-enters the pool and gets picked up again — in the same
-// order — the moment this user is resumed, so nothing in the queue is ever
-// silently skipped.
-export async function deleteTaskAssignmentsForUserPendingOnDateDb(date: string, userEmail: string): Promise<boolean> {
-  const sb = getSupabase();
-  if (!sb) return false;
-  try {
-    const { error } = await sb
-      .from("task_assignments")
-      .delete()
-      .eq("date", date)
-      .eq("user_email", userEmail.trim().toLowerCase())
-      .eq("status", "Pending");
-    if (error) {
-      console.warn("Supabase delete user pending task_assignments for date failed:", error.message);
-      return false;
-    }
-    return true;
-  } catch (err) {
-    console.error("Supabase delete user pending task_assignments exception:", err);
-    return false;
-  }
-}
-
 // Full reset — wipes EVERY task assignment ever created, for every user and
 // every date (not just one day). Used by the "Delete" button's full-reset
 // mode so that Yesterday Pending / Total Pending go back to 0 everywhere,
@@ -1142,36 +1113,24 @@ function weekStartMonday(dateStr: string): string {
  * Generates (or regenerates, if force=true) the Task Lineup for a single
  * calendar date. Returns a summary the API route can pass straight back to
  * the client.
- *
- * `onlyUserEmail`, when passed, scopes everything to just that one user —
- * used to "top up" a single person's queue for TODAY the moment they're
- * resumed from a pause, without touching anyone else's already-generated
- * lineup and without waiting for tomorrow's cycle. In this mode the
- * "already exists for this date" short-circuit is skipped (existing
- * Submitted work for today is fine to co-exist with newly topped-up Pending
- * items) and the daily per-user cap accounts for whatever's already on the
- * board for that user today.
  */
 export async function generateLineupForDate(
   dateStr: string,
   projects: any[],
   users: { email: string; name: string; paused?: boolean }[],
-  force: boolean = false,
-  onlyUserEmail?: string
+  force: boolean = false
 ): Promise<{ generated: boolean; reason?: string; count: number; date: string }> {
   const dow = new Date(dateStr + "T00:00:00Z").getUTCDay();
   if (dow === 0) {
     return { generated: false, reason: "Sundays are a rest day - no lineup is generated.", count: 0, date: dateStr };
   }
 
-  if (!onlyUserEmail) {
-    const existing = await getTaskAssignmentsDb({ date: dateStr });
-    if (existing.length > 0 && !force) {
-      return { generated: false, reason: "A lineup already exists for this date.", count: existing.length, date: dateStr };
-    }
-    if (existing.length > 0 && force) {
-      await deleteTaskAssignmentsForDateDb(dateStr);
-    }
+  const existing = await getTaskAssignmentsDb({ date: dateStr });
+  if (existing.length > 0 && !force) {
+    return { generated: false, reason: "A lineup already exists for this date.", count: existing.length, date: dateStr };
+  }
+  if (existing.length > 0 && force) {
+    await deleteTaskAssignmentsForDateDb(dateStr);
   }
 
   // Two app_users rows can end up sharing the same display name (a known
@@ -1205,29 +1164,16 @@ export async function generateLineupForDate(
   const rawPausedByCanonical = new Set<string>();
   pausedEmails.forEach((e) => rawPausedByCanonical.add(canonicalOf(e)));
 
-  const targetCanonicalEmail = onlyUserEmail ? canonicalOf(onlyUserEmail) : null;
-
   const weekStart = weekStartMonday(dateStr);
   const yesterday = addDays(dateStr, -1);
 
-  // Everything already assigned this week, Mon .. TODAY (inclusive), used to
-  // work out how many more times each project still needs to be picked
-  // before Saturday. Including today matters for the single-user "top up on
-  // resume" path — it makes sure any of today's already-Submitted work (from
-  // before the pause) still counts toward the weekly quota, so a finished
-  // project doesn't get handed out a second time.
-  const weekSoFar = await getTaskAssignmentsDb({ dateFrom: weekStart, dateTo: dateStr });
+  // Everything already assigned this week (Mon .. yesterday), used to work out
+  // how many more times each project still needs to be picked before Saturday.
+  const weekSoFar = await getTaskAssignmentsDb({ dateFrom: weekStart, dateTo: yesterday });
   const countThisWeek = new Map<string, number>(); // `${userEmail}::${projectId}` -> count
-  const alreadyOnBoardToday = new Map<string, number>(); // canonical userEmail -> count of today's existing rows
-  const projectAlreadyOnBoardToday = new Set<string>(); // `${userEmail}::${projectId}` already present today
   weekSoFar.forEach((a) => {
-    const canonicalEmail = canonicalOf(a.userEmail);
-    const key = `${canonicalEmail}::${a.projectId}`;
+    const key = `${canonicalOf(a.userEmail)}::${a.projectId}`;
     countThisWeek.set(key, (countThisWeek.get(key) || 0) + 1);
-    if (a.date === dateStr) {
-      alreadyOnBoardToday.set(canonicalEmail, (alreadyOnBoardToday.get(canonicalEmail) || 0) + 1);
-      projectAlreadyOnBoardToday.add(key);
-    }
   });
 
   // Yesterday's assignments that never got a matching Work Log ("Yesterday
@@ -1261,10 +1207,8 @@ export async function generateLineupForDate(
     if (p.userId && String(p.userId).trim()) emails.add(canonicalOf(String(p.userId).trim()));
 
     emails.forEach((userEmail) => {
-      if (targetCanonicalEmail && userEmail !== targetCanonicalEmail) return; // scoped top-up: this user only
       if (rawPausedByCanonical.has(userEmail)) return; // paused users are skipped entirely for new generation
       const key = `${userEmail}::${p.id}`;
-      if (projectAlreadyOnBoardToday.has(key)) return; // already has a row today (e.g. Submitted before a pause) - don't touch it
       const doneThisWeek = countThisWeek.get(key) || 0;
       const deficit = weeklyTarget - doneThisWeek;
       const carried = yesterdayPending.has(key);
@@ -1283,20 +1227,14 @@ export async function generateLineupForDate(
   });
 
   const toInsert: any[] = [];
-  candidatesByUser.forEach((candidates, userEmail) => {
+  candidatesByUser.forEach((candidates) => {
     candidates.sort((a, b) => {
       if (a.carried !== b.carried) return a.carried ? -1 : 1; // carried-over pending first
       if (b.deficit !== a.deficit) return b.deficit - a.deficit; // bigger deficit first
       return (PRIORITY_WEEKLY_TARGET[b.priority] || 0) - (PRIORITY_WEEKLY_TARGET[a.priority] || 0);
     });
 
-    // Leave room for whatever's already on today's board for this user (only
-    // relevant on the scoped top-up path — on a normal fresh generation this
-    // is always 0) so a resume never pushes someone over the daily cap.
-    const alreadyToday = alreadyOnBoardToday.get(userEmail) || 0;
-    const capRemaining = Math.max(0, DAILY_LINEUP_CAP_PER_USER - alreadyToday);
-
-    candidates.slice(0, capRemaining).forEach((c) => {
+    candidates.slice(0, DAILY_LINEUP_CAP_PER_USER).forEach((c) => {
       toInsert.push({
         id: `lineup-${dateStr}-${c.userEmail.replace(/[^a-z0-9]/gi, "")}-${c.projectId}`,
         date: dateStr,
@@ -1315,6 +1253,121 @@ export async function generateLineupForDate(
   }
 
   return { generated: true, count: toInsert.length, date: dateStr };
+}
+
+// Deletes ONE user's still-Pending assignments for ONE date (today, in
+// practice — called the moment an admin pauses someone). Only "Pending" rows
+// are touched — anything already "Done" is real logged work and is never
+// removed. This does NOT touch the weekly deficit bookkeeping in a
+// destructive way: because the row is gone, `countThisWeek` in the next
+// generation run for this user/project will simply be lower, so the exact
+// same project is naturally eligible to be picked again — nothing in the
+// rotation is permanently skipped, it's just deferred until they're back.
+export async function clearPendingAssignmentsForUserOnDateDb(dateStr: string, userEmail: string): Promise<boolean> {
+  const sb = getSupabase();
+  if (!sb) return false;
+  try {
+    const { error } = await sb
+      .from("task_assignments")
+      .delete()
+      .eq("date", dateStr)
+      .eq("user_email", userEmail.trim().toLowerCase())
+      .eq("status", "Pending");
+    if (error) {
+      console.warn("Supabase clear pending assignments for user on date failed:", error.message);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error("Supabase clear pending assignments exception:", err);
+    return false;
+  }
+}
+
+/**
+ * Fills in ONE user's lineup for ONE date using the exact same deficit /
+ * carry-forward logic as generateLineupForDate — but scoped to a single
+ * person, so it can safely run mid-day (e.g. the moment an admin resumes a
+ * paused user) without touching or duplicating anyone else's assignments
+ * for that date. If this user already has any assignment for the date, it
+ * does nothing (avoids duplicates from being called twice).
+ */
+export async function regenerateLineupForUserOnDateDb(
+  dateStr: string,
+  projects: any[],
+  user: { email: string; name: string }
+): Promise<{ count: number }> {
+  const dow = new Date(dateStr + "T00:00:00Z").getUTCDay();
+  if (dow === 0) return { count: 0 }; // Sundays are a rest day
+
+  const userEmail = String(user.email || "").trim().toLowerCase();
+  if (!userEmail) return { count: 0 };
+
+  // Already has assignments for this date (e.g. resumed twice, or paused
+  // and unpaused again before this ran) — don't duplicate.
+  const existingForUser = await getTaskAssignmentsDb({ date: dateStr, userEmail });
+  if (existingForUser.length > 0) return { count: 0 };
+
+  const weekStart = weekStartMonday(dateStr);
+  const yesterday = addDays(dateStr, -1);
+  const weekSoFar = await getTaskAssignmentsDb({ dateFrom: weekStart, dateTo: yesterday, userEmail });
+
+  const countThisWeek = new Map<string, number>();
+  weekSoFar.forEach((a) => {
+    countThisWeek.set(a.projectId, (countThisWeek.get(a.projectId) || 0) + 1);
+  });
+
+  const yesterdayPending = new Set<string>();
+  weekSoFar
+    .filter((a) => a.date === yesterday && a.status === "Pending")
+    .forEach((a) => yesterdayPending.add(a.projectId));
+
+  type Candidate = { projectId: string; projectName: string; priority: string; carried: boolean; deficit: number };
+  const candidates: Candidate[] = [];
+
+  projects.forEach((p) => {
+    const priority = String(p.priority || "").toUpperCase();
+    const weeklyTarget = PRIORITY_WEEKLY_TARGET[priority];
+    if (!weeklyTarget) return;
+
+    const rawUsers: string[] = Array.isArray(p.users) ? p.users : [];
+    const emails = new Set<string>();
+    rawUsers.forEach((u: string) => {
+      if (u && String(u).trim()) emails.add(String(u).trim().toLowerCase());
+    });
+    if (p.userId && String(p.userId).trim()) emails.add(String(p.userId).trim().toLowerCase());
+    if (!emails.has(userEmail)) return;
+
+    const doneThisWeek = countThisWeek.get(p.id) || 0;
+    const deficit = weeklyTarget - doneThisWeek;
+    const carried = yesterdayPending.has(p.id);
+    if (deficit <= 0 && !carried) return;
+
+    candidates.push({ projectId: p.id, projectName: p.name, priority, carried, deficit });
+  });
+
+  candidates.sort((a, b) => {
+    if (a.carried !== b.carried) return a.carried ? -1 : 1;
+    if (b.deficit !== a.deficit) return b.deficit - a.deficit;
+    return (PRIORITY_WEEKLY_TARGET[b.priority] || 0) - (PRIORITY_WEEKLY_TARGET[a.priority] || 0);
+  });
+
+  const toInsert = candidates.slice(0, DAILY_LINEUP_CAP_PER_USER).map((c) => ({
+    id: `lineup-${dateStr}-${userEmail.replace(/[^a-z0-9]/gi, "")}-${c.projectId}`,
+    date: dateStr,
+    projectId: c.projectId,
+    projectName: c.projectName,
+    userEmail,
+    priority: c.priority,
+    status: "Pending",
+    createdAt: new Date().toISOString(),
+  }));
+
+  if (toInsert.length > 0) {
+    await insertTaskAssignmentsBulkDb(toInsert);
+  }
+
+  return { count: toInsert.length };
 }
 
 // =========================================================================
