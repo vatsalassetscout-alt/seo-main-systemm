@@ -1924,7 +1924,7 @@ export default function DSRDashboard({
 
 
       {/* 5 Horizontal Buttons Tab Selection Bar - Premium, Larger & Highly Professional */}
-      <div className="bg-slate-100/80 p-1 rounded-2xl flex flex-wrap gap-2 border border-slate-200/60 shadow-inner">
+      <div className="bg-slate-100/80 p-1 rounded-2xl flex flex-wrap items-center gap-2 border border-slate-200/60 shadow-inner">
         {tabsInfo.map((tab) => {
           const IconComponent = tab.icon;
           const isActive = activeTab === tab.id;
@@ -1943,30 +1943,30 @@ export default function DSRDashboard({
             </button>
           );
         })}
-      </div>
 
-      {/* Monthly Progress Bar - projects covered (any entry logged, incl. No Activity)
-          out of total projects in the current filter scope. Resets every calendar month. */}
-      <div className="bg-white p-3 rounded-2xl border border-gray-150 shadow-2xs">
-        <div className="flex items-center justify-between mb-1.5">
-          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
-            <TrendingUp size={12} className="text-indigo-500" />
-            Monthly Progress
-          </span>
-          <span className="text-[11px] font-black text-gray-700 font-mono">
-            <span className="text-indigo-600">{monthlyProgressStats.covered}</span>
-            <span className="text-gray-400"> / {monthlyProgressStats.total}</span>
-            <span className="text-gray-400 font-bold ml-1">({monthlyProgressStats.percent}%)</span>
-          </span>
-        </div>
-        <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden border border-gray-150">
-          <div
-            className="h-full bg-gradient-to-r from-indigo-500 to-indigo-600 rounded-full transition-all duration-500 ease-out"
-            style={{ width: `${monthlyProgressStats.percent}%` }}
-          />
-        </div>
-        <div className="mt-1 text-[9.5px] font-semibold text-gray-400">
-          Projects covered this month out of total filtered projects. Resets on the 1st of every month.
+        {/* Monthly Progress - inline, same row as the tab buttons, pinned right.
+            Projects covered (any entry logged, incl. No Activity) out of total
+            projects in the current filter scope. Resets every calendar month. */}
+        <div className="flex items-center gap-2 ml-auto bg-white px-3 py-1.5 rounded-xl border border-slate-200/70 shadow-sm shrink-0">
+          <TrendingUp size={13} className="text-indigo-500 shrink-0" />
+          <div className="flex flex-col gap-1 min-w-[130px]">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider leading-none">
+                Monthly Progress
+              </span>
+              <span className="text-[10.5px] font-black text-gray-700 font-mono leading-none whitespace-nowrap">
+                <span className="text-indigo-600">{monthlyProgressStats.covered}</span>
+                <span className="text-gray-400"> / {monthlyProgressStats.total}</span>
+                <span className="text-gray-400 font-bold ml-1">({monthlyProgressStats.percent}%)</span>
+              </span>
+            </div>
+            <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden border border-gray-150">
+              <div
+                className="h-full bg-gradient-to-r from-indigo-500 to-indigo-600 rounded-full transition-all duration-500 ease-out"
+                style={{ width: `${monthlyProgressStats.percent}%` }}
+              />
+            </div>
+          </div>
         </div>
       </div>
 
