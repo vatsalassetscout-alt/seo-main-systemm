@@ -67,6 +67,41 @@ const Badge = ({ priority }: { priority: string }) => (
   </span>
 );
 
+const PRIORITY_ORDER = ['X1', 'X2', 'X3', 'X4', 'X5'];
+
+// Small "X1 3 · X2 2 · X3 1 · X4 1 · X5 0" style strip showing how many of
+// each priority tier are in a given list of assignments. Tiers with a zero
+// count are still shown (greyed out) so the full X1-X5 spread is always
+// visible at a glance.
+const PriorityDistribution = ({ items }: { items: TaskAssignment[] }) => {
+  const counts = useMemo(() => {
+    const map: Record<string, number> = { X1: 0, X2: 0, X3: 0, X4: 0, X5: 0 };
+    items.forEach((a) => {
+      if (map[a.priority] !== undefined) map[a.priority] += 1;
+    });
+    return map;
+  }, [items]);
+
+  return (
+    <div className="flex items-center gap-1 shrink-0">
+      {PRIORITY_ORDER.map((tier) => (
+        <span
+          key={tier}
+          title={`${tier}: ${counts[tier]}`}
+          className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded border text-[9px] font-black uppercase tracking-wider ${
+            counts[tier] > 0
+              ? PRIORITY_BADGE[tier] || 'bg-gray-50 text-gray-600 border-gray-150'
+              : 'bg-gray-50 text-gray-300 border-gray-100'
+          }`}
+        >
+          {tier}
+          <span className="font-mono">{counts[tier]}</span>
+        </span>
+      ))}
+    </div>
+  );
+};
+
 // "Done" is renamed to "Submitted" for display only — the underlying status
 // value in the data model is still 'Done'.
 const StatusBadge = ({ status }: { status: string }) => (
@@ -621,23 +656,26 @@ export default function TaskLineup({
             <div className="bg-white rounded-2xl border border-gray-150 overflow-hidden shadow-xs">
               <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5 bg-gray-50 border-b border-gray-150">
                 <p className="text-sm font-black text-gray-900">Today's Lineup</p>
-                <div className="flex items-center gap-2">
-                  <CalendarDays size={13} className="text-gray-400" />
-                  <input
-                    type="date"
-                    value={date}
-                    max={maxDate}
-                    onChange={(e) => setDate(e.target.value)}
-                    className="px-2.5 py-1.5 text-xs font-bold border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-200"
-                  />
-                  {date && (
-                    <button
-                      onClick={() => setDate('')}
-                      className="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 cursor-pointer"
-                    >
-                      Today
-                    </button>
-                  )}
+                <div className="flex items-center gap-3">
+                  <PriorityDistribution items={myAssignments} />
+                  <div className="flex items-center gap-2">
+                    <CalendarDays size={13} className="text-gray-400" />
+                    <input
+                      type="date"
+                      value={date}
+                      max={maxDate}
+                      onChange={(e) => setDate(e.target.value)}
+                      className="px-2.5 py-1.5 text-xs font-bold border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                    />
+                    {date && (
+                      <button
+                        onClick={() => setDate('')}
+                        className="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 cursor-pointer"
+                      >
+                        Today
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
               {loading ? (
@@ -646,9 +684,10 @@ export default function TaskLineup({
                 <p className="px-5 py-6 text-xs font-bold text-gray-400">No tasks assigned to you for this date yet.</p>
               ) : (
                 <div className="divide-y divide-gray-100">
-                  {myAssignments.map((a) => (
+                  {myAssignments.map((a, idx) => (
                     <div key={a.id} className="flex items-center justify-between px-5 py-3.5">
                       <div className="flex items-center gap-3">
+                        <span className="text-xs font-mono font-bold text-gray-400 w-5 shrink-0">{idx + 1}.</span>
                         <span className="text-sm font-bold text-gray-700">{a.projectName}</span>
                         <Badge priority={a.priority} />
                       </div>
@@ -738,16 +777,20 @@ export default function TaskLineup({
                   const doneCount = list.filter(a => a.status === 'Done').length;
                   return (
                     <div key={displayName} className="bg-white rounded-2xl border border-gray-150 overflow-hidden shadow-xs">
-                      <div className="flex items-center justify-between px-5 py-3 bg-gray-50 border-b border-gray-150">
+                      <div className="flex items-center justify-between px-5 py-3 bg-gray-50 border-b border-gray-150 gap-3">
                         <div>
                           <p className="text-xs font-black text-gray-900">{displayName}</p>
                           <p className="text-[10px] font-bold text-gray-400">{doneCount}/{list.length} completed today</p>
                         </div>
+                        <PriorityDistribution items={list} />
                       </div>
                       <div className="divide-y divide-gray-100">
-                        {list.map((a) => (
+                        {list.map((a, idx) => (
                           <div key={a.id} className="flex items-center justify-between px-5 py-2.5">
-                            <span className="text-sm font-bold text-gray-700">{a.projectName}</span>
+                            <div className="flex items-center gap-3">
+                              <span className="text-xs font-mono font-bold text-gray-400 w-5 shrink-0">{idx + 1}.</span>
+                              <span className="text-sm font-bold text-gray-700">{a.projectName}</span>
+                            </div>
                             <div className="flex items-center gap-3">
                               <Badge priority={a.priority} />
                               <StatusBadge status={a.status} />
