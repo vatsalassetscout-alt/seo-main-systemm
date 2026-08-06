@@ -802,14 +802,14 @@ export default function DSRLogs({
                     </div>
 
                     <div className="flex items-center justify-between sm:justify-end gap-2.5 mt-1 sm:mt-0 pt-2.5 sm:pt-0 border-t sm:border-t-0 border-slate-100">
-                      {/* Left-most: Total Project : X | W: Y, NM: Z — worked vs no-activity domain split */}
+                      {/* Left-most: W: X, NW: Y | Total Projects: Z — worked vs no-activity domain split */}
                       {totalProjectCount > 0 && (
-                        <div className="flex flex-wrap items-center gap-1.5 text-[10px] font-mono font-black text-slate-650 bg-slate-50/60 border border-slate-150/40 px-2 py-1 rounded-lg">
-                          <span>Total Project : <span className="text-indigo-700">{totalProjectCount}</span></span>
-                          <span className="text-slate-300">|</span>
+                        <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm font-mono font-black text-slate-650 bg-slate-50/60 border border-slate-150/40 px-3.5 py-2.5 rounded-xl">
                           <span className="text-emerald-700">W: {workedProjectCount}</span>
                           <span className="text-slate-300">,</span>
-                          <span className="text-amber-700">NM: {notWorkedProjectCount}</span>
+                          <span className="text-amber-700">NW: {notWorkedProjectCount}</span>
+                          <span className="text-slate-300">|</span>
+                          <span>Total Projects: <span className="text-indigo-700">{totalProjectCount}</span></span>
                         </div>
                       )}
 
@@ -835,7 +835,7 @@ export default function DSRLogs({
                         const grandTotal = countEntries.reduce((sum, entry) => sum + entry.value, 0);
 
                         return (
-                          <div className="flex flex-wrap items-center gap-1.5 text-[10px] font-mono font-black text-slate-650 bg-slate-50/60 border border-slate-150/40 px-2 py-1 rounded-lg max-w-xs sm:max-w-md truncate">
+                          <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm font-mono font-black text-slate-650 bg-slate-50/60 border border-slate-150/40 px-3.5 py-2.5 rounded-xl max-w-xs sm:max-w-md truncate">
                             {countEntries.map((entry, idx) => (
                               <React.Fragment key={entry.label}>
                                 {idx > 0 && <span className="text-slate-300">•</span>}
@@ -1001,7 +1001,7 @@ export default function DSRLogs({
                                     if (isNoActivity) {
                                       return (
                                         <div className="space-y-1.5">
-                                          <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">NW</h4>
+                                          <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">No Activities</h4>
                                           <div className="bg-white p-3.5 rounded-2xl border border-slate-150 shadow-3xs text-xs text-slate-805 leading-relaxed font-semibold">
                                             {work.workSummary ? (
                                               <p className="whitespace-pre-wrap">{work.workSummary}</p>
@@ -1030,7 +1030,7 @@ export default function DSRLogs({
 
                                     return (
                                       <div className="space-y-3">
-                                        <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">W</h4>
+                                        <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">ON Page / Off Page Activities</h4>
 
                                         {/* Target Keywords block */}
                                         {keywordsList.length > 0 && (
