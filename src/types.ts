@@ -119,31 +119,31 @@ export const PRIORITY_RULES: Record<string, PriorityRule> = {
 };
 
 // Max number of picks from each tier that may land in ONE day's lineup,
-// applied BEFORE the shared group cap below. This is what stops X5 (or X4)
-// from eating the whole combined X4_X5 bucket on a day when one of them has
-// a big backlog — each is capped at 3 on its own, even though together they
-// can still fill up to 5 (the group cap).
+// applied BEFORE the shared group cap below. X5's own cap was raised to 4
+// (from 3), and X1/X2/X3 were trimmed slightly to keep the overall daily
+// ceiling unchanged — see PRIORITY_GROUP_DAILY_CAP for how the trimmed
+// weight was redistributed.
 export const PRIORITY_TIER_DAILY_CAP: Record<string, number> = {
   X1: 4,
-  X2: 4,
-  X3: 3,
+  X2: 3,
+  X3: 2,
   X4: 3,
-  X5: 3,
+  X5: 4,
 };
 
 // Max number of picks from each bucket (after the per-tier caps above have
 // already been applied within it) that may land in ONE day's lineup for a
-// single user, even if more are technically "owed" work that day. X1 and X2
-// can each land 3-4 (target is 4, so most days hit 4, some fewer once a
-// project's weekly quota is already met). X4 and X5 are pooled into one
-// combined bucket — each individually capped at 3 (see
-// PRIORITY_TIER_DAILY_CAP), but never more than 5 between the two of them.
-// 4 + 4 + 3 + 5 = 16, matching DAILY_LINEUP_CAP_PER_USER below.
+// single user, even if more are technically "owed" work that day. X4 and X5
+// are pooled into one combined bucket — X4 capped at 3 and X5 capped at 4
+// (see PRIORITY_TIER_DAILY_CAP), for a combined 7 between the two of them.
+// To keep the overall daily ceiling the same, X2's and X3's caps were
+// trimmed down to their real weekly targets (3 and 2) to make room.
+// 4 + 3 + 2 + 7 = 16, matching DAILY_LINEUP_CAP_PER_USER below.
 export const PRIORITY_GROUP_DAILY_CAP: Record<string, number> = {
   X1: 4,
-  X2: 4,
-  X3: 3,
-  X4_X5: 5,
+  X2: 3,
+  X3: 2,
+  X4_X5: 7,
 };
 
 // Kept for anything that only needs "how many times per week" as a single
@@ -161,7 +161,7 @@ export const PRIORITY_WEEKLY_TARGET: Record<string, number> = {
 
 // Hard ceiling — no single user's lineup for a single day may ever exceed
 // this many projects, no matter how many are "owed" work. Built directly
-// from the PRIORITY_GROUP_DAILY_CAP buckets above (4+4+3+5), so real-world
+// from the PRIORITY_GROUP_DAILY_CAP buckets above (4+3+2+7), so real-world
 // days should land in the 15-16 range rather than always hitting a fixed
 // number — a user with fewer eligible projects just gets fewer entries.
 export const DAILY_LINEUP_CAP_PER_USER = 16;
