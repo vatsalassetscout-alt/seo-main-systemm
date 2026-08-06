@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import { PRIORITY_WEEKLY_TARGET, PRIORITY_RULES, DAILY_LINEUP_CAP_PER_USER } from "../types";
+import { PRIORITY_WEEKLY_TARGET, PRIORITY_RULES, PRIORITY_GROUP_DAILY_CAP, DAILY_LINEUP_CAP_PER_USER } from "../types";
 
 let supabaseClient: any = null;
 
@@ -909,12 +909,13 @@ export async function getManualRankingsDb(): Promise<any> {
 // weekly (see PRIORITY_RULES in types.ts), X5 is monthly. Every day the
 // engine runs (Mon-Sat, Sunday is always skipped) it works out, per user,
 // which of their projects are still "owed" work for their tier's period,
-// and picks candidates tier-by-tier (each tier capped at its own
-// dailyCap so no single tier can crowd out the rest) up to an overall
-// 25-projects/day ceiling per user - carrying forward anything left
-// "Pending" from yesterday first, and always honoring carried-over items
-// even if that means slightly exceeding a tier's normal daily cap, so
-// nothing silently falls off the list.
+// and picks candidates bucket-by-bucket (X1, X2, X3 each have their own
+// daily cap; X4 and X5 share one combined cap — see
+// PRIORITY_GROUP_DAILY_CAP) up to an overall 16-projects/day ceiling per
+// user - carrying forward anything left "Pending" from yesterday first,
+// and always honoring carried-over items even if that means slightly
+// exceeding a bucket's normal daily cap, so nothing silently falls off
+// the list.
 
 function toRow(a: any) {
   return {
@@ -1120,35 +1121,38 @@ function monthStartOf(dateStr: string): string {
 }
 
 // Given a full list of candidates for ONE user (already deficit-filtered,
-// each tagged with `priority` and `carried`), applies the per-tier daily
-// cap from PRIORITY_RULES, then trims the combined result down to the
-// overall DAILY_LINEUP_CAP_PER_USER ceiling. Carried-over ("Yesterday
-// Pending") items are always kept even if a tier's normal cap would
-// otherwise exclude them - the caps only limit how many *new* picks of a
-// tier can be added on top.
+// each tagged with `priority` and `carried`), applies the per-bucket daily
+// cap from PRIORITY_GROUP_DAILY_CAP (X1, X2, X3 each have their own bucket;
+// X4 and X5 share one combined bucket), then trims the combined result down
+// to the overall DAILY_LINEUP_CAP_PER_USER ceiling. Carried-over ("Yesterday
+// Pending") items are always kept even if a bucket's normal cap would
+// otherwise exclude them - the caps only limit how many *new* picks can be
+// added on top.
 function selectDailyCandidates<
   C extends { priority: string; carried: boolean; deficit: number }
 >(candidates: C[]): C[] {
-  const byTier = new Map<string, C[]>();
+  const byGroup = new Map<string, C[]>();
   candidates.forEach((c) => {
-    const tier = c.priority;
-    if (!byTier.has(tier)) byTier.set(tier, []);
-    byTier.get(tier)!.push(c);
+    const rule = PRIORITY_RULES[c.priority];
+    const group = rule ? rule.group : c.priority;
+    if (!byGroup.has(group)) byGroup.set(group, []);
+    byGroup.get(group)!.push(c);
   });
 
   const perUserDeficitSort = (a: C, b: C) => {
     if (a.carried !== b.carried) return a.carried ? -1 : 1; // carried-over pending first
+    const weightDiff = (PRIORITY_WEEKLY_TARGET[b.priority] || 0) - (PRIORITY_WEEKLY_TARGET[a.priority] || 0);
+    if (weightDiff !== 0) return weightDiff; // within a shared bucket (X4/X5), higher tier first
     return b.deficit - a.deficit; // bigger deficit first
   };
 
   let selected: C[] = [];
-  byTier.forEach((tierCandidates, tier) => {
-    const rule = PRIORITY_RULES[tier];
-    const dailyCap = rule ? rule.dailyCap : DAILY_LINEUP_CAP_PER_USER;
-    tierCandidates.sort(perUserDeficitSort);
+  byGroup.forEach((groupCandidates, group) => {
+    const dailyCap = PRIORITY_GROUP_DAILY_CAP[group] ?? DAILY_LINEUP_CAP_PER_USER;
+    groupCandidates.sort(perUserDeficitSort);
 
-    const carriedItems = tierCandidates.filter((c) => c.carried);
-    const nonCarriedItems = tierCandidates.filter((c) => !c.carried);
+    const carriedItems = groupCandidates.filter((c) => c.carried);
+    const nonCarriedItems = groupCandidates.filter((c) => !c.carried);
     const remainingSlots = Math.max(0, dailyCap - carriedItems.length);
 
     selected = selected.concat(carriedItems, nonCarriedItems.slice(0, remainingSlots));
@@ -1156,12 +1160,7 @@ function selectDailyCandidates<
 
   // Final overall cap — sort by tier weight (higher tier first) and
   // deficit, carried items always pinned to the front, then slice.
-  selected.sort((a, b) => {
-    if (a.carried !== b.carried) return a.carried ? -1 : 1;
-    const weightDiff = (PRIORITY_WEEKLY_TARGET[b.priority] || 0) - (PRIORITY_WEEKLY_TARGET[a.priority] || 0);
-    if (weightDiff !== 0) return weightDiff;
-    return b.deficit - a.deficit;
-  });
+  selected.sort(perUserDeficitSort);
 
   if (selected.length <= DAILY_LINEUP_CAP_PER_USER) return selected;
 
