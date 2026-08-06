@@ -391,14 +391,24 @@ export default function TaskLineup({
   };
 
   const togglePause = async (userEmail: string, paused: boolean) => {
+    const previous = allowedUsers;
     // Optimistic update
     onSetAllowedUsers(allowedUsers.map(u => u.email === userEmail ? { ...u, paused } : u));
     try {
-      await fetch('/api/task-lineup/pause', {
+      const res = await fetch('/api/task-lineup/pause', {
         method: 'POST',
         headers: authHeaders,
         body: JSON.stringify({ userEmail, paused }),
       });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data?.success) {
+        // The server didn't actually persist it (e.g. no matching user row) —
+        // roll the optimistic UI change back instead of showing a paused
+        // state that isn't real and will just revert on the next refresh.
+        onSetAllowedUsers(previous);
+        setGenerateMsg('Could not update pause state — please try again.');
+        return;
+      }
       // Pausing clears today's pending queue for this user; resuming tops it
       // right back up. Refresh what's on screen so it doesn't look stale.
       await Promise.all([
@@ -407,6 +417,8 @@ export default function TaskLineup({
       ]);
     } catch (err) {
       console.error('Failed to toggle pause:', err);
+      onSetAllowedUsers(previous);
+      setGenerateMsg('Could not update pause state — please try again.');
     }
   };
 
@@ -548,7 +560,7 @@ export default function TaskLineup({
                   title="The cycle runs every day on its own. Pause it only for long vacations."
                 >
                   {enginePaused ? <Play size={13} /> : <Pause size={13} />}
-                  {enginePaused ? 'Resume Cycle' : 'Cycle Running — Pause'}
+                  {enginePaused ? 'Run Cycle' : 'Stop Cycle'}
                 </button>
               )}
               <button
