@@ -35,6 +35,7 @@ import {
   getTaskAssignmentsDb,
   generateLineupForDate,
   clearPendingAssignmentsForUserOnDateDb,
+  clearAllPendingAssignmentsForDateDb,
   regenerateLineupForUserOnDateDb,
   markTaskAssignmentDoneDb,
   markTaskAssignmentPendingDb,
@@ -1258,7 +1259,23 @@ app.post("/api/task-lineup/engine/pause", requireAdmin, async (req, res) => {
     if (!ok) {
       return res.status(500).json({ error: "Failed to save the cycle's paused state — check server logs / Supabase connection." });
     }
-    if (!paused) await ensureTodayLineupIfEngineActive();
+
+    const today = new Date().toISOString().slice(0, 10);
+    if (paused) {
+      // Stopping the cycle: clear out today's still-Pending assignments for
+      // EVERY user right away, so nothing stays assigned/visible on the
+      // users' side while stopped. Only "Pending" rows are removed — any
+      // already-"Done" work stays logged. Because generateLineupForDate's
+      // deficit math only looks at days up to "yesterday", this doesn't
+      // erase progress: resuming just regenerates today's lineup from the
+      // same rotation state, continuing the cycle instead of skipping ahead.
+      const cleared = await clearAllPendingAssignmentsForDateDb(today);
+      if (!cleared) {
+        console.error("Failed to clear today's pending assignments after stopping the cycle.");
+      }
+    } else {
+      await ensureTodayLineupIfEngineActive();
+    }
     const state = await getLineupEngineStateDb();
     if (state.paused !== paused) {
       console.error(`Lineup engine pause mismatch: requested paused=${paused} but DB reads back paused=${state.paused}`);
