@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import { PRIORITY_WEEKLY_TARGET, DAILY_LINEUP_CAP_PER_USER } from "../types";
+import { PRIORITY_WEEKLY_TARGET, PRIORITY_RULES, DAILY_LINEUP_CAP_PER_USER } from "../types";
 
 let supabaseClient: any = null;
 
@@ -905,12 +905,16 @@ export async function getManualRankingsDb(): Promise<any> {
 // TASK LINEUP (auto-assignment) DB INTERACTION
 // =========================================================================
 //
-// Priority tiers X1-X5 imply a weekly work-frequency target (assumption,
-// see PRIORITY_WEEKLY_TARGET below). Every day the engine runs (Mon-Sat,
-// Sunday is always skipped) it works out, per user, which of their
-// projects are still "owed" work this week and picks the top ones up to
-// a 25-projects/day cap - carrying forward anything left "Pending" from
-// yesterday first so nothing silently falls off the list.
+// Priority tiers X1-X5 each imply a work-frequency target — X1-X4 are
+// weekly (see PRIORITY_RULES in types.ts), X5 is monthly. Every day the
+// engine runs (Mon-Sat, Sunday is always skipped) it works out, per user,
+// which of their projects are still "owed" work for their tier's period,
+// and picks candidates tier-by-tier (each tier capped at its own
+// dailyCap so no single tier can crowd out the rest) up to an overall
+// 25-projects/day ceiling per user - carrying forward anything left
+// "Pending" from yesterday first, and always honoring carried-over items
+// even if that means slightly exceeding a tier's normal daily cap, so
+// nothing silently falls off the list.
 
 function toRow(a: any) {
   return {
@@ -1109,6 +1113,67 @@ function weekStartMonday(dateStr: string): string {
   return addDays(dateStr, diffToMonday);
 }
 
+// First day of the calendar month containing dateStr — used for X5's
+// once-a-month cadence.
+function monthStartOf(dateStr: string): string {
+  return `${dateStr.slice(0, 7)}-01`;
+}
+
+// Given a full list of candidates for ONE user (already deficit-filtered,
+// each tagged with `priority` and `carried`), applies the per-tier daily
+// cap from PRIORITY_RULES, then trims the combined result down to the
+// overall DAILY_LINEUP_CAP_PER_USER ceiling. Carried-over ("Yesterday
+// Pending") items are always kept even if a tier's normal cap would
+// otherwise exclude them - the caps only limit how many *new* picks of a
+// tier can be added on top.
+function selectDailyCandidates<
+  C extends { priority: string; carried: boolean; deficit: number }
+>(candidates: C[]): C[] {
+  const byTier = new Map<string, C[]>();
+  candidates.forEach((c) => {
+    const tier = c.priority;
+    if (!byTier.has(tier)) byTier.set(tier, []);
+    byTier.get(tier)!.push(c);
+  });
+
+  const perUserDeficitSort = (a: C, b: C) => {
+    if (a.carried !== b.carried) return a.carried ? -1 : 1; // carried-over pending first
+    return b.deficit - a.deficit; // bigger deficit first
+  };
+
+  let selected: C[] = [];
+  byTier.forEach((tierCandidates, tier) => {
+    const rule = PRIORITY_RULES[tier];
+    const dailyCap = rule ? rule.dailyCap : DAILY_LINEUP_CAP_PER_USER;
+    tierCandidates.sort(perUserDeficitSort);
+
+    const carriedItems = tierCandidates.filter((c) => c.carried);
+    const nonCarriedItems = tierCandidates.filter((c) => !c.carried);
+    const remainingSlots = Math.max(0, dailyCap - carriedItems.length);
+
+    selected = selected.concat(carriedItems, nonCarriedItems.slice(0, remainingSlots));
+  });
+
+  // Final overall cap — sort by tier weight (higher tier first) and
+  // deficit, carried items always pinned to the front, then slice.
+  selected.sort((a, b) => {
+    if (a.carried !== b.carried) return a.carried ? -1 : 1;
+    const weightDiff = (PRIORITY_WEEKLY_TARGET[b.priority] || 0) - (PRIORITY_WEEKLY_TARGET[a.priority] || 0);
+    if (weightDiff !== 0) return weightDiff;
+    return b.deficit - a.deficit;
+  });
+
+  if (selected.length <= DAILY_LINEUP_CAP_PER_USER) return selected;
+
+  // Trim only from the non-carried tail so carried-over items are never
+  // dropped, even if that means the final list is a little over the cap
+  // in the rare case where carried items alone exceed it.
+  const carriedAll = selected.filter((c) => c.carried);
+  const nonCarriedAll = selected.filter((c) => !c.carried);
+  const room = Math.max(0, DAILY_LINEUP_CAP_PER_USER - carriedAll.length);
+  return carriedAll.concat(nonCarriedAll.slice(0, room));
+}
+
 /**
  * Generates (or regenerates, if force=true) the Task Lineup for a single
  * calendar date. Returns a summary the API route can pass straight back to
@@ -1165,21 +1230,27 @@ export async function generateLineupForDate(
   pausedEmails.forEach((e) => rawPausedByCanonical.add(canonicalOf(e)));
 
   const weekStart = weekStartMonday(dateStr);
+  const monthStart = monthStartOf(dateStr);
   const yesterday = addDays(dateStr, -1);
 
-  // Everything already assigned this week (Mon .. yesterday), used to work out
-  // how many more times each project still needs to be picked before Saturday.
-  const weekSoFar = await getTaskAssignmentsDb({ dateFrom: weekStart, dateTo: yesterday });
-  const countThisWeek = new Map<string, number>(); // `${userEmail}::${projectId}` -> count
-  weekSoFar.forEach((a) => {
+  // One query wide enough to cover both the weekly window (X1-X4) and the
+  // monthly window (X5) — whichever starts earlier — then filtered twice
+  // below rather than hitting the DB twice.
+  const rangeStart = weekStart < monthStart ? weekStart : monthStart;
+  const periodSoFar = await getTaskAssignmentsDb({ dateFrom: rangeStart, dateTo: yesterday });
+
+  const countThisWeek = new Map<string, number>(); // `${userEmail}::${projectId}` -> count, Mon..yesterday
+  const countThisMonth = new Map<string, number>(); // `${userEmail}::${projectId}` -> count, 1st..yesterday
+  periodSoFar.forEach((a) => {
     const key = `${canonicalOf(a.userEmail)}::${a.projectId}`;
-    countThisWeek.set(key, (countThisWeek.get(key) || 0) + 1);
+    if (a.date >= weekStart) countThisWeek.set(key, (countThisWeek.get(key) || 0) + 1);
+    if (a.date >= monthStart) countThisMonth.set(key, (countThisMonth.get(key) || 0) + 1);
   });
 
   // Yesterday's assignments that never got a matching Work Log ("Yesterday
   // Pending") jump to the front of today's queue so nothing gets silently dropped.
   const yesterdayPending = new Set<string>();
-  weekSoFar
+  periodSoFar
     .filter((a) => a.date === yesterday && a.status === "Pending")
     .forEach((a) => yesterdayPending.add(`${canonicalOf(a.userEmail)}::${a.projectId}`));
 
@@ -1196,8 +1267,8 @@ export async function generateLineupForDate(
 
   projects.forEach((p) => {
     const priority = String(p.priority || "").toUpperCase();
-    const weeklyTarget = PRIORITY_WEEKLY_TARGET[priority];
-    if (!weeklyTarget) return; // no recognized priority tier - admin hasn't set one, skip from auto-assignment
+    const rule = PRIORITY_RULES[priority];
+    if (!rule) return; // no recognized priority tier - admin hasn't set one, skip from auto-assignment
 
     const rawUsers: string[] = Array.isArray(p.users) ? p.users : [];
     const emails = new Set<string>();
@@ -1209,10 +1280,11 @@ export async function generateLineupForDate(
     emails.forEach((userEmail) => {
       if (rawPausedByCanonical.has(userEmail)) return; // paused users are skipped entirely for new generation
       const key = `${userEmail}::${p.id}`;
-      const doneThisWeek = countThisWeek.get(key) || 0;
-      const deficit = weeklyTarget - doneThisWeek;
+      const doneThisPeriod =
+        rule.period === "month" ? countThisMonth.get(key) || 0 : countThisWeek.get(key) || 0;
+      const deficit = rule.target - doneThisPeriod;
       const carried = yesterdayPending.has(key);
-      if (deficit <= 0 && !carried) return; // this project's weekly quota is already met
+      if (deficit <= 0 && !carried) return; // this project's quota for its period is already met
 
       if (!candidatesByUser.has(userEmail)) candidatesByUser.set(userEmail, []);
       candidatesByUser.get(userEmail)!.push({
@@ -1228,13 +1300,7 @@ export async function generateLineupForDate(
 
   const toInsert: any[] = [];
   candidatesByUser.forEach((candidates) => {
-    candidates.sort((a, b) => {
-      if (a.carried !== b.carried) return a.carried ? -1 : 1; // carried-over pending first
-      if (b.deficit !== a.deficit) return b.deficit - a.deficit; // bigger deficit first
-      return (PRIORITY_WEEKLY_TARGET[b.priority] || 0) - (PRIORITY_WEEKLY_TARGET[a.priority] || 0);
-    });
-
-    candidates.slice(0, DAILY_LINEUP_CAP_PER_USER).forEach((c) => {
+    selectDailyCandidates(candidates).forEach((c) => {
       toInsert.push({
         id: `lineup-${dateStr}-${c.userEmail.replace(/[^a-z0-9]/gi, "")}-${c.projectId}`,
         date: dateStr,
@@ -1309,16 +1375,20 @@ export async function regenerateLineupForUserOnDateDb(
   if (existingForUser.length > 0) return { count: 0 };
 
   const weekStart = weekStartMonday(dateStr);
+  const monthStart = monthStartOf(dateStr);
   const yesterday = addDays(dateStr, -1);
-  const weekSoFar = await getTaskAssignmentsDb({ dateFrom: weekStart, dateTo: yesterday, userEmail });
+  const rangeStart = weekStart < monthStart ? weekStart : monthStart;
+  const periodSoFar = await getTaskAssignmentsDb({ dateFrom: rangeStart, dateTo: yesterday, userEmail });
 
   const countThisWeek = new Map<string, number>();
-  weekSoFar.forEach((a) => {
-    countThisWeek.set(a.projectId, (countThisWeek.get(a.projectId) || 0) + 1);
+  const countThisMonth = new Map<string, number>();
+  periodSoFar.forEach((a) => {
+    if (a.date >= weekStart) countThisWeek.set(a.projectId, (countThisWeek.get(a.projectId) || 0) + 1);
+    if (a.date >= monthStart) countThisMonth.set(a.projectId, (countThisMonth.get(a.projectId) || 0) + 1);
   });
 
   const yesterdayPending = new Set<string>();
-  weekSoFar
+  periodSoFar
     .filter((a) => a.date === yesterday && a.status === "Pending")
     .forEach((a) => yesterdayPending.add(a.projectId));
 
@@ -1327,8 +1397,8 @@ export async function regenerateLineupForUserOnDateDb(
 
   projects.forEach((p) => {
     const priority = String(p.priority || "").toUpperCase();
-    const weeklyTarget = PRIORITY_WEEKLY_TARGET[priority];
-    if (!weeklyTarget) return;
+    const rule = PRIORITY_RULES[priority];
+    if (!rule) return;
 
     const rawUsers: string[] = Array.isArray(p.users) ? p.users : [];
     const emails = new Set<string>();
@@ -1338,21 +1408,15 @@ export async function regenerateLineupForUserOnDateDb(
     if (p.userId && String(p.userId).trim()) emails.add(String(p.userId).trim().toLowerCase());
     if (!emails.has(userEmail)) return;
 
-    const doneThisWeek = countThisWeek.get(p.id) || 0;
-    const deficit = weeklyTarget - doneThisWeek;
+    const doneThisPeriod = rule.period === "month" ? countThisMonth.get(p.id) || 0 : countThisWeek.get(p.id) || 0;
+    const deficit = rule.target - doneThisPeriod;
     const carried = yesterdayPending.has(p.id);
     if (deficit <= 0 && !carried) return;
 
     candidates.push({ projectId: p.id, projectName: p.name, priority, carried, deficit });
   });
 
-  candidates.sort((a, b) => {
-    if (a.carried !== b.carried) return a.carried ? -1 : 1;
-    if (b.deficit !== a.deficit) return b.deficit - a.deficit;
-    return (PRIORITY_WEEKLY_TARGET[b.priority] || 0) - (PRIORITY_WEEKLY_TARGET[a.priority] || 0);
-  });
-
-  const toInsert = candidates.slice(0, DAILY_LINEUP_CAP_PER_USER).map((c) => ({
+  const toInsert = selectDailyCandidates(candidates).map((c) => ({
     id: `lineup-${dateStr}-${userEmail.replace(/[^a-z0-9]/gi, "")}-${c.projectId}`,
     date: dateStr,
     projectId: c.projectId,
