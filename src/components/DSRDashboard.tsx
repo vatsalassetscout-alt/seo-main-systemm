@@ -418,6 +418,7 @@ export default function DSRDashboard({
       selectedKeywords: string[];
       workSummary: string;
       entryId: string;
+      workStatus: string;
     }[] = [];
     if (!Array.isArray(parsedEntries)) return list;
     parsedEntries.forEach((entry) => {
@@ -445,6 +446,12 @@ export default function DSRDashboard({
           selectedKeywords: w.selectedKeywords || [],
           workSummary: w.workSummary || '',
           entryId: entry.id,
+          // Whether real On/Off Page Activity work was logged ('worked') vs
+          // "No Activity" ('not_worked') for this domain block. This was
+          // previously dropped here, which is why every "Times Worked"
+          // count in the Project Table (and anywhere else derived from
+          // filteredWorks/enrichedWorks) always rendered as 0.
+          workStatus: w.workStatus || '',
         });
       });
     });
@@ -1215,7 +1222,8 @@ export default function DSRDashboard({
         };
       });
 
-      // Find last worked / checked date for the project as a whole
+      // Find last worked date for the project as a whole (used for sorting
+      // the ranking table — most recently worked-on projects float to top).
       let lastWorkedDate = 'Never';
       filteredWorks.forEach((work) => {
         if (work.projectId === proj.id) {
@@ -1225,11 +1233,35 @@ export default function DSRDashboard({
         }
       });
 
+      // Find last CHECKED date for the project — the most recent SERP
+      // ranking check timestamp across all of its keywords. This is what
+      // the "Last Check" column should actually display, distinct from
+      // lastWorkedDate above.
+      let lastCheckedDate: string | null = null;
+      keywordItems.forEach((kwItem) => {
+        if (kwItem.lastChecked) {
+          if (!lastCheckedDate || kwItem.lastChecked > lastCheckedDate) {
+            lastCheckedDate = kwItem.lastChecked;
+          }
+        }
+      });
+
+      // Same domain fallback used by the Project Table tab — without this,
+      // any project that doesn't have an explicit `domain` set sends an
+      // empty domain to /api/rankings/check, which the backend rejects
+      // outright (400 "projectId and domain are required"), so both the
+      // per-row "Check" button and "Check All" silently fail for it.
+      let domain = proj.domain || '';
+      if (!domain) {
+        domain = proj.name ? `${proj.name.toLowerCase().trim().replace(/[^a-z0-9]/g, '-')}.com` : '';
+      }
+
       return {
         id: proj.id,
         name: proj.name,
-        domain: proj.domain || '',
+        domain,
         lastWorkedDate,
+        lastCheckedDate,
         keywords: keywordItems
       };
     });
@@ -3175,24 +3207,29 @@ export default function DSRDashboard({
                               </span>
                             </td>
 
-                            {/* Last Check (Last Worked Date) */}
+                            {/* Last Check — the last time this project's ranking was
+                                actually checked against Google SERP (not the last work
+                                log date). */}
                             <td className="px-4 py-3.5" onClick={(e) => e.stopPropagation()}>
                               <div className="flex items-center justify-between gap-3">
                                 <div className="text-gray-800 font-extrabold font-mono text-xs">
                                   {(() => {
-                                    if (proj.lastWorkedDate === 'Never') {
+                                    if (!proj.lastCheckedDate) {
                                       return <span className="text-gray-400 font-bold font-mono">—</span>;
                                     }
                                     
                                     try {
-                                      const d = new Date(proj.lastWorkedDate);
+                                      const d = new Date(proj.lastCheckedDate);
+                                      if (isNaN(d.getTime())) {
+                                        return <span>{proj.lastCheckedDate}</span>;
+                                      }
                                       return (
                                         <span>
                                           {d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
                                         </span>
                                       );
                                     } catch {
-                                      return <span>{proj.lastWorkedDate}</span>;
+                                      return <span>{proj.lastCheckedDate}</span>;
                                     }
                                   })()}
                                 </div>
