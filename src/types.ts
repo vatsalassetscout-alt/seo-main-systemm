@@ -103,28 +103,39 @@ interface PriorityRule {
   target: number;
   /** ...per this period. 'week' = Mon-Sat (Sunday is always a rest day). */
   period: FrequencyPeriod;
-  /** Max number of this tier's projects that may land in ONE day's lineup
-   *  for a single user, even if more are technically "owed" work. */
-  dailyCap: number;
+  /** Which daily-cap "bucket" (see PRIORITY_GROUP_DAILY_CAP) this tier's
+   *  picks count against. Tiers can share a bucket — X4 and X5 share one
+   *  combined cap instead of each getting its own. */
+  group: string;
 }
 
 // X1: 4x/week · X2: 3x/week · X3: 2x/week · X4: 1x/week · X5: 1x/month.
-// Daily caps sum to 25 (5+6+6+5+3) so the per-tier caps alone are enough to
-// keep any single user's day within the hard DAILY_LINEUP_CAP_PER_USER
-// limit below, while still leaving room for every tier to appear.
 export const PRIORITY_RULES: Record<string, PriorityRule> = {
-  X1: { target: 4, period: 'week', dailyCap: 5 },
-  X2: { target: 3, period: 'week', dailyCap: 6 },
-  X3: { target: 2, period: 'week', dailyCap: 6 },
-  X4: { target: 1, period: 'week', dailyCap: 5 },
-  X5: { target: 1, period: 'month', dailyCap: 3 },
+  X1: { target: 4, period: 'week', group: 'X1' },
+  X2: { target: 3, period: 'week', group: 'X2' },
+  X3: { target: 2, period: 'week', group: 'X3' },
+  X4: { target: 1, period: 'week', group: 'X4_X5' },
+  X5: { target: 1, period: 'month', group: 'X4_X5' },
+};
+
+// Max number of picks from each bucket that may land in ONE day's lineup
+// for a single user, even if more are technically "owed" work that day.
+// X1 and X2 can each land 3-4 (target is 4, so most days hit 4, some fewer
+// once a project's weekly quota is already met). X4 and X5 are pooled into
+// one combined bucket since neither is common enough to need its own slot.
+// 4 + 4 + 3 + 5 = 16, matching DAILY_LINEUP_CAP_PER_USER below.
+export const PRIORITY_GROUP_DAILY_CAP: Record<string, number> = {
+  X1: 4,
+  X2: 4,
+  X3: 3,
+  X4_X5: 5,
 };
 
 // Kept for anything that only needs "how many times per week" as a single
 // number (used for tie-break sorting — higher tiers sort first). For X5
 // (a monthly cadence) this is an approximate weekly-equivalent weight, not
 // a real target — always read PRIORITY_RULES for the actual scheduling
-// target/period/cap.
+// target/period, and PRIORITY_GROUP_DAILY_CAP for the daily cap.
 export const PRIORITY_WEEKLY_TARGET: Record<string, number> = {
   X1: PRIORITY_RULES.X1.target,
   X2: PRIORITY_RULES.X2.target,
@@ -134,7 +145,8 @@ export const PRIORITY_WEEKLY_TARGET: Record<string, number> = {
 };
 
 // Hard ceiling — no single user's lineup for a single day may ever exceed
-// this many projects, no matter how many are "owed" work. Combined with the
-// per-tier dailyCap values above, real-world days should land comfortably
-// in the 20-25 range rather than always hitting a fixed number.
-export const DAILY_LINEUP_CAP_PER_USER = 25;
+// this many projects, no matter how many are "owed" work. Built directly
+// from the PRIORITY_GROUP_DAILY_CAP buckets above (4+4+3+5), so real-world
+// days should land in the 15-16 range rather than always hitting a fixed
+// number — a user with fewer eligible projects just gets fewer entries.
+export const DAILY_LINEUP_CAP_PER_USER = 16;
