@@ -118,11 +118,26 @@ export const PRIORITY_RULES: Record<string, PriorityRule> = {
   X5: { target: 1, period: 'month', group: 'X4_X5' },
 };
 
-// Max number of picks from each bucket that may land in ONE day's lineup
-// for a single user, even if more are technically "owed" work that day.
-// X1 and X2 can each land 3-4 (target is 4, so most days hit 4, some fewer
-// once a project's weekly quota is already met). X4 and X5 are pooled into
-// one combined bucket since neither is common enough to need its own slot.
+// Max number of picks from each tier that may land in ONE day's lineup,
+// applied BEFORE the shared group cap below. This is what stops X5 (or X4)
+// from eating the whole combined X4_X5 bucket on a day when one of them has
+// a big backlog — each is capped at 3 on its own, even though together they
+// can still fill up to 5 (the group cap).
+export const PRIORITY_TIER_DAILY_CAP: Record<string, number> = {
+  X1: 4,
+  X2: 4,
+  X3: 3,
+  X4: 3,
+  X5: 3,
+};
+
+// Max number of picks from each bucket (after the per-tier caps above have
+// already been applied within it) that may land in ONE day's lineup for a
+// single user, even if more are technically "owed" work that day. X1 and X2
+// can each land 3-4 (target is 4, so most days hit 4, some fewer once a
+// project's weekly quota is already met). X4 and X5 are pooled into one
+// combined bucket — each individually capped at 3 (see
+// PRIORITY_TIER_DAILY_CAP), but never more than 5 between the two of them.
 // 4 + 4 + 3 + 5 = 16, matching DAILY_LINEUP_CAP_PER_USER below.
 export const PRIORITY_GROUP_DAILY_CAP: Record<string, number> = {
   X1: 4,
