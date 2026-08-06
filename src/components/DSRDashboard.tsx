@@ -426,6 +426,38 @@ export default function DSRDashboard({
       const worksList = Array.isArray(entry.works) ? entry.works : [];
       worksList.forEach((w) => {
         if (!w) return;
+
+        // "Times Worked" = On/Off Page Activity actually logged for this
+        // project's domain block. "Times Not Worked" = "No Activity" was
+        // explicitly selected. New submissions always save this directly
+        // as w.workStatus ('worked' | 'not_worked').
+        //
+        // Older submissions were created before the On/Off Page Activity vs
+        // No Activity toggle existed at all, so they have no workStatus
+        // saved. Backfill those on the fly here: a domain block only ever
+        // got saved into `works` if the user actually filled in real
+        // backlink/content activity for it (the old form had no "No
+        // Activity, nothing else" path), so any legacy block with real
+        // counts/work types/content updates recorded is counted as
+        // "worked"; anything with zero signal of activity is left as
+        // "not worked".
+        let workStatus: string = w.workStatus || '';
+        if (!workStatus) {
+          const legacyHasActivity =
+            (Number(w.listingCount) || 0) > 0 ||
+            (Number(w.blogCount) || 0) > 0 ||
+            (Number(w.forumCount) || 0) > 0 ||
+            (Number(w.pdfCount) || 0) > 0 ||
+            (Number(w.imageCount) || 0) > 0 ||
+            (Number(w.videoPptCount) || 0) > 0 ||
+            (Number(w.profileCount) || 0) > 0 ||
+            (Number(w.linkCount) || 0) > 0 ||
+            (Array.isArray(w.workTypes) && w.workTypes.length > 0) ||
+            (Array.isArray(w.contentUpdates) && w.contentUpdates.length > 0) ||
+            (typeof w.blog === 'string' && w.blog.trim() !== '');
+          workStatus = legacyHasActivity ? 'worked' : 'not_worked';
+        }
+
         list.push({
           date: entry.date || '',
           userEmail: entry.userEmail || '',
@@ -446,12 +478,7 @@ export default function DSRDashboard({
           selectedKeywords: w.selectedKeywords || [],
           workSummary: w.workSummary || '',
           entryId: entry.id,
-          // Whether real On/Off Page Activity work was logged ('worked') vs
-          // "No Activity" ('not_worked') for this domain block. This was
-          // previously dropped here, which is why every "Times Worked"
-          // count in the Project Table (and anywhere else derived from
-          // filteredWorks/enrichedWorks) always rendered as 0.
-          workStatus: w.workStatus || '',
+          workStatus,
         });
       });
     });
