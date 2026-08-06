@@ -1386,6 +1386,35 @@ export async function clearPendingAssignmentsForUserOnDateDb(dateStr: string, us
   }
 }
 
+// Deletes EVERY user's still-Pending assignments for ONE date (today, in
+// practice — called the moment an admin stops/pauses the whole engine).
+// Same reasoning as clearPendingAssignmentsForUserOnDateDb, just engine-wide:
+// only "Pending" rows are touched (anything already "Done" is real logged
+// work and is never removed), and nothing in the weekly/monthly rotation is
+// permanently lost — since the deficit math in generateLineupForDate only
+// looks at days up to "yesterday", clearing today's not-yet-worked rows
+// doesn't erase any completed work, so resuming regenerates today's lineup
+// picking up exactly where the cycle left off instead of skipping ahead.
+export async function clearAllPendingAssignmentsForDateDb(dateStr: string): Promise<boolean> {
+  const sb = getSupabase();
+  if (!sb) return false;
+  try {
+    const { error } = await sb
+      .from("task_assignments")
+      .delete()
+      .eq("date", dateStr)
+      .eq("status", "Pending");
+    if (error) {
+      console.warn("Supabase clear all pending assignments for date failed:", error.message);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error("Supabase clear all pending assignments exception:", err);
+    return false;
+  }
+}
+
 /**
  * Fills in ONE user's lineup for ONE date using the exact same deficit /
  * carry-forward logic as generateLineupForDate — but scoped to a single
