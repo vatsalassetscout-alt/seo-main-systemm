@@ -1951,13 +1951,13 @@ export default function DSRDashboard({
           <TrendingUp size={13} className="text-indigo-500 shrink-0" />
           <div className="flex flex-col gap-1 min-w-[130px]">
             <div className="flex items-center justify-between gap-3">
-              <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider leading-none">
+              <span className="text-[9px] font-black text-black uppercase tracking-wider leading-none">
                 Monthly Progress
               </span>
-              <span className="text-[10.5px] font-black text-gray-700 font-mono leading-none whitespace-nowrap">
-                <span className="text-indigo-600">{monthlyProgressStats.covered}</span>
-                <span className="text-gray-400"> / {monthlyProgressStats.total}</span>
-                <span className="text-gray-400 font-bold ml-1">({monthlyProgressStats.percent}%)</span>
+              <span className="text-[10.5px] font-black text-black font-mono leading-none whitespace-nowrap">
+                <span className="text-black">{monthlyProgressStats.covered}</span>
+                <span className="text-black"> / {monthlyProgressStats.total}</span>
+                <span className="text-black font-black ml-1">({monthlyProgressStats.percent}%)</span>
               </span>
             </div>
             <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden border border-gray-150">
