@@ -190,6 +190,34 @@ export default function DSRLogs({
     }));
   };
 
+  // Collapse a log card in place — used after Approve/Pending is clicked so the
+  // card closes automatically without the page jumping to the top or anywhere
+  // else. We snapshot the card's on-screen position, apply the collapse, then
+  // nudge the scroll position by exactly the height difference so the card's
+  // header stays fixed under the cursor/viewport instead of the page relocating.
+  const collapseInPlace = (id: string) => {
+    const el = logItemRefs.current[id];
+    const beforeTop = el?.getBoundingClientRect().top ?? null;
+
+    setExpandedEntries(prev => ({ ...prev, [id]: false }));
+
+    if (beforeTop === null) return;
+
+    // Wait for the collapse animation/layout to settle, then correct scroll.
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const afterEl = logItemRefs.current[id];
+        const afterTop = afterEl?.getBoundingClientRect().top;
+        if (typeof afterTop === 'number') {
+          const delta = afterTop - beforeTop;
+          if (Math.abs(delta) > 1) {
+            window.scrollBy({ top: delta, left: 0, behavior: 'auto' });
+          }
+        }
+      });
+    });
+  };
+
   // When navigated here from a notification (e.g. "Check Remark"), auto-open and
   // scroll to the specific log entry it points to.
   useEffect(() => {
@@ -714,6 +742,26 @@ export default function DSRLogs({
                 return p ? p.name : (w.projectName || 'Work Note');
               })));
 
+              // Worked vs No-Activity split across the unique domain projects in this
+              // day's log — used for the "Total Project : X | W: Y, NM: Z" summary.
+              const domainWorks = item.works.filter((w: any) => !!w.projectId);
+              const uniqueDomainKeys = Array.from(new Set(domainWorks.map((w: any) => {
+                const p = projects.find(proj => proj.id === w.projectId);
+                return String(p?.id ?? w.projectId ?? w.projectName ?? '').trim().toLowerCase();
+              })));
+              const totalProjectCount = uniqueDomainKeys.length;
+              const notWorkedProjectCount = uniqueDomainKeys.filter((key) => {
+                // A project counts as "No Activity" if its last submitted entry that day was marked not_worked.
+                const worksForKey = domainWorks.filter((w: any) => {
+                  const p = projects.find(proj => proj.id === w.projectId);
+                  const k = String(p?.id ?? w.projectId ?? w.projectName ?? '').trim().toLowerCase();
+                  return k === key;
+                });
+                const lastWork = worksForKey[worksForKey.length - 1];
+                return lastWork?.workStatus === 'not_worked';
+              }).length;
+              const workedProjectCount = totalProjectCount - notWorkedProjectCount;
+
               return (
                 <div
                   key={item.uniqueId}
@@ -754,6 +802,17 @@ export default function DSRLogs({
                     </div>
 
                     <div className="flex items-center justify-between sm:justify-end gap-2.5 mt-1 sm:mt-0 pt-2.5 sm:pt-0 border-t sm:border-t-0 border-slate-100">
+                      {/* Left-most: Total Project : X | W: Y, NM: Z — worked vs no-activity domain split */}
+                      {totalProjectCount > 0 && (
+                        <div className="flex flex-wrap items-center gap-1.5 text-[10px] font-mono font-black text-slate-650 bg-slate-50/60 border border-slate-150/40 px-2 py-1 rounded-lg">
+                          <span>Total Project : <span className="text-indigo-700">{totalProjectCount}</span></span>
+                          <span className="text-slate-300">|</span>
+                          <span className="text-emerald-700">W: {workedProjectCount}</span>
+                          <span className="text-slate-300">,</span>
+                          <span className="text-amber-700">NM: {notWorkedProjectCount}</span>
+                        </div>
+                      )}
+
                       {/* Left Side inline submission-type counts summary (project name removed, content update excluded — it's not a submission type) */}
                       {(() => {
                         const countEntries: { label: string; value: number }[] = [
@@ -923,18 +982,6 @@ export default function DSRLogs({
                                     })()}
                                   </div>
 
-                                  {/* Content Update — its own block, same level as Submissions, not a numerical quantity so kept separate */}
-                                  {work.contentUpdates && work.contentUpdates.length > 0 && (
-                                    <div className="space-y-1.5">
-                                      <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">Content Update</h4>
-                                      <div className="flex flex-wrap items-baseline gap-1.5">
-                                        <span className="text-[10.5px] font-bold text-slate-600 font-sans">
-                                          {work.contentUpdates.map((cu: string) => CONTENT_UPDATE_LABELS[cu] || cu).join(', ')}
-                                        </span>
-                                      </div>
-                                    </div>
-                                  )}
-
                                   {/* Extra / New Work Done — free-text note content only; heading already shown above (Project header / 📂 label) */}
                                   {work.extraWorkNote && (
                                     <div className="space-y-1.5">
@@ -954,7 +1001,7 @@ export default function DSRLogs({
                                     if (isNoActivity) {
                                       return (
                                         <div className="space-y-1.5">
-                                          <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">No Activities</h4>
+                                          <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">NW</h4>
                                           <div className="bg-white p-3.5 rounded-2xl border border-slate-150 shadow-3xs text-xs text-slate-805 leading-relaxed font-semibold">
                                             {work.workSummary ? (
                                               <p className="whitespace-pre-wrap">{work.workSummary}</p>
@@ -983,7 +1030,7 @@ export default function DSRLogs({
 
                                     return (
                                       <div className="space-y-3">
-                                        <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">ON Page / Off Page Activities</h4>
+                                        <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">W</h4>
 
                                         {/* Target Keywords block */}
                                         {keywordsList.length > 0 && (
@@ -1090,6 +1137,18 @@ export default function DSRLogs({
                                       </a>
                                     </div>
                                   )}
+
+                                  {/* Content Update — its own block, same level as Submissions, not a numerical quantity so kept separate. Shown after SEO Submission (On/Off Page Activities) and Backlinks. */}
+                                  {work.contentUpdates && work.contentUpdates.length > 0 && (
+                                    <div className="space-y-1.5">
+                                      <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">Content Update</h4>
+                                      <div className="flex flex-wrap items-baseline gap-1.5">
+                                        <span className="text-[10.5px] font-bold text-slate-600 font-sans">
+                                          {work.contentUpdates.map((cu: string) => CONTENT_UPDATE_LABELS[cu] || cu).join(', ')}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  )}
                                 </div>
                               );
                               });
@@ -1123,12 +1182,13 @@ export default function DSRLogs({
                                 
                                 <button
                                   onClick={() => {
-                                    // Just flip the status — nothing else. No collapse, no scroll change,
-                                    // no reordering. The card stays exactly as it is.
+                                    // Flip the status, then auto-close this log card — staying
+                                    // exactly where it was (no jump to the top of the page).
                                     const nextStatus = item.status === 'Approved' ? 'Pending' : 'Approved';
                                     item.entryIds.forEach((id: string) => {
                                       onUpdateStatus(id, nextStatus);
                                     });
+                                    collapseInPlace(item.uniqueId);
                                   }}
                                   className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition cursor-pointer select-none font-sans ${
                                     item.status === 'Approved'
