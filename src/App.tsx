@@ -322,13 +322,13 @@ export default function App() {
     const savedRole = sessionStorage.getItem('dsr_logged_role') as 'user' | 'admin' | null;
     if (savedUser) {
       if (savedRole) {
-        return savedRole === 'admin' ? 'dashboard' : 'submit';
+        return savedRole === 'admin' ? 'dashboard' : 'task-lineup';
       }
       const savedAdmins = localStorage.getItem('dsr_admin_emails');
       const admins = savedAdmins ? JSON.parse(savedAdmins) : ADMIN_EMAILS;
-      return admins.includes(savedUser.trim().toLowerCase()) ? 'dashboard' : 'submit';
+      return admins.includes(savedUser.trim().toLowerCase()) ? 'dashboard' : 'task-lineup';
     }
-    return 'submit';
+    return 'task-lineup';
   });
 
   const [dashboardSubTab, setDashboardSubTab] = useState<'project_table' | 'activity' | 'backlinks' | 'unworked_project' | 'keyword_section' | 'update_ranking'>('project_table');
@@ -644,7 +644,7 @@ export default function App() {
         setCurrentUserEmail(emailLower);
         setCurrentUserRole('user');
         sessionStorage.setItem('dsr_logged_role', 'user');
-        setActiveTab('submit');
+        setActiveTab('task-lineup');
         recordLoginActivity(emailLower, 'user');
       }
 
@@ -718,7 +718,7 @@ export default function App() {
         setCurrentUserEmail(userEmail);
         setCurrentUserRole(finalRole);
         sessionStorage.setItem('dsr_logged_role', finalRole);
-        setActiveTab(finalRole === 'admin' ? 'dashboard' : 'submit');
+        setActiveTab(finalRole === 'admin' ? 'dashboard' : 'task-lineup');
 
         await syncWithBackend();
       }
@@ -1443,7 +1443,7 @@ export default function App() {
             <div className="flex items-center gap-2 text-xs">
               {activeTab === 'logs' && (
                 <span className="bg-indigo-50 border border-indigo-200/60 text-indigo-700 px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5 shadow-2xs">
-                  ⚡ Total Logs: <strong>{filteredLogsCount !== null ? filteredLogsCount : 0} logs</strong>
+                   Total Logs: <strong>{filteredLogsCount !== null ? filteredLogsCount : 0} logs</strong>
                 </span>
               )}
             </div>
