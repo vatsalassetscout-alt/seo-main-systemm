@@ -802,6 +802,38 @@ export default function DSRDashboard({
     });
   }, [projects, regionFilter, selectedLocations, selectedPriorities, pendingChanges, selectedProjectIds, commonSearchTerm, filteredWorks, isAdmin, currentUserEmail, selectedUsers]);
 
+  // Monthly Progress (Overview panel, below the tab buttons):
+  // "0" is always the fixed starting point; the moving number is how many of
+  // the CURRENTLY FILTERED projects have at least one DSR entry logged in
+  // the current calendar month. Resets automatically on month change since
+  // it's computed live off today's date, not stored anywhere.
+  //
+  // Important: this uses a different definition of "worked" than the
+  // Times Worked/Not Worked columns elsewhere. Here, ANY submitted entry
+  // counts as the project being "covered" for the month — even if the user
+  // picked "No Activity" for every block that day. Filling something in at
+  // all means the project was touched/reviewed this month.
+  const monthlyProgressStats = useMemo(() => {
+    const now = new Date();
+    const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+    const filteredProjectIds = new Set(filteredProjectsForMetrics.map(p => p.id));
+
+    const coveredProjectIds = new Set<string>();
+    filteredWorks.forEach((w) => {
+      if (!w.date || !w.date.startsWith(currentMonthKey)) return;
+      if (!filteredProjectIds.has(w.projectId)) return;
+      // No workStatus check here on purpose — logged "No Activity" still counts.
+      coveredProjectIds.add(w.projectId);
+    });
+
+    const total = filteredProjectsForMetrics.length;
+    const covered = coveredProjectIds.size;
+    const percent = total > 0 ? Math.min(100, Math.round((covered / total) * 100)) : 0;
+
+    return { covered, total, percent };
+  }, [filteredWorks, filteredProjectsForMetrics]);
+
   // KPI calculations for response metrics
   const projectsAssignedCount = projects.length;
   
@@ -1911,6 +1943,31 @@ export default function DSRDashboard({
             </button>
           );
         })}
+      </div>
+
+      {/* Monthly Progress Bar - projects covered (any entry logged, incl. No Activity)
+          out of total projects in the current filter scope. Resets every calendar month. */}
+      <div className="bg-white p-3 rounded-2xl border border-gray-150 shadow-2xs">
+        <div className="flex items-center justify-between mb-1.5">
+          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
+            <TrendingUp size={12} className="text-indigo-500" />
+            Monthly Progress
+          </span>
+          <span className="text-[11px] font-black text-gray-700 font-mono">
+            <span className="text-indigo-600">{monthlyProgressStats.covered}</span>
+            <span className="text-gray-400"> / {monthlyProgressStats.total}</span>
+            <span className="text-gray-400 font-bold ml-1">({monthlyProgressStats.percent}%)</span>
+          </span>
+        </div>
+        <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden border border-gray-150">
+          <div
+            className="h-full bg-gradient-to-r from-indigo-500 to-indigo-600 rounded-full transition-all duration-500 ease-out"
+            style={{ width: `${monthlyProgressStats.percent}%` }}
+          />
+        </div>
+        <div className="mt-1 text-[9.5px] font-semibold text-gray-400">
+          Projects covered this month out of total filtered projects. Resets on the 1st of every month.
+        </div>
       </div>
 
       </div>
