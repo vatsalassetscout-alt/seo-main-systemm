@@ -843,7 +843,7 @@ export default function DSRLogs({
                               </React.Fragment>
                             ))}
                             <span className="text-slate-300">|</span>
-                            <span className="text-indigo-700">{grandTotal} Total</span>
+                            <span className="text-indigo-700">{grandTotal} Total Backlinks </span>
                           </div>
                         );
                       })()}
