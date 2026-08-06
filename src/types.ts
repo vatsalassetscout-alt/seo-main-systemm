@@ -81,15 +81,60 @@ export interface TaskAssignment {
   createdAt: string;
 }
 
-// Weekly work-frequency target implied by each priority tier. X1 is worked
-// every day the lineup runs (no-Sunday rule), tapering down to X5 which is
-// only picked once a week. Assumption — adjust here if the real cadence differs.
-export const PRIORITY_WEEKLY_TARGET: Record<string, number> = {
-  X1: 6,
-  X2: 4,
-  X3: 3,
-  X4: 2,
-  X5: 1,
+// =========================================================================
+// TASK LINEUP FREQUENCY RULES
+// =========================================================================
+// Every project's priority tier (X1-X5) implies how many times a week (or,
+// for X5, a month) it should show up in a user's lineup. The generator uses
+// this — plus a per-tier "how many of this tier per day" cap — to spread
+// each user's projects out sensibly instead of dumping every eligible
+// project into one day.
+//
+// Nothing here is a fixed "X projects every day" rule — a user with only 6
+// total projects will simply get fewer lineup entries than a user with 80.
+// These numbers only control (a) how often each project should recur and
+// (b) the upper bound per tier / per day so no single tier crowds out the
+// rest and no single day gets overloaded.
+
+export type FrequencyPeriod = 'week' | 'month';
+
+interface PriorityRule {
+  /** How many times this tier's projects should be worked... */
+  target: number;
+  /** ...per this period. 'week' = Mon-Sat (Sunday is always a rest day). */
+  period: FrequencyPeriod;
+  /** Max number of this tier's projects that may land in ONE day's lineup
+   *  for a single user, even if more are technically "owed" work. */
+  dailyCap: number;
+}
+
+// X1: 4x/week · X2: 3x/week · X3: 2x/week · X4: 1x/week · X5: 1x/month.
+// Daily caps sum to 25 (5+6+6+5+3) so the per-tier caps alone are enough to
+// keep any single user's day within the hard DAILY_LINEUP_CAP_PER_USER
+// limit below, while still leaving room for every tier to appear.
+export const PRIORITY_RULES: Record<string, PriorityRule> = {
+  X1: { target: 4, period: 'week', dailyCap: 5 },
+  X2: { target: 3, period: 'week', dailyCap: 6 },
+  X3: { target: 2, period: 'week', dailyCap: 6 },
+  X4: { target: 1, period: 'week', dailyCap: 5 },
+  X5: { target: 1, period: 'month', dailyCap: 3 },
 };
 
+// Kept for anything that only needs "how many times per week" as a single
+// number (used for tie-break sorting — higher tiers sort first). For X5
+// (a monthly cadence) this is an approximate weekly-equivalent weight, not
+// a real target — always read PRIORITY_RULES for the actual scheduling
+// target/period/cap.
+export const PRIORITY_WEEKLY_TARGET: Record<string, number> = {
+  X1: PRIORITY_RULES.X1.target,
+  X2: PRIORITY_RULES.X2.target,
+  X3: PRIORITY_RULES.X3.target,
+  X4: PRIORITY_RULES.X4.target,
+  X5: 0.25, // ~1x per 4-week month, expressed as a weekly-equivalent for sorting only
+};
+
+// Hard ceiling — no single user's lineup for a single day may ever exceed
+// this many projects, no matter how many are "owed" work. Combined with the
+// per-tier dailyCap values above, real-world days should land comfortably
+// in the 20-25 range rather than always hitting a fixed number.
 export const DAILY_LINEUP_CAP_PER_USER = 25;
