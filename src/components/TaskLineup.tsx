@@ -103,11 +103,17 @@ const PriorityDistribution = ({ items }: { items: TaskAssignment[] }) => {
 };
 
 // "Done" is renamed to "Submitted" for display only — the underlying status
-// value in the data model is still 'Done'.
-const StatusBadge = ({ status }: { status: string }) => (
+// value in the data model is still 'Done'. When a task's owner is currently
+// paused, a still-pending task shows "Paused" instead of "Pending" so admins
+// can tell at a glance why it isn't moving.
+const StatusBadge = ({ status, isPaused }: { status: string; isPaused?: boolean }) => (
   status === 'Done' ? (
     <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-700">
       <CheckCircle2 size={13} /> Submitted
+    </span>
+  ) : isPaused ? (
+    <span className="inline-flex items-center gap-1 text-xs font-bold text-gray-500">
+      <Pause size={13} /> Paused
     </span>
   ) : (
     <span className="inline-flex items-center gap-1 text-xs font-bold text-amber-700">
@@ -405,6 +411,10 @@ export default function TaskLineup({
   };
 
   const nameFor = (email: string) => allowedUsers.find(u => u.email.trim().toLowerCase() === email.trim().toLowerCase())?.name || email;
+
+  // Quick lookup: is this user currently paused? Used to show "Paused"
+  // instead of "Pending" on their still-open tasks in the admin lineup view.
+  const isUserPaused = (email: string) => !!allowedUsers.find(u => u.email.trim().toLowerCase() === email.trim().toLowerCase())?.paused;
 
   // Grouped by display NAME (not raw email). Two app_users rows can share the
   // same name with different emails (a known duplicate-account issue — see
@@ -751,7 +761,7 @@ export default function TaskLineup({
                             }`}
                           >
                             {paused ? <Play size={12} /> : <Pause size={12} />}
-                            {paused ? 'Paused' : 'Pause'}
+                            {paused ? 'Resume' : 'Pause'}
                           </button>
                         </div>
                       </div>
@@ -793,7 +803,7 @@ export default function TaskLineup({
                             </div>
                             <div className="flex items-center gap-3">
                               <Badge priority={a.priority} />
-                              <StatusBadge status={a.status} />
+                              <StatusBadge status={a.status} isPaused={isUserPaused(a.userEmail)} />
                             </div>
                           </div>
                         ))}
