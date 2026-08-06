@@ -445,8 +445,14 @@ export default function App() {
       if (user && user.email) {
         const userEmail = user.email.trim().toLowerCase();
         registerLoggedInUser(userEmail, user.displayName || undefined);
+        // Don't call syncWithBackend() here directly — setCurrentUserEmail
+        // already triggers the [currentUserEmail] effect above, which runs
+        // the sync. Calling it again here meant every login fired a full
+        // /api/filters + /api/submissions + /api/alerts re-fetch 2–3 times
+        // back to back (mount effect, currentUserEmail effect, and this one),
+        // which is unnecessary network/parse cost and also multiplied the
+        // chance of the projects-merge race described above.
         setCurrentUserEmail(userEmail);
-        syncWithBackend();
       }
     }, () => {
       // Sign-out action
@@ -466,10 +472,23 @@ export default function App() {
     const dynamicUsers = mapUsersFromProjects(projects);
     // Merge instead of overwrite, so users loaded from /api/filters
     // (e.g. the currently logged in user) are never dropped from the list.
+    //
+    // IMPORTANT: dynamicUsers is derived purely from the projects sheet and
+    // never carries server-owned state like `paused`. Previously this merge
+    // put dynamicUsers second in the array, so for any email that already
+    // existed, the sheet-derived (paused-less) copy silently clobbered the
+    // real paused flag — which is why a paused user (and their "Paused"
+    // project badges) would flip back to unpaused/"Pending" on every
+    // projects re-sync (e.g. on relogin). Fix: merge onto the existing
+    // record field-by-field and explicitly keep the existing `paused` value
+    // instead of letting the sheet-derived object replace the whole entry.
     setAllowedUsers(prev => {
       const uniqueMap = new Map<string, AppUser>();
-      [...prev, ...dynamicUsers].forEach(user => {
-        uniqueMap.set(user.email.toLowerCase().trim(), user);
+      prev.forEach(user => uniqueMap.set(user.email.toLowerCase().trim(), user));
+      dynamicUsers.forEach(user => {
+        const key = user.email.toLowerCase().trim();
+        const existing = uniqueMap.get(key);
+        uniqueMap.set(key, existing ? { ...existing, ...user, paused: existing.paused } : user);
       });
       return Array.from(uniqueMap.values());
     });
