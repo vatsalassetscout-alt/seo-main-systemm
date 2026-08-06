@@ -1443,7 +1443,7 @@ export default function App() {
             <div className="flex items-center gap-2 text-xs">
               {activeTab === 'logs' && (
                 <span className="bg-indigo-50 border border-indigo-200/60 text-indigo-700 px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5 shadow-2xs">
-                   Total Logs: <strong>{filteredLogsCount !== null ? filteredLogsCount : 0} logs</strong>
+                  ⚡ Total Logs: <strong>{filteredLogsCount !== null ? filteredLogsCount : 0} logs</strong>
                 </span>
               )}
             </div>
