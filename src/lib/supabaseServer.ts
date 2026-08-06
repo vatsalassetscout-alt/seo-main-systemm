@@ -330,13 +330,27 @@ export async function setUserPausedDb(userId: string, paused: boolean): Promise<
   const sb = getSupabase();
   if (sb) {
     try {
-      const { error } = await sb
+      // .eq() is case-sensitive. userId here is already lowercased by the
+      // caller, but saveUserDb historically stored whatever case an admin
+      // typed — so a row saved as "Name@Gmail.com" would never match this
+      // lowercase .eq(), the update would affect 0 rows, Supabase would
+      // return no error either way, and this function would report success
+      // even though nothing was actually written. Using ilike() makes the
+      // match case-insensitive so existing rows aren't silently skipped,
+      // and .select() lets us see how many rows were actually touched so we
+      // can tell a real failure apart from a false "success".
+      const { data, error } = await sb
         .from("app_users")
         .update({ paused })
-        .eq("user_id", userId);
+        .ilike("user_id", userId)
+        .select("user_id");
 
       if (error) {
         console.warn("Supabase set user paused failed:", error.message);
+        return false;
+      }
+      if (!data || data.length === 0) {
+        console.warn(`Supabase set user paused matched no rows for user_id="${userId}" — user record may be missing.`);
         return false;
       }
       return true;
@@ -351,9 +365,13 @@ export async function saveUserDb(userId: string, name: string): Promise<boolean>
   const sb = getSupabase();
   if (sb) {
     try {
+      // Normalize to lowercase on write so every future lookup (pause
+      // toggle, assignment matching, etc.) can rely on a consistent case
+      // instead of needing case-insensitive matches everywhere.
+      const normalizedUserId = String(userId).trim().toLowerCase();
       const { error } = await sb
         .from("app_users")
-        .upsert({ user_id: userId, name }, { onConflict: "user_id" });
+        .upsert({ user_id: normalizedUserId, name }, { onConflict: "user_id" });
 
       if (error) {
         console.warn("Supabase upsert app_user failed:", error.message);
