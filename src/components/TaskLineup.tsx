@@ -94,7 +94,7 @@ const PriorityDistribution = ({ items }: { items: TaskAssignment[] }) => {
               : 'bg-gray-50 text-gray-300 border-gray-100'
           }`}
         >
-          {tier}
+          {tier}:
           <span className="font-mono">{counts[tier]}</span>
         </span>
       ))}
