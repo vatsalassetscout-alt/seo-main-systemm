@@ -88,14 +88,14 @@ const PriorityDistribution = ({ items }: { items: TaskAssignment[] }) => {
         <span
           key={tier}
           title={`${tier}: ${counts[tier]}`}
-          className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded border text-[9px] font-black uppercase tracking-wider ${
+          className={`inline-flex items-center gap-1 px-2 py-1 rounded border text-[11px] font-black uppercase tracking-wider ${
             counts[tier] > 0
               ? PRIORITY_BADGE[tier] || 'bg-gray-50 text-gray-600 border-gray-150'
               : 'bg-gray-50 text-gray-300 border-gray-100'
           }`}
         >
           {tier}:
-          <span className="font-mono">{counts[tier]}</span>
+          <span className="font-mono font-black text-[12px]">{counts[tier]}</span>
         </span>
       ))}
     </div>
