@@ -794,7 +794,8 @@ export default function DSRDashboard({
       const links = pWorks.reduce((sum, w) => sum + (w.linkCount || 0), 0);
       const totalBacklinks = listings + blogs + forums + pdfs + images + videoPpts + profiles + links;
 
-      const timesWorked = pWorks.length;
+      const timesWorked = pWorks.filter(w => w.workStatus === 'worked').length;
+      const timesNotWorked = pWorks.filter(w => w.workStatus === 'not_worked').length;
 
       let lastWorked = 'Never';
       if (pWorks.length > 0) {
@@ -850,6 +851,7 @@ export default function DSRDashboard({
         images,
         totalBacklinks,
         timesWorked,
+        timesNotWorked,
         lastWorked,
         lastWorkedRaw,
         priority,
@@ -1901,7 +1903,7 @@ export default function DSRDashboard({
                     <th className="px-4 py-3 bg-slate-50">Project Name</th>
                     <th className="px-4 py-3 bg-slate-50">Domain</th>
                     <th className="px-4 py-3 w-28 bg-slate-50">Priority</th>
-                    <th className="px-4 py-3 w-32 text-center bg-slate-50">Times Worked</th>
+                    <th className="px-4 py-3 w-32 text-center bg-slate-50">Times Worked / Not Worked</th>
                     <th className="px-4 py-3 w-36 bg-slate-50">Last Worked</th>
                     <th className="px-4 py-3 bg-slate-50">User</th>
                     {isAdmin && <th className="px-4 py-3 w-44 bg-slate-50">Admin Actions</th>}
@@ -1967,7 +1969,9 @@ export default function DSRDashboard({
                           )}
                         </td>
                         <td className="px-4 py-3 text-center font-mono font-bold text-gray-700">
-                          {item.timesWorked}
+                          <span className="text-emerald-700">{item.timesWorked}</span>
+                          <span className="text-gray-400"> / </span>
+                          <span className="text-red-600">{item.timesNotWorked}</span>
                         </td>
                         <td className="px-4 py-3">
                           <span className="text-[11px] font-semibold text-gray-600">
