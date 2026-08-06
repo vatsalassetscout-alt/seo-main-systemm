@@ -412,9 +412,15 @@ export default function TaskLineup({
 
   const nameFor = (email: string) => allowedUsers.find(u => u.email.trim().toLowerCase() === email.trim().toLowerCase())?.name || email;
 
-  // Quick lookup: is this user currently paused? Used to show "Paused"
-  // instead of "Pending" on their still-open tasks in the admin lineup view.
-  const isUserPaused = (email: string) => !!allowedUsers.find(u => u.email.trim().toLowerCase() === email.trim().toLowerCase())?.paused;
+  // Quick lookup: is this person currently paused? Checked by display NAME,
+  // not raw email — same reasoning as groupedByUser below: the same person
+  // can have two different app_users rows (a known duplicate-account issue),
+  // and a task's userEmail might belong to whichever of their accounts
+  // *isn't* the one that got paused. Matching by name means pausing someone
+  // (any of their accounts) correctly marks ALL of their listed tasks as
+  // Paused, not just the ones tied to that one exact email.
+  const isNamePaused = (displayName: string) =>
+    allowedUsers.some(u => u.name.trim().toLowerCase() === displayName.trim().toLowerCase() && !!u.paused);
 
   // Grouped by display NAME (not raw email). Two app_users rows can share the
   // same name with different emails (a known duplicate-account issue — see
@@ -803,7 +809,7 @@ export default function TaskLineup({
                             </div>
                             <div className="flex items-center gap-3">
                               <Badge priority={a.priority} />
-                              <StatusBadge status={a.status} isPaused={isUserPaused(a.userEmail)} />
+                              <StatusBadge status={a.status} isPaused={isNamePaused(displayName)} />
                             </div>
                           </div>
                         ))}
