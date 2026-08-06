@@ -804,7 +804,7 @@ export default function DSRLogs({
                     <div className="flex items-center justify-between sm:justify-end gap-2.5 mt-1 sm:mt-0 pt-2.5 sm:pt-0 border-t sm:border-t-0 border-slate-100">
                       {/* Left-most: W: X, NW: Y | Total Projects: Z — worked vs no-activity domain split */}
                       {totalProjectCount > 0 && (
-                        <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm font-mono font-black text-slate-650 bg-slate-50/60 border border-slate-150/40 px-3.5 py-2.5 rounded-xl">
+                        <div className="flex flex-wrap items-center gap-1.5 text-[11px] font-mono font-black text-slate-650 bg-slate-50/60 border border-slate-150/40 px-2.5 py-1.5 rounded-lg">
                           <span className="text-emerald-700">W: {workedProjectCount}</span>
                           <span className="text-slate-300">,</span>
                           <span className="text-amber-700">NW: {notWorkedProjectCount}</span>
@@ -835,7 +835,7 @@ export default function DSRLogs({
                         const grandTotal = countEntries.reduce((sum, entry) => sum + entry.value, 0);
 
                         return (
-                          <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm font-mono font-black text-slate-650 bg-slate-50/60 border border-slate-150/40 px-3.5 py-2.5 rounded-xl max-w-xs sm:max-w-md truncate">
+                          <div className="flex flex-wrap items-center gap-1.5 text-[11px] font-mono font-black text-slate-650 bg-slate-50/60 border border-slate-150/40 px-2.5 py-1.5 rounded-lg max-w-xs sm:max-w-md truncate">
                             {countEntries.map((entry, idx) => (
                               <React.Fragment key={entry.label}>
                                 {idx > 0 && <span className="text-slate-300">•</span>}
@@ -843,7 +843,7 @@ export default function DSRLogs({
                               </React.Fragment>
                             ))}
                             <span className="text-slate-300">|</span>
-                            <span className="text-indigo-700">{grandTotal} Total Backlinks </span>
+                            <span className="text-indigo-700">{grandTotal}Total Backlinks</span>
                           </div>
                         );
                       })()}
