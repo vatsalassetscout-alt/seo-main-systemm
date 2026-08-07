@@ -1164,15 +1164,12 @@ export default function DSRLogs({
                                     // Pending never auto-closes — admin stays exactly where
                                     // they are to keep reviewing/undoing.
                                     if (!wasApproved) {
-                                      setExpandedEntries(prev => ({ ...prev, [item.uniqueId]: false }));
-                                      // Snap the now-collapsed card to the center of the viewport —
-                                      // instantly, no smooth animation, so there's no extra scroll
-                                      // drift beyond this single, deliberate jump.
-                                      requestAnimationFrame(() => {
-                                        requestAnimationFrame(() => {
-                                          logItemRefs.current[item.uniqueId]?.scrollIntoView({ behavior: 'auto', block: 'center' });
-                                        });
-                                      });
+                                      // Approve the entry first, then 0.3s later auto-click the
+                                      // same collapse arrow the admin uses manually — same
+                                      // toggleExpand call, same behavior, nothing custom.
+                                      setTimeout(() => {
+                                        toggleExpand(item.uniqueId);
+                                      }, 300);
                                     }
                                   }}
                                   className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition cursor-pointer select-none font-sans ${
