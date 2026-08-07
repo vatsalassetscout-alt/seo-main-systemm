@@ -1154,14 +1154,26 @@ export default function DSRLogs({
                                 
                                 <button
                                   onClick={() => {
-                                    // Flip the status, then close the log the exact same way the
-                                    // toggle/close button next to the status badge does — a plain
-                                    // collapse, no scroll-position math, no page jump.
-                                    const nextStatus = item.status === 'Approved' ? 'Pending' : 'Approved';
+                                    const wasApproved = item.status === 'Approved';
+                                    const nextStatus = wasApproved ? 'Pending' : 'Approved';
                                     item.entryIds.forEach((id: string) => {
                                       onUpdateStatus(id, nextStatus);
                                     });
-                                    setExpandedEntries(prev => ({ ...prev, [item.uniqueId]: false }));
+
+                                    // Only auto-close on Pending -> Approved. Going back to
+                                    // Pending never auto-closes — admin stays exactly where
+                                    // they are to keep reviewing/undoing.
+                                    if (!wasApproved) {
+                                      setExpandedEntries(prev => ({ ...prev, [item.uniqueId]: false }));
+                                      // Keep the now-collapsed card centered in view instead of
+                                      // letting the shrinking layout push the page down to the
+                                      // bottom — wait for the collapse to settle, then recenter.
+                                      requestAnimationFrame(() => {
+                                        requestAnimationFrame(() => {
+                                          logItemRefs.current[item.uniqueId]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                        });
+                                      });
+                                    }
                                   }}
                                   className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition cursor-pointer select-none font-sans ${
                                     item.status === 'Approved'
