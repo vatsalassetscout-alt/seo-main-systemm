@@ -190,34 +190,6 @@ export default function DSRLogs({
     }));
   };
 
-  // Collapse a log card in place — used after Approve/Pending is clicked so the
-  // card closes automatically without the page jumping to the top or anywhere
-  // else. We snapshot the card's on-screen position, apply the collapse, then
-  // nudge the scroll position by exactly the height difference so the card's
-  // header stays fixed under the cursor/viewport instead of the page relocating.
-  const collapseInPlace = (id: string) => {
-    const el = logItemRefs.current[id];
-    const beforeTop = el?.getBoundingClientRect().top ?? null;
-
-    setExpandedEntries(prev => ({ ...prev, [id]: false }));
-
-    if (beforeTop === null) return;
-
-    // Wait for the collapse animation/layout to settle, then correct scroll.
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        const afterEl = logItemRefs.current[id];
-        const afterTop = afterEl?.getBoundingClientRect().top;
-        if (typeof afterTop === 'number') {
-          const delta = afterTop - beforeTop;
-          if (Math.abs(delta) > 1) {
-            window.scrollBy({ top: delta, left: 0, behavior: 'auto' });
-          }
-        }
-      });
-    });
-  };
-
   // When navigated here from a notification (e.g. "Check Remark"), auto-open and
   // scroll to the specific log entry it points to.
   useEffect(() => {
@@ -1182,13 +1154,13 @@ export default function DSRLogs({
                                 
                                 <button
                                   onClick={() => {
-                                    // Flip the status, then auto-close this log card — staying
-                                    // exactly where it was (no jump to the top of the page).
+                                    // Just flip the status — the card stays open exactly where
+                                    // it is. No auto-collapse and no scroll jump; the admin
+                                    // closes the log manually with the toggle button when ready.
                                     const nextStatus = item.status === 'Approved' ? 'Pending' : 'Approved';
                                     item.entryIds.forEach((id: string) => {
                                       onUpdateStatus(id, nextStatus);
                                     });
-                                    collapseInPlace(item.uniqueId);
                                   }}
                                   className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition cursor-pointer select-none font-sans ${
                                     item.status === 'Approved'
