@@ -929,7 +929,7 @@ export async function getManualRankingsDb(): Promise<any> {
 // which of their projects are still "owed" work for their tier's period,
 // and picks candidates bucket-by-bucket (X1, X2, X3 each have their own
 // daily cap; X4 and X5 share one combined cap — see
-// PRIORITY_GROUP_DAILY_CAP) up to an overall 16-projects/day ceiling per
+// PRIORITY_GROUP_DAILY_CAP) up to an overall 15-projects/day ceiling per
 // user - carrying forward anything left "Pending" from yesterday first,
 // and always honoring carried-over items even if that means slightly
 // exceeding a bucket's normal daily cap, so nothing silently falls off
@@ -1592,15 +1592,41 @@ export async function getPendingSummaryAllUsersDb(
   const yesterday = addDays(today, -1);
   const all = await getTaskAssignmentsDb({ dateTo: today });
 
+  // Same duplicate-account collapsing as generateLineupForDate: two
+  // app_users rows can share a display name but have different emails
+  // (a known duplicate-account issue — see Admin Settings > Users). Every
+  // assignment actually gets written under ONE canonical email for that
+  // name, so without this collapsing here too, the "Total" shown for a
+  // person's OTHER (non-canonical) email would wrongly read as a small/odd
+  // number instead of their real all-time total. Canonicalize every user
+  // onto the first email seen for their name before counting.
+  const canonicalEmailByName = new Map<string, string>();
+  const canonicalEmailByRawEmail = new Map<string, string>();
+  users.forEach((u) => {
+    const email = String(u.email || "").trim().toLowerCase();
+    if (!email) return;
+    const nameKey = String(u.name || "").trim().toLowerCase();
+    if (nameKey) {
+      if (!canonicalEmailByName.has(nameKey)) canonicalEmailByName.set(nameKey, email);
+      canonicalEmailByRawEmail.set(email, canonicalEmailByName.get(nameKey)!);
+    } else {
+      canonicalEmailByRawEmail.set(email, email);
+    }
+  });
+  const canonicalOf = (rawEmail: string): string => {
+    const email = String(rawEmail || "").trim().toLowerCase();
+    return canonicalEmailByRawEmail.get(email) || email;
+  };
+
   const perUser = new Map<string, any[]>();
   all.forEach((a) => {
-    const key = String(a.userEmail || "").trim().toLowerCase();
+    const key = canonicalOf(String(a.userEmail || ""));
     if (!perUser.has(key)) perUser.set(key, []);
     perUser.get(key)!.push(a);
   });
 
   return users.map((u) => {
-    const key = u.email.trim().toLowerCase();
+    const key = canonicalOf(u.email);
     const rows = perUser.get(key) || [];
     const yesterdayPending = rows.filter((r) => r.date === yesterday && r.status === "Pending");
     const totalPending = rows.filter((r) => r.status === "Pending");
