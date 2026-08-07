@@ -1159,18 +1159,6 @@ export default function DSRLogs({
                                     item.entryIds.forEach((id: string) => {
                                       onUpdateStatus(id, nextStatus);
                                     });
-
-                                    // Only auto-close on Pending -> Approved. Going back to
-                                    // Pending never auto-closes — admin stays exactly where
-                                    // they are to keep reviewing/undoing.
-                                    if (!wasApproved) {
-                                      // Approve the entry first, then 0.3s later auto-click the
-                                      // same collapse arrow the admin uses manually — same
-                                      // toggleExpand call, same behavior, nothing custom.
-                                      setTimeout(() => {
-                                        toggleExpand(item.uniqueId);
-                                      }, 300);
-                                    }
                                   }}
                                   className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition cursor-pointer select-none font-sans ${
                                     item.status === 'Approved'
@@ -1192,6 +1180,17 @@ export default function DSRLogs({
                                      Remark
                                   </button>
                                 )}
+
+                                {/* Manual close button — collapses this card, same as the
+                                    arrow up top, placed here on the right for quick access
+                                    right after approving/adding a remark. */}
+                                <button
+                                  onClick={() => toggleExpand(item.uniqueId)}
+                                  title="Close this log"
+                                  className="flex items-center justify-center p-1.5 bg-slate-50 border border-slate-200 hover:bg-slate-100 text-slate-500 rounded-lg transition cursor-pointer"
+                                >
+                                  <ChevronUp size={13} />
+                                </button>
                               </div>
                             )}
                           </div>
