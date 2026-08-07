@@ -1159,6 +1159,19 @@ export default function DSRLogs({
                                     item.entryIds.forEach((id: string) => {
                                       onUpdateStatus(id, nextStatus);
                                     });
+
+                                    // Only auto-close on Pending -> Approved. Going back to
+                                    // Pending never auto-closes — admin stays exactly where
+                                    // they are to keep reviewing/undoing.
+                                    // Same idea as the "Check Remark" notification flow: it
+                                    // scrolls the admin straight to this log's position — the
+                                    // only difference is it stays CLOSED here instead of opening.
+                                    if (!wasApproved) {
+                                      setExpandedEntries(prev => ({ ...prev, [item.uniqueId]: false }));
+                                      setTimeout(() => {
+                                        logItemRefs.current[item.uniqueId]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                      }, 250);
+                                    }
                                   }}
                                   className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition cursor-pointer select-none font-sans ${
                                     item.status === 'Approved'
