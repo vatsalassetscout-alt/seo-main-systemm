@@ -119,38 +119,28 @@ export const PRIORITY_RULES: Record<string, PriorityRule> = {
 };
 
 // Max number of picks from each tier that may land in ONE day's lineup,
-// applied BEFORE the shared group cap below. X5's own cap was raised to 4
-// (from 3), and X1/X2/X3 were trimmed slightly to keep the overall daily
-// ceiling unchanged — see PRIORITY_GROUP_DAILY_CAP for how the trimmed
-// weight was redistributed.
+// applied BEFORE the shared group cap below. Each tier gets exactly its
+// real target as a daily ceiling (X1: 4x/week, X2: 3x/week, X3: 2x/week),
+// and X4/X5 (which share one combined bucket) are weighted 3/3 so the
+// monthly-cadence X5 tier still gets steady daily throughput and can
+// realistically clear every project at least once a month, without
+// crowding out X4's own weekly quota — see PRIORITY_GROUP_DAILY_CAP for
+// how this adds up to the overall per-user daily ceiling.
 export const PRIORITY_TIER_DAILY_CAP: Record<string, number> = {
   X1: 4,
   X2: 3,
   X3: 2,
   X4: 3,
-  X5: 4,
+  X5: 3,
 };
 
-// Max number of picks from each bucket (after the per-tier caps above have
-// already been applied within it) that may land in ONE day's lineup for a
-// single user, even if more are technically "owed" work that day. X4 and X5
-// are pooled into one combined bucket — X4 capped at 3 and X5 capped at 4
-// (see PRIORITY_TIER_DAILY_CAP), for a combined 7 between the two of them.
-// To keep the overall daily ceiling the same, X2's and X3's caps were
-// trimmed down to their real weekly targets (3 and 2) to make room.
-// 4 + 3 + 2 + 7 = 16, matching DAILY_LINEUP_CAP_PER_USER below.
 export const PRIORITY_GROUP_DAILY_CAP: Record<string, number> = {
   X1: 4,
   X2: 3,
   X3: 2,
-  X4_X5: 7,
+  X4_X5: 6,
 };
 
-// Kept for anything that only needs "how many times per week" as a single
-// number (used for tie-break sorting — higher tiers sort first). For X5
-// (a monthly cadence) this is an approximate weekly-equivalent weight, not
-// a real target — always read PRIORITY_RULES for the actual scheduling
-// target/period, and PRIORITY_GROUP_DAILY_CAP for the daily cap.
 export const PRIORITY_WEEKLY_TARGET: Record<string, number> = {
   X1: PRIORITY_RULES.X1.target,
   X2: PRIORITY_RULES.X2.target,
@@ -161,7 +151,10 @@ export const PRIORITY_WEEKLY_TARGET: Record<string, number> = {
 
 // Hard ceiling — no single user's lineup for a single day may ever exceed
 // this many projects, no matter how many are "owed" work. Built directly
-// from the PRIORITY_GROUP_DAILY_CAP buckets above (4+3+2+7), so real-world
-// days should land in the 15-16 range rather than always hitting a fixed
-// number — a user with fewer eligible projects just gets fewer entries.
-export const DAILY_LINEUP_CAP_PER_USER = 16;
+// from the PRIORITY_GROUP_DAILY_CAP buckets above (4+3+2+6=15) — a user
+// with fewer eligible projects just gets fewer entries. NOTE: carried-over
+// ("Yesterday Pending") items are always preserved even past this cap (see
+// selectDailyCandidates in supabaseServer.ts) so genuinely un-submitted
+// work is never silently dropped — but every *newly picked* lineup will
+// respect this 15/day max.
+export const DAILY_LINEUP_CAP_PER_USER = 15;
