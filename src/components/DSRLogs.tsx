@@ -1164,26 +1164,14 @@ export default function DSRLogs({
                                     // Pending never auto-closes — admin stays exactly where
                                     // they are to keep reviewing/undoing.
                                     if (!wasApproved) {
-                                      // Card is about to shrink, which shrinks total page height.
-                                      // If the browser's current scroll position is now beyond the
-                                      // new (shorter) max scroll, it force-clamps to the bottom of
-                                      // the page — that's the unwanted "jump to bottom" effect.
-                                      // Record this card's on-screen position before collapsing,
-                                      // then compensate right after so the viewport never has to
-                                      // clamp anywhere. No animation, just an instant correction.
-                                      const cardEl = logItemRefs.current[item.uniqueId];
-                                      const beforeTop = cardEl?.getBoundingClientRect().top;
-
                                       setExpandedEntries(prev => ({ ...prev, [item.uniqueId]: false }));
-
+                                      // Snap the now-collapsed card to the center of the viewport —
+                                      // instantly, no smooth animation, so there's no extra scroll
+                                      // drift beyond this single, deliberate jump.
                                       requestAnimationFrame(() => {
-                                        if (cardEl && beforeTop !== undefined) {
-                                          const afterTop = cardEl.getBoundingClientRect().top;
-                                          const diff = afterTop - beforeTop;
-                                          if (diff !== 0) {
-                                            window.scrollBy(0, diff);
-                                          }
-                                        }
+                                        requestAnimationFrame(() => {
+                                          logItemRefs.current[item.uniqueId]?.scrollIntoView({ behavior: 'auto', block: 'center' });
+                                        });
                                       });
                                     }
                                   }}
