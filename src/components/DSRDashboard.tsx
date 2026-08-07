@@ -1053,6 +1053,39 @@ export default function DSRDashboard({
     return uniqueUsers.join(', ');
   };
 
+  // Same lookup as getAssignedUsersForProject above, but returns the actual
+  // assigned EMAILS (not display names) — used to target the Recovery Plan
+  // alert at exactly the right person(s) instead of broadcasting to everyone
+  // or leaving the alert unowned (which showed as "Unknown" for admin and
+  // never reached anyone since a userEmail-less alert isn't shown to any
+  // regular user — see visibleAlerts filtering in App.tsx).
+  const getAssignedEmailsForProject = (projectId: string): string[] => {
+    const project = projects.find(p => p.id === projectId);
+    const emails = new Set<string>();
+
+    if (project) {
+      if (project.users && Array.isArray(project.users) && project.users.length > 0) {
+        project.users.forEach(u => {
+          const cleaned = u.trim().toLowerCase();
+          if (cleaned) emails.add(cleaned);
+        });
+      } else if (project.userId) {
+        const cleaned = project.userId.trim().toLowerCase();
+        if (cleaned) emails.add(cleaned);
+      }
+    }
+
+    if (emails.size === 0) {
+      entries.forEach(entry => {
+        if (entry.works && entry.works.some(w => w.projectId === projectId)) {
+          if (entry.userEmail) emails.add(entry.userEmail.toLowerCase().trim());
+        }
+      });
+    }
+
+    return Array.from(emails);
+  };
+
   // Tab 3: Team performance computed scoreboard
   const teamPerformanceData = useMemo(() => {
     const map: Record<string, { email: string; logsSubmitted: number; backlinksCount: number; activeProjects: Set<string> }> = {};
@@ -3582,12 +3615,25 @@ export default function DSRDashboard({
                     />
                   </div>
 
-                  <div className="bg-sky-50 p-3 rounded-2xl border border-sky-100 flex gap-2">
-                    <span className="text-xs">📢</span>
-                    <p className="text-[10px] text-sky-800 font-semibold leading-relaxed">
-                      Publishing this will alert all reporters immediately via their notification bell.
-                    </p>
-                  </div>
+                  {(() => {
+                    const targetNames = getAssignedUsersForProject(selectedPlanProject.id);
+                    const hasTarget = targetNames.trim().length > 0;
+                    return hasTarget ? (
+                      <div className="bg-sky-50 p-3 rounded-2xl border border-sky-100 flex gap-2">
+                        <span className="text-xs">📢</span>
+                        <p className="text-[10px] text-sky-800 font-semibold leading-relaxed">
+                          This will alert <span className="font-black">{targetNames}</span> only, via their notification bell — no one else will see it.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="bg-amber-50 p-3 rounded-2xl border border-amber-100 flex gap-2">
+                        <span className="text-xs">⚠️</span>
+                        <p className="text-[10px] text-amber-800 font-semibold leading-relaxed">
+                          No user is assigned to this project yet, so this alert can't be sent to anyone. Assign a user to the project first.
+                        </p>
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 <div className="p-4 bg-gray-50/50 border-t border-gray-100 flex justify-end gap-2.5">
@@ -3600,23 +3646,31 @@ export default function DSRDashboard({
                   <button
                     onClick={() => {
                       if (!planMessage.trim()) return;
-                      const newAlert = {
-                        id: `alert-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-                        projectId: selectedPlanProject.id,
-                        projectName: selectedPlanProject.name,
-                        projectDomain: selectedPlanProject.domain,
-                        message: planMessage.trim(),
-                        createdAt: new Date().toISOString(),
-                        adminEmail: currentUserEmail || 'Admin',
-                        read: false
-                      };
-                      if (onAddAlert) {
-                        onAddAlert(newAlert);
-                      }
+                      // Send only to the user(s) actually assigned to this project — never a
+                      // broadcast — so the recipient's name shows correctly (instead of
+                      // "Unknown") and only they see it in their notification bell.
+                      const assignedEmails = getAssignedEmailsForProject(selectedPlanProject.id);
+                      if (assignedEmails.length === 0) return;
+                      assignedEmails.forEach((email) => {
+                        const newAlert = {
+                          id: `alert-${Date.now()}-${Math.random().toString(36).substr(2, 9)}-${email.replace(/[^a-z0-9]/gi, '')}`,
+                          projectId: selectedPlanProject.id,
+                          projectName: selectedPlanProject.name,
+                          projectDomain: selectedPlanProject.domain,
+                          message: planMessage.trim(),
+                          createdAt: new Date().toISOString(),
+                          adminEmail: currentUserEmail || 'Admin',
+                          userEmail: email,
+                          read: false
+                        };
+                        if (onAddAlert) {
+                          onAddAlert(newAlert);
+                        }
+                      });
                       setSelectedPlanProject(null);
                       setPlanMessage('');
                     }}
-                    disabled={!planMessage.trim()}
+                    disabled={!planMessage.trim() || getAssignedEmailsForProject(selectedPlanProject.id).length === 0}
                     className="px-4 py-2 text-xs font-black bg-indigo-600 border border-indigo-700 hover:bg-indigo-700 text-white rounded-xl shadow-2xs cursor-pointer transition disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                      Publish Alert Plan
