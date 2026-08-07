@@ -1165,14 +1165,8 @@ export default function DSRLogs({
                                     // they are to keep reviewing/undoing.
                                     if (!wasApproved) {
                                       setExpandedEntries(prev => ({ ...prev, [item.uniqueId]: false }));
-                                      // Keep the now-collapsed card centered in view instead of
-                                      // letting the shrinking layout push the page down to the
-                                      // bottom — wait for the collapse to settle, then recenter.
-                                      requestAnimationFrame(() => {
-                                        requestAnimationFrame(() => {
-                                          logItemRefs.current[item.uniqueId]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                                        });
-                                      });
+                                      // Auto-close only — no scroll/recenter animation.
+                                      // Admin stays exactly at their current scroll position.
                                     }
                                   }}
                                   className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition cursor-pointer select-none font-sans ${
