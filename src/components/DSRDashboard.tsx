@@ -66,6 +66,28 @@ export default function DSRDashboard({
   activeSubTab,
   onSubTabChange
 }: DSRDashboardProps) {
+  // Total backlinks for ONE work entry — every backlink-type count
+  // (listings, blogs, forums, pdfs, images, video/ppt, profiles, links)
+  // plus any custom submission types, combined. Used anywhere we need a
+  // true "total backlinks" figure (e.g. the Team Activity calendar), not
+  // just a single field like linkCount.
+  const sumBacklinksForWork = (w: any): number => {
+    const base =
+      (Number(w.listingCount) || 0) +
+      (Number(w.blogCount) || 0) +
+      (Number(w.forumCount) || 0) +
+      (Number(w.pdfCount) || 0) +
+      (Number(w.imageCount) || 0) +
+      (Number(w.videoPptCount) || 0) +
+      (Number(w.profileCount) || 0) +
+      (Number(w.linkCount) || 0);
+    const custom = customSubmissionTypes.reduce(
+      (sum, t) => sum + (Number(w.customValues?.[t.id]) || 0),
+      0
+    );
+    return base + custom;
+  };
+
   // Filter entries based on role representation (Admins see everything, regular users see only their own)
   const parsedEntries = useMemo(() => {
     if (isAdmin) {
@@ -2259,7 +2281,9 @@ export default function DSRDashboard({
 
                     const totalUpdates = dayWorks.length;
                     const uniqueProjectsCount = new Set(dayWorks.map(w => w.projectId)).size;
-                    const totalBacklinks = dayWorks.reduce((sum, w) => sum + (Number(w.linkCount) || 0), 0);
+                    // Combined backlinks across ALL users for this day (every backlink
+                    // type, not just Links) — matches the Daily Logged Details panel below.
+                    const totalBacklinks = dayWorks.reduce((sum, w) => sum + sumBacklinksForWork(w), 0);
 
                     // Assign premium indigo contributions heatmap colors based on task density
                     // 9-tier graduated scale (plus "no work") for finer-grained intensity.
@@ -2436,7 +2460,8 @@ export default function DSRDashboard({
                             <div className="text-center bg-white border border-slate-150 py-2 px-3 rounded-xl flex-1 shadow-3xs">
                               <span className="block text-[8px] font-black uppercase text-indigo-600 tracking-wider">Backlinks</span>
                               <span className="text-sm font-black text-indigo-700">
-                                {dayWorks.reduce((sum, w) => sum + (Number(w.linkCount) || 0), 0)}
+                                {/* Combined total backlinks (every type) for ALL users on this day */}
+                                {dayWorks.reduce((sum, w) => sum + sumBacklinksForWork(w), 0)}
                               </span>
                             </div>
                           </div>
