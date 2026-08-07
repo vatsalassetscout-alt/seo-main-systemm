@@ -1154,13 +1154,14 @@ export default function DSRLogs({
                                 
                                 <button
                                   onClick={() => {
-                                    // Just flip the status — the card stays open exactly where
-                                    // it is. No auto-collapse and no scroll jump; the admin
-                                    // closes the log manually with the toggle button when ready.
+                                    // Flip the status, then close the log the exact same way the
+                                    // toggle/close button next to the status badge does — a plain
+                                    // collapse, no scroll-position math, no page jump.
                                     const nextStatus = item.status === 'Approved' ? 'Pending' : 'Approved';
                                     item.entryIds.forEach((id: string) => {
                                       onUpdateStatus(id, nextStatus);
                                     });
+                                    setExpandedEntries(prev => ({ ...prev, [item.uniqueId]: false }));
                                   }}
                                   className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition cursor-pointer select-none font-sans ${
                                     item.status === 'Approved'
