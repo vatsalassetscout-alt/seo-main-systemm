@@ -1183,9 +1183,14 @@ export default function DSRLogs({
 
                                 {/* Manual close button — collapses this card, same as the
                                     arrow up top, placed here on the right for quick access
-                                    right after approving/adding a remark. */}
+                                    right after approving/adding a remark. Scrolls smoothly
+                                    along with the collapse animation so the card stays in
+                                    view instead of the page jumping once it's already gone. */}
                                 <button
-                                  onClick={() => toggleExpand(item.uniqueId)}
+                                  onClick={() => {
+                                    toggleExpand(item.uniqueId);
+                                    logItemRefs.current[item.uniqueId]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                  }}
                                   title="Close this log"
                                   className="flex items-center justify-center p-1.5 bg-slate-50 border border-slate-200 hover:bg-slate-100 text-slate-500 rounded-lg transition cursor-pointer"
                                 >
