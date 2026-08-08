@@ -467,25 +467,43 @@ export default function TaskLineup({
   // Grouped by display NAME (not raw email). Two app_users rows can share the
   // same name with different emails (a known duplicate-account issue — see
   // Admin Settings > Users) which used to render as two separate cards for
-  // the same person. Merging by name here means it self-heals immediately in
-  // the UI, even for a lineup that was generated before the account
-  // duplication got cleaned up or before the backend fix went in.
+  // the same person. We first group each account's assignments separately
+  // (so every account's list stays exactly as the lineup engine generated
+  // it), then for each name we keep ONLY the one account whose list is the
+  // day's real generated lineup — the one with the most rows (ties broken by
+  // whichever has more still-Pending items). Previously this unioned every
+  // duplicate account's items together by project, which could pull in a
+  // second, stale account's rows and inflate a person's card well past the
+  // daily cap (e.g. showing 16-17 when the person themself only ever saw
+  // their own capped lineup). Picking a single account's list instead means
+  // admin sees exactly what that person sees when they're logged in.
   const groupedByUser = useMemo(() => {
-    const map = new Map<string, { displayName: string; itemsByProject: Map<string, TaskAssignment> }>();
+    const byEmail = new Map<string, TaskAssignment[]>();
     assignments.forEach(a => {
-      const displayName = nameFor(a.userEmail);
-      const key = displayName.trim().toLowerCase();
-      if (!map.has(key)) map.set(key, { displayName, itemsByProject: new Map() });
-      const bucket = map.get(key)!;
-      const existing = bucket.itemsByProject.get(a.projectId);
-      // If the same project shows up twice for this person (once per
-      // duplicate account), keep whichever copy is further along.
-      if (!existing || (a.status === 'Done' && existing.status !== 'Done')) {
-        bucket.itemsByProject.set(a.projectId, a);
-      }
+      const emailKey = a.userEmail.trim().toLowerCase();
+      if (!byEmail.has(emailKey)) byEmail.set(emailKey, []);
+      byEmail.get(emailKey)!.push(a);
     });
-    return Array.from(map.entries())
-      .map(([key, v]) => [v.displayName, sortPendingFirst(Array.from(v.itemsByProject.values()))] as [string, TaskAssignment[]])
+
+    const byName = new Map<string, { displayName: string; items: TaskAssignment[] }>();
+    byEmail.forEach((items, emailKey) => {
+      const displayName = nameFor(emailKey);
+      const key = displayName.trim().toLowerCase();
+      const existing = byName.get(key);
+      if (!existing) {
+        byName.set(key, { displayName, items });
+        return;
+      }
+      const existingPending = existing.items.filter(a => a.status !== 'Done').length;
+      const candidatePending = items.filter(a => a.status !== 'Done').length;
+      const candidateIsBetter =
+        items.length > existing.items.length ||
+        (items.length === existing.items.length && candidatePending > existingPending);
+      if (candidateIsBetter) byName.set(key, { displayName, items });
+    });
+
+    return Array.from(byName.values())
+      .map((v) => [v.displayName, sortPendingFirst(v.items)] as [string, TaskAssignment[]])
       .sort((a, b) => a[0].localeCompare(b[0]));
   }, [assignments, allowedUsers]);
 
