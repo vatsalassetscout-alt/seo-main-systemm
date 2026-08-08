@@ -57,8 +57,23 @@ const MONTH_NAMES = [
 // Pending ("not yet worked") tasks always float to the top; a Submitted
 // (formerly "Done") task has already been handled, so it sinks to the
 // bottom of whichever list it appears in.
+const PRIORITY_RANK: Record<string, number> = { X1: 0, X2: 1, X3: 2, X4: 3, X5: 4 };
+
+function priorityRank(priority: string): number {
+  const rank = PRIORITY_RANK[priority];
+  return rank === undefined ? 99 : rank;
+}
+
+// Orders the lineup by priority tier first (X1 -> X2 -> X3 -> X4 -> X5, with
+// any unrecognised tier pushed to the end), then within each tier keeps
+// pending items ahead of the ones already marked Done. Uses a stable sort
+// so items that tie on both keys keep whatever order they arrived in.
 function sortPendingFirst(list: TaskAssignment[]): TaskAssignment[] {
-  return [...list].sort((a, b) => (a.status === 'Done' ? 1 : 0) - (b.status === 'Done' ? 1 : 0));
+  return [...list].sort((a, b) => {
+    const tierDiff = priorityRank(a.priority) - priorityRank(b.priority);
+    if (tierDiff !== 0) return tierDiff;
+    return (a.status === 'Done' ? 1 : 0) - (b.status === 'Done' ? 1 : 0);
+  });
 }
 
 const Badge = ({ priority }: { priority: string }) => (
@@ -130,7 +145,7 @@ const PendingProjectList = ({ items, getOwner }: { items: TaskAssignment[]; getO
     <p className="text-xs font-semibold text-gray-400">Nothing pending — all caught up.</p>
   ) : (
     <div className="space-y-1.5 max-h-64 overflow-y-auto pr-1">
-      {items.map((a) => (
+      {sortPendingFirst(items).map((a) => (
         <div key={a.id} className="flex items-center justify-between text-sm font-bold text-gray-700">
           <span className="truncate pr-2">
             {a.projectName}
