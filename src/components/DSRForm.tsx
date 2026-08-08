@@ -458,21 +458,33 @@ export default function DSRForm({
                         </label>
                         
                         <div className="relative">
+                          {(() => {
+                            const extraNoteFilled = Boolean((work.extraWorkNote || '').trim());
+                            return (
                           <button
                             type="button"
+                            disabled={extraNoteFilled}
+                            title={extraNoteFilled ? 'Clear the Work Note below to select a Domain' : undefined}
                             onClick={() => {
+                              if (extraNoteFilled) return;
                               setIsDropdownOpen(!isDropdownOpen);
                               setDropdownSearch('');
                             }}
-                            className="w-full px-4 py-3 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-xl text-gray-955 font-bold flex items-center justify-between text-sm cursor-pointer transition focus:ring-2 focus:ring-indigo-600 focus:outline-none animate-pulse-once"
+                            className={`w-full px-4 py-3 border rounded-xl font-bold flex items-center justify-between text-sm transition focus:ring-2 focus:ring-indigo-600 focus:outline-none ${
+                              extraNoteFilled
+                                ? 'bg-gray-100 border-gray-150 text-gray-400 cursor-not-allowed'
+                                : 'bg-gray-50 hover:bg-gray-100 border-gray-200 text-gray-955 cursor-pointer animate-pulse-once'
+                            }`}
                           >
                             <span className="truncate">
                               {projects.find((p) => p.id === work.projectId)?.domain || 
                                projects.find((p) => p.id === work.projectId)?.name || 
-                               'Select a Domain'}
+                               (extraNoteFilled ? 'Clear Work Note to select a Domain' : 'Select a Domain')}
                             </span>
                             <span className="text-gray-400 shrink-0 select-none text-[10px] ml-2">▼</span>
                           </button>
+                            );
+                          })()}
 
                           {isDropdownOpen && (
                             <>
@@ -1026,14 +1038,27 @@ export default function DSRForm({
                 <label htmlFor="extra-work-note" className="block text-xs font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1.5">
                   
                 </label>
+                {(() => {
+                  const domainSelected = Boolean(worksList[0]?.projectId);
+                  return (
                 <textarea
                   id="extra-work-note"
                   rows={3}
                   value={worksList[0]?.extraWorkNote || ''}
-                  placeholder="describe any extra or new work done..."
-                  onChange={(e) => handleUpdateWorkBlock(0, { extraWorkNote: e.target.value })}
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 focus:border-indigo-600 focus:bg-white rounded-xl text-xs text-gray-950 font-medium placeholder-gray-400 focus:outline-none transition leading-relaxed"
+                  disabled={domainSelected}
+                  placeholder={domainSelected ? 'Clear the selected Domain above to write a Work Note' : 'describe any extra or new work done...'}
+                  onChange={(e) => {
+                    if (domainSelected) return;
+                    handleUpdateWorkBlock(0, { extraWorkNote: e.target.value });
+                  }}
+                  className={`w-full px-4 py-3 border rounded-xl text-xs font-medium placeholder-gray-400 focus:outline-none transition leading-relaxed ${
+                    domainSelected
+                      ? 'bg-gray-100 border-gray-150 text-gray-400 cursor-not-allowed'
+                      : 'bg-gray-50 border-gray-200 focus:border-indigo-600 focus:bg-white text-gray-950'
+                  }`}
                 />
+                  );
+                })()}
               </div>
             </div>
 
