@@ -2978,13 +2978,13 @@ export default function DSRDashboard({
                             <td className="pl-4 pr-1 py-3.5 w-40">
                               <span className="font-bold text-gray-900 block truncate">{row.name}</span>
                             </td>
-                            <td className="pl-1 pr-3 py-3.5 w-48 font-mono text-gray-500">
+                            <td className="pl-1 pr-3 py-3.5 w-48 font-mono text-gray-500 whitespace-nowrap">
                               {row.domain ? (
                                 <a 
                                   href={domainHref(row.domain)} 
                                   target="_blank" 
                                   rel="noreferrer" 
-                                  className="text-indigo-600 hover:underline font-bold"
+                                  className="text-indigo-600 hover:underline font-bold whitespace-nowrap"
                                 >
                                   {cleanDomain(row.domain)}
                                 </a>
@@ -3082,12 +3082,12 @@ export default function DSRDashboard({
                               href={domainHref(proj.domain)} 
                               target="_blank" 
                               rel="noreferrer" 
-                              className="text-indigo-600 hover:underline font-mono text-[10px] font-bold inline-flex items-center gap-1"
+                              className="text-indigo-600 hover:underline font-mono text-xs font-bold inline-flex items-center gap-1 whitespace-nowrap"
                             >
                               {cleanDomain(proj.domain)}
                             </a>
                           ) : (
-                            <span className="text-gray-300 italic text-[10px] font-normal">No Domain Assigned</span>
+                            <span className="text-gray-300 italic text-xs font-normal">No Domain Assigned</span>
                           )}
                         </td>
 
