@@ -1739,7 +1739,22 @@ export async function getPendingSummaryAllUsersDb(
     perUser.get(key)!.push(a);
   });
 
-  return users.map((u) => {
+  // Dedupe the users list itself before mapping: two app_users rows sharing
+  // the same canonical name would otherwise both map their user_email
+  // through canonicalOf() to the SAME bucket of rows, and each would appear
+  // as its own separate entry in the returned array — meaning the exact
+  // same pending items show up twice (once per duplicate account) anywhere
+  // this summary is pooled across users (e.g. the History tab's pooled
+  // "Total Pending" list). Keep only the first row seen per canonical key.
+  const seenCanonical = new Set<string>();
+  const dedupedUsers = users.filter((u) => {
+    const key = canonicalOf(u.email);
+    if (seenCanonical.has(key)) return false;
+    seenCanonical.add(key);
+    return true;
+  });
+
+  return dedupedUsers.map((u) => {
     const key = canonicalOf(u.email);
     const rows = perUser.get(key) || [];
     const yesterdayPending = rows.filter((r) => r.date === yesterday && r.status === "Pending");
