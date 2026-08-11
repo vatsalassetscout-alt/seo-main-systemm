@@ -47,6 +47,18 @@ function slugFromDomain(domain: string): string {
   return slug || 'new-project';
 }
 
+// Strips protocol (http/https), "www.", and any trailing path/slash so the
+// project is always stored as a bare domain like "example.com".
+function normalizeDomain(raw: string): string {
+  if (!raw) return raw;
+  let d = raw.trim().toLowerCase();
+  d = d.replace(/^https?:\/\//, '');
+  d = d.replace(/^www\./, '');
+  d = d.split('/')[0];
+  d = d.split('?')[0];
+  return d.trim();
+}
+
 export default function AdminControlPanel({
   projects,
   currentUserEmail,
@@ -488,7 +500,7 @@ function ProjectFormModal({
   const [keywords, setKeywords] = useState<string[]>(initial?.keywords || []);
   const [keywordInput, setKeywordInput] = useState('');
 
-  const idPreview = isEdit ? initial!.id : slugFromDomain(domain);
+  const idPreview = isEdit ? initial!.id : slugFromDomain(normalizeDomain(domain));
 
   const addKeyword = () => {
     const k = keywordInput.trim();
@@ -508,11 +520,12 @@ function ProjectFormModal({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!domain.trim() || !name.trim()) return;
+    const cleanDomain = normalizeDomain(domain);
     const project: Project = {
       ...(initial || ({} as Project)),
-      id: isEdit ? initial!.id : slugFromDomain(domain),
+      id: isEdit ? initial!.id : slugFromDomain(cleanDomain),
       name: name.trim(),
-      domain: domain.trim(),
+      domain: cleanDomain,
       location: location.trim(),
       region: region.trim(),
       keywords,
@@ -547,10 +560,12 @@ function ProjectFormModal({
             <input
               value={domain}
               onChange={(e) => setDomain(e.target.value)}
+              onBlur={(e) => setDomain(normalizeDomain(e.target.value))}
               required
               placeholder="e.g. parkpebbles.com"
               className="w-full px-4 py-3 bg-gray-50 border border-gray-200 focus:border-indigo-650 rounded-xl text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-indigo-650 transition"
             />
+            <p className="text-[10px] text-gray-400">Just the domain — https://, www. and trailing slashes are stripped automatically.</p>
           </div>
 
           <div className="space-y-1.5">
