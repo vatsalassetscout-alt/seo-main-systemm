@@ -381,7 +381,7 @@ export function AddUserModal({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!userId.trim() || !name.trim() || !passkey.trim()) return;
+    if (!userId.trim() || !name.trim()) return;
     onSubmit(userId.trim(), name.trim(), passkey.trim(), role);
   };
 
@@ -425,13 +425,12 @@ export function AddUserModal({
             />
           </div>
           <div className="space-y-1.5">
-            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Passkey *</label>
+            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Passkey (optional)</label>
             <input
               value={passkey}
               onChange={(e) => setPasskey(e.target.value)}
-              required
               type="text"
-              placeholder="e.g. 4821"
+              placeholder="e.g. 4821 — leave blank to skip"
               className="w-full px-4 py-3 bg-gray-50 border border-gray-200 focus:border-indigo-650 rounded-xl text-xs font-semibold font-mono focus:outline-none focus:ring-1 focus:ring-indigo-650 transition"
             />
           </div>
@@ -522,7 +521,7 @@ export function RenameUserModal({
             />
           </div>
           <div className="space-y-1.5">
-            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">New Passkey (optional)</label>
+            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">New Passkey</label>
             <input
               value={newPasskey}
               onChange={(e) => setNewPasskey(e.target.value)}
