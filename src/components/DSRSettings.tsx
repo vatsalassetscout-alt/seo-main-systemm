@@ -29,6 +29,7 @@ import {
   ExternalLink
 } from 'lucide-react';
 import { motion } from 'motion/react';
+import AdminControlPanel from './AdminControlPanel';
 
 interface DSRSettingsProps {
   projects: Project[];
@@ -105,7 +106,7 @@ export default function DSRSettings({
   onResetToDefault,
 }: DSRSettingsProps) {
   // Navigation Tabs inside Settings Panel
-  const [activeSubTab, setActiveSubTab] = useState<'users' | 'assignments' | 'database'>('users');
+  const [activeSubTab, setActiveSubTab] = useState<'users' | 'assignments' | 'database' | 'admin-control'>('users');
 
   // Deletion selection states for assignments
   const [isDeleteMode, setIsDeleteMode] = useState(false);
@@ -253,6 +254,18 @@ export default function DSRSettings({
           </button>
 
           <button
+            onClick={() => setActiveSubTab('admin-control')}
+            className={`flex items-center gap-2 px-5 py-3 border-b-2 font-bold text-xs cursor-pointer transition ${
+              activeSubTab === 'admin-control'
+                ? 'border-indigo-600 text-indigo-700'
+                : 'border-transparent text-gray-400 hover:text-gray-700 hover:border-gray-200'
+            }`}
+          >
+            <UserPlus size={15} />
+            Admin Control
+          </button>
+
+          <button
             onClick={() => setActiveSubTab('assignments')}
             className={`flex items-center gap-2 px-5 py-3 border-b-2 font-bold text-xs cursor-pointer transition ${
               activeSubTab === 'assignments'
@@ -388,6 +401,15 @@ export default function DSRSettings({
 
 
 
+
+        {/* TAB: Admin Control (Project & User CRUD, reassignment, login credentials) */}
+        {activeSubTab === 'admin-control' && (
+          <AdminControlPanel
+            projects={projects}
+            currentUserEmail={currentUserEmail}
+            onUpdateProjects={(updated) => onUpdateProjects && onUpdateProjects(updated)}
+          />
+        )}
 
         {/* TAB 4: Assign Projects Panel */}
         {activeSubTab === 'assignments' && (
