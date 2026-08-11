@@ -183,10 +183,8 @@ export default function TaskLineup({
   const [totalPending, setTotalPending] = useState<TaskAssignment[]>([]);
   const [totalPendingCount, setTotalPendingCount] = useState<number>(0);
 
-  // History tab: today's still-pending tasks, loaded independently of the
-  // date filter above so History always reflects "today", not whatever day
-  // is currently selected on the Task Lineup tab.
-  const [todayPending, setTodayPending] = useState<TaskAssignment[]>([]);
+  // History tab: loading flag for the pooled "Total Pending" list — reused
+  // from loadPendingSummary (non-admin) below.
   const [todayPendingLoading, setTodayPendingLoading] = useState(false);
 
   // Lifetime engine controls (admin) — once started, the cycle never needs
@@ -234,6 +232,7 @@ export default function TaskLineup({
   }, [authHeaders]);
 
   const loadPendingSummary = useCallback(async () => {
+    setTodayPendingLoading(true);
     try {
       const url = isAdmin ? '/api/task-lineup/pending-summary' : `/api/task-lineup/pending-summary?userEmail=${encodeURIComponent(currentUserEmail || '')}`;
       const res = await fetch(url, { headers: authHeaders });
@@ -243,21 +242,6 @@ export default function TaskLineup({
       setTotalPendingCount(typeof data.totalPendingCount === 'number' ? data.totalPendingCount : 0);
     } catch (err) {
       console.error('Failed to load pending summary:', err);
-    }
-  }, [authHeaders, isAdmin, currentUserEmail]);
-
-  // Today's still-pending tasks — for History. Non-admins only see their own;
-  // admins see everyone's.
-  const loadTodayPending = useCallback(async () => {
-    setTodayPendingLoading(true);
-    try {
-      const res = await fetch(`/api/task-lineup?date=${encodeURIComponent(todayStr())}`, { headers: authHeaders });
-      const data = await res.json();
-      const list: TaskAssignment[] = Array.isArray(data.assignments) ? data.assignments : [];
-      const mine = (a: TaskAssignment) => a.userEmail.trim().toLowerCase() === (currentUserEmail || '').trim().toLowerCase();
-      setTodayPending(list.filter(a => a.status === 'Pending' && (isAdmin || mine(a))));
-    } catch (err) {
-      console.error('Failed to load today pending:', err);
     } finally {
       setTodayPendingLoading(false);
     }
@@ -318,7 +302,6 @@ export default function TaskLineup({
   // Load History data lazily, only once the History tab is opened.
   useEffect(() => {
     if (view === 'history') {
-      loadTodayPending();
       if (isAdmin) loadPendingAllUsers();
       else loadPendingSummary();
     }
@@ -410,7 +393,6 @@ export default function TaskLineup({
         loadLineup(activeDate),
         loadEngineStatus(),
         isAdmin ? loadPendingAllUsers() : loadPendingSummary(),
-        loadTodayPending(),
       ]);
     } catch (err) {
       console.error('Failed to reset lineup:', err);
@@ -531,6 +513,21 @@ export default function TaskLineup({
     () => (isAdmin ? pendingAllUsers.flatMap(u => u.yesterdayPending) : yesterdayPending),
     [isAdmin, pendingAllUsers, yesterdayPending]
   );
+
+  // History tab's "Total Pending" — every not-yet-submitted task across
+  // every date (not just today), pooled across everyone for admins, just
+  // the current user's for everyone else. Deduped by id as a safety net —
+  // getPendingSummaryAllUsersDb already dedupes duplicate-account rows
+  // server-side, but this keeps the list honest even if that ever changes.
+  const historyTotalPending = useMemo(() => {
+    const source = isAdmin ? pendingAllUsers.flatMap(u => u.totalPending) : totalPending;
+    const seen = new Set<string>();
+    return source.filter((a) => {
+      if (seen.has(a.id)) return false;
+      seen.add(a.id);
+      return true;
+    });
+  }, [isAdmin, pendingAllUsers, totalPending]);
 
   // Calendar grid cells (blank leading slots + actual day numbers) for the
   // History tab's assignment-status calendar.
@@ -898,15 +895,21 @@ export default function TaskLineup({
             </div>
             <div className="bg-white rounded-2xl border border-gray-150 p-4 shadow-xs">
               <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">
-                Today Pending ({todayPending.length})
+                Total Pending ({historyTotalPending.length})
               </p>
-              {todayPendingLoading ? (
+              {isAdmin ? (
+                pendingAllLoading ? (
+                  <p className="text-xs font-semibold text-gray-400">Loading…</p>
+                ) : (
+                  <PendingProjectList
+                    items={historyTotalPending}
+                    getOwner={(a) => nameFor(a.userEmail)}
+                  />
+                )
+              ) : todayPendingLoading ? (
                 <p className="text-xs font-semibold text-gray-400">Loading…</p>
               ) : (
-                <PendingProjectList
-                  items={todayPending}
-                  getOwner={isAdmin ? (a) => nameFor(a.userEmail) : undefined}
-                />
+                <PendingProjectList items={historyTotalPending} />
               )}
             </div>
           </div>
@@ -1015,7 +1018,22 @@ export default function TaskLineup({
                       <p className="text-xs font-bold text-slate-400">No assignments found for {historyCalDay}.</p>
                     </div>
                   ) : (
-                    <div className="space-y-4 max-h-[420px] overflow-y-auto pr-1">
+                    <>
+                      {/* Day summary — total lineup for the selected date, split
+                          into Submitted vs Pending so it's clear at a glance
+                          without having to scroll/count the list below. */}
+                      <div className="flex items-center gap-2 mb-3">
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-150 text-[11px] font-black text-slate-700">
+                          {historyCalAssignments.length} Total
+                        </span>
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-100 text-[11px] font-black text-emerald-700">
+                          <CheckCircle2 size={12} /> {historyCalAssignments.filter(a => a.status === 'Done').length} Submitted
+                        </span>
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-50 border border-red-100 text-[11px] font-black text-red-600">
+                          <Clock size={12} /> {historyCalAssignments.filter(a => a.status !== 'Done').length} Pending
+                        </span>
+                      </div>
+                      <div className="flex-1 space-y-4 overflow-y-auto pr-1">
                       {historyCalGroupedByUser.map(([userName, items]) => (
                         <div key={userName} className="bg-white rounded-xl border border-gray-150 overflow-hidden">
                           {isAdmin && (
@@ -1041,7 +1059,8 @@ export default function TaskLineup({
                           </div>
                         </div>
                       ))}
-                    </div>
+                      </div>
+                    </>
                   )}
                 </div>
               </div>
