@@ -963,6 +963,18 @@ app.get("/api/projects", async (req, res) => {
 });
 
 // ADD, EDIT, DELETE Projects
+// Strips protocol (http/https), "www.", any trailing path/slash, so every
+// project is always stored as a bare domain like "example.com".
+const normalizeDomain = (raw: string): string => {
+  if (!raw) return raw;
+  let d = String(raw).trim().toLowerCase();
+  d = d.replace(/^https?:\/\//, "");
+  d = d.replace(/^www\./, "");
+  d = d.split("/")[0];
+  d = d.split("?")[0];
+  return d.trim();
+};
+
 app.post("/api/projects", async (req, res) => {
   const { action, project } = req.body;
   try {
@@ -974,9 +986,11 @@ app.post("/api/projects", async (req, res) => {
       }
     }
     if (action === "add" && project) {
+      project.domain = normalizeDomain(project.domain);
       project.id = project.domain.toLowerCase().replace(/[^a-z0-9]/g, "-") || `p-${Date.now()}`;
       await saveProjectDb(project);
     } else if (action === "edit" && project) {
+      project.domain = normalizeDomain(project.domain);
       await saveProjectDb(project);
       try {
         await updateProjectInGoogleSheet(project);
