@@ -32,6 +32,8 @@ import {
   saveUserDb,
   deleteUserDb,
   setUserPausedDb,
+  verifyUserCredentialsDb,
+  renameUserDb,
   getTaskAssignmentsDb,
   generateLineupForDate,
   clearPendingAssignmentsForUserOnDateDb,
@@ -796,6 +798,46 @@ app.get("/api/auth/config", (req, res) => {
   });
 });
 
+// Legacy hardcoded ID/passkey pairs — used ONLY as a fallback if the
+// Supabase `app_users.passkey` column hasn't been migrated/seeded yet
+// (see the seed INSERT in SUPABASE_SQL_SCHEMA). Once that SQL has been run,
+// verifyUserCredentialsDb() below will always match first and this is dead code.
+const LEGACY_CREDENTIALS: Record<string, { passkey: string; role: 'user' | 'admin' }> = {
+  "1859": { passkey: "0069", role: "user" },
+  "9531": { passkey: "4949", role: "user" },
+  "5595": { passkey: "9231", role: "user" },
+  "4001": { passkey: "1793", role: "user" },
+  "8888": { passkey: "2010", role: "admin" }
+};
+
+// POST verify a User ID + Passkey login against the DB (falls back to the
+// legacy hardcoded pairs above if the DB doesn't have this user/column yet).
+app.post("/api/auth/login-verify", async (req, res) => {
+  try {
+    const { userId, passkey } = req.body;
+    if (!userId || !passkey) {
+      return res.status(400).json({ success: false, error: "User ID and Passkey are required." });
+    }
+    const id = String(userId).trim();
+
+    const dbResult = await verifyUserCredentialsDb(id, String(passkey).trim());
+    if (dbResult) {
+      logActivityLocally(id.toLowerCase(), "User Login", `Successfully logged in as ${dbResult.role === 'admin' ? 'Admin' : 'Standard Employee'}`);
+      return res.json({ success: true, role: dbResult.role, name: dbResult.name });
+    }
+
+    const legacy = LEGACY_CREDENTIALS[id];
+    if (legacy && legacy.passkey === String(passkey).trim()) {
+      logActivityLocally(id.toLowerCase(), "User Login", `Successfully logged in as ${legacy.role === 'admin' ? 'Admin' : 'Standard Employee'} (legacy credentials — run the app_users SQL migration)`);
+      return res.json({ success: true, role: legacy.role, name: legacy.role === 'admin' ? 'Admin' : `User ${id}` });
+    }
+
+    return res.status(401).json({ success: false, error: "Invalid User ID or Passkey." });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // POST verify user login email
 app.post("/api/auth/verify", (req, res) => {
   const { email } = req.body;
@@ -980,20 +1022,65 @@ app.post("/api/projects/sync-from-sheet", async (req, res) => {
 });
 
 // Manage the dedicated Users table (clean source for the admin Users dropdown)
+// GET the dedicated Users table (id, name, role, paused — never passkey).
+// Used to populate the Admin Control panel's user list + reassign dropdown.
+app.get("/api/users", async (req, res) => {
+  try {
+    const list = await getUsersDb();
+    return res.json({ success: true, users: list });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
 app.post("/api/users", async (req, res) => {
   const email = req.headers['x-user-email'];
   if (!email || typeof email !== 'string' || !isUserAdmin(email)) {
     return res.status(403).json({ error: "Admin access required to add a user." });
   }
-  const { userId, name } = req.body;
+  const { userId, name, passkey, role } = req.body;
   if (!userId || !name) {
     return res.status(400).json({ error: "userId and name are required." });
   }
   try {
-    const ok = await saveUserDb(String(userId).trim(), String(name).trim());
+    const ok = await saveUserDb(
+      String(userId).trim(),
+      String(name).trim(),
+      passkey ? String(passkey).trim() : undefined,
+      role === 'admin' ? 'admin' : 'user'
+    );
     if (!ok) return res.status(500).json({ error: "Failed to save user." });
     const list = await getUsersDb();
+    await logActivityLocally(String(email), "CREATE User", `Added user "${name}" (ID: ${userId})`);
     return res.json({ success: true, users: list });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Rename a user's login ID and/or display name and/or passkey. Cascades the
+// ID + name change onto every project currently assigned to them.
+app.post("/api/users/rename", async (req, res) => {
+  const email = req.headers['x-user-email'];
+  if (!email || typeof email !== 'string' || !isUserAdmin(email)) {
+    return res.status(403).json({ error: "Admin access required to rename a user." });
+  }
+  const { oldUserId, newUserId, newName, newPasskey } = req.body;
+  if (!oldUserId || !newUserId || !newName) {
+    return res.status(400).json({ error: "oldUserId, newUserId and newName are required." });
+  }
+  try {
+    const ok = await renameUserDb(
+      String(oldUserId).trim(),
+      String(newUserId).trim(),
+      String(newName).trim(),
+      newPasskey ? String(newPasskey).trim() : undefined
+    );
+    if (!ok) return res.status(500).json({ error: "Failed to rename user." });
+    const list = await getUsersDb();
+    const projects = await getProjectsDb();
+    await logActivityLocally(String(email), "RENAME User", `Renamed user "${oldUserId}" -> "${newUserId}" (${newName})`);
+    return res.json({ success: true, users: list, projects });
   } catch (err: any) {
     return res.status(500).json({ error: err.message });
   }
@@ -1008,7 +1095,42 @@ app.delete("/api/users/:userId", async (req, res) => {
     const ok = await deleteUserDb(req.params.userId);
     if (!ok) return res.status(500).json({ error: "Failed to delete user." });
     const list = await getUsersDb();
+    await logActivityLocally(String(email), "DELETE User", `Deleted user "${req.params.userId}"`);
     return res.json({ success: true, users: list });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Reassign a project from one user to another. Since project.userId/users
+// gets fully overwritten (not appended), the project automatically stops
+// showing up for the previous user the moment this succeeds.
+app.post("/api/projects/reassign", async (req, res) => {
+  const email = req.headers['x-user-email'];
+  if (!email || typeof email !== 'string' || !isUserAdmin(email)) {
+    return res.status(403).json({ error: "Admin access required to reassign a project." });
+  }
+  const { projectId, newUserId, newUserName } = req.body;
+  if (!projectId || !newUserId || !newUserName) {
+    return res.status(400).json({ error: "projectId, newUserId and newUserName are required." });
+  }
+  try {
+    const allProjects = await getProjectsDb();
+    const existing = allProjects.find((p: any) => p.id === projectId);
+    if (!existing) return res.status(404).json({ error: "Project not found." });
+
+    const previousUser = existing.userId || (existing.users && existing.users[0]) || "Unassigned";
+    const updatedProject = {
+      ...existing,
+      userId: String(newUserId).trim(),
+      users: [String(newUserName).trim()]
+    };
+    const ok = await saveProjectDb(updatedProject);
+    if (!ok) return res.status(500).json({ error: "Failed to reassign project." });
+
+    const list = await getProjectsDb();
+    await logActivityLocally(String(email), "REASSIGN Project", `Reassigned "${existing.name || existing.domain}" from "${previousUser}" to "${newUserName}" (${newUserId})`);
+    return res.json({ success: true, list });
   } catch (err: any) {
     return res.status(500).json({ error: err.message });
   }
