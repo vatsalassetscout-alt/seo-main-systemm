@@ -141,6 +141,21 @@ CREATE TABLE IF NOT EXISTS app_users (
   created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now())
 );
 ALTER TABLE app_users ADD COLUMN IF NOT EXISTS paused BOOLEAN DEFAULT false;
+-- Admin Control Panel: login credentials + role now live in the DB instead
+-- of being hardcoded in LoginScreen.tsx / App.tsx.
+ALTER TABLE app_users ADD COLUMN IF NOT EXISTS passkey TEXT;
+ALTER TABLE app_users ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'user';
+
+-- One-time seed of the previously-hardcoded ID/passkey pairs so existing
+-- logins keep working after you switch this table on. Safe to run more
+-- than once (ON CONFLICT does nothing if the user already exists).
+INSERT INTO app_users (user_id, name, passkey, role) VALUES
+  ('1859', 'User 1859', '0069', 'user'),
+  ('9531', 'User 9531', '4949', 'user'),
+  ('5595', 'User 5595', '9231', 'user'),
+  ('4001', 'User 4001', '1793', 'user'),
+  ('8888', 'Admin', '2010', 'admin')
+ON CONFLICT (user_id) DO NOTHING;
 
 -- 8. Task Lineup Assignments Table
 -- One row per (date, user, project) that the auto-assignment engine picked
@@ -305,25 +320,116 @@ export async function saveProjectDb(project: any): Promise<boolean> {
 // This is intentionally separate from projects.users / projects.user_id /
 // submissions.user_email, which are NOT used to build the dropdown anymore.
 
-export async function getUsersDb(): Promise<{ email: string; name: string }[]> {
+export async function getUsersDb(): Promise<{ email: string; name: string; paused?: boolean; role?: string }[]> {
   const sb = getSupabase();
   if (sb) {
     try {
       const { data, error } = await sb
         .from("app_users")
-        .select("*")
+        .select("user_id, name, paused, role")
         .order("name", { ascending: true });
 
       if (error) {
         console.warn("Supabase query error for app_users:", error.message);
       } else if (data) {
-        return data.map((u: any) => ({ email: u.user_id, name: u.name, paused: !!u.paused }));
+        // NOTE: passkey is intentionally never returned here — this list is
+        // consumed by the frontend admin dropdown and must not leak credentials.
+        return data.map((u: any) => ({ email: u.user_id, name: u.name, paused: !!u.paused, role: u.role || 'user' }));
       }
     } catch (err) {
       console.error("Supabase exception for getUsersDb:", err);
     }
   }
   return [];
+}
+
+// Server-side only — verifies a userId/passkey pair against the DB.
+// Falls back to null (caller decides how to handle "not found") so the
+// route can apply a legacy-hardcoded safety net until the SQL migration
+// above has actually been run on the person's Supabase project.
+export async function verifyUserCredentialsDb(
+  userId: string,
+  passkey: string
+): Promise<{ name: string; role: 'user' | 'admin' } | null> {
+  const sb = getSupabase();
+  if (!sb) return null;
+  try {
+    const normalizedId = String(userId).trim().toLowerCase();
+    const { data, error } = await sb
+      .from("app_users")
+      .select("user_id, name, passkey, role")
+      .ilike("user_id", normalizedId)
+      .maybeSingle();
+
+    if (error || !data) return null;
+    if (data.passkey == null) return null; // column not migrated / user has no passkey set yet
+    if (String(data.passkey) !== String(passkey)) return null;
+
+    return { name: data.name || normalizedId, role: (data.role === 'admin' ? 'admin' : 'user') };
+  } catch (err) {
+    console.error("Supabase exception for verifyUserCredentialsDb:", err);
+    return null;
+  }
+}
+
+// Renames a user's login ID (the app_users primary key) and/or display name
+// and/or passkey, then cascades the ID + name change onto every project
+// currently assigned to them so nothing goes orphaned.
+export async function renameUserDb(
+  oldUserId: string,
+  newUserId: string,
+  newName: string,
+  newPasskey?: string
+): Promise<boolean> {
+  const sb = getSupabase();
+  if (!sb) return false;
+  try {
+    const oldId = String(oldUserId).trim().toLowerCase();
+    const newId = String(newUserId).trim().toLowerCase();
+
+    // Fetch old name first so we can swap it out of projects.users[] below.
+    const { data: existing } = await sb
+      .from("app_users")
+      .select("user_id, name")
+      .ilike("user_id", oldId)
+      .maybeSingle();
+    const oldName = existing?.name || oldId;
+
+    const updatePayload: any = { user_id: newId, name: newName };
+    if (newPasskey) updatePayload.passkey = newPasskey;
+
+    const { error: userErr } = await sb
+      .from("app_users")
+      .update(updatePayload)
+      .ilike("user_id", oldId);
+    if (userErr) {
+      console.warn("Supabase renameUserDb (app_users) failed:", userErr.message);
+      return false;
+    }
+
+    // Cascade: any project pointing at the old userId now points at the new one.
+    const { data: affectedProjects, error: projErr } = await sb
+      .from("projects")
+      .select("id, user_id, users")
+      .ilike("user_id", oldId);
+
+    if (!projErr && affectedProjects && affectedProjects.length > 0) {
+      for (const p of affectedProjects) {
+        const updatedUsers = Array.isArray(p.users)
+          ? p.users.map((u: string) => (u === oldName ? newName : u))
+          : p.users;
+        await sb
+          .from("projects")
+          .update({ user_id: newId, users: updatedUsers })
+          .eq("id", p.id);
+      }
+    }
+
+    return true;
+  } catch (err) {
+    console.error("Supabase exception for renameUserDb:", err);
+    return false;
+  }
 }
 
 export async function setUserPausedDb(userId: string, paused: boolean): Promise<boolean> {
@@ -361,7 +467,12 @@ export async function setUserPausedDb(userId: string, paused: boolean): Promise<
   return false;
 }
 
-export async function saveUserDb(userId: string, name: string): Promise<boolean> {
+export async function saveUserDb(
+  userId: string,
+  name: string,
+  passkey?: string,
+  role?: 'user' | 'admin'
+): Promise<boolean> {
   const sb = getSupabase();
   if (sb) {
     try {
@@ -369,9 +480,12 @@ export async function saveUserDb(userId: string, name: string): Promise<boolean>
       // toggle, assignment matching, etc.) can rely on a consistent case
       // instead of needing case-insensitive matches everywhere.
       const normalizedUserId = String(userId).trim().toLowerCase();
+      const row: any = { user_id: normalizedUserId, name };
+      if (passkey) row.passkey = passkey;
+      if (role) row.role = role;
       const { error } = await sb
         .from("app_users")
-        .upsert({ user_id: normalizedUserId, name }, { onConflict: "user_id" });
+        .upsert(row, { onConflict: "user_id" });
 
       if (error) {
         console.warn("Supabase upsert app_user failed:", error.message);
