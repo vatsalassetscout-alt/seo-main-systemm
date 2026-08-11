@@ -16,26 +16,17 @@ interface LoginScreenProps {
   onGoogleSignIn?: () => Promise<void>;
 }
 
-// Credentials mapping specified by user
-const CREDENTIALS: Record<string, { passkey: string; role: 'user' | 'admin' }> = {
-  "1859": { passkey: "0069", role: "user" },
-  "9531": { passkey: "4949", role: "user" },
-  "5595": { passkey: "9231", role: "user" },
-  "4001": { passkey: "1793", role: "user" },
-  "8888": { passkey: "2010", role: "admin" }
-};
-
 export default function LoginScreen({
   onLogin,
   isLoggingIn = false,
   loginError = null,
-  allowedUsers = [],
 }: LoginScreenProps) {
   const [idInput, setIdInput] = useState('');
   const [passkeyInput, setPasskeyInput] = useState('');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [verifying, setVerifying] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
 
@@ -47,25 +38,28 @@ export default function LoginScreen({
       return;
     }
 
-    const matched = CREDENTIALS[enteredId];
-    if (matched) {
-      if (matched.passkey !== enteredPass) {
-        setErrorMsg('Incorrect Passkey for this ID.');
+    setVerifying(true);
+    try {
+      const res = await fetch('/api/auth/login-verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: enteredId, passkey: enteredPass }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        setErrorMsg(data.error || 'Invalid User ID or Passkey.');
         return;
       }
-      onLogin(enteredId, matched.role);
-    } else {
-      // Check dynamically inside allowedUsers fetched from Google Sheet
-      const isDynamicUser = allowedUsers && allowedUsers.some(u => u.email && u.email.trim().toLowerCase() === enteredId.toLowerCase());
-      if (isDynamicUser) {
-        onLogin(enteredId, 'user');
-      } else {
-        setErrorMsg('Invalid User or Admin ID. Please ensure your User ID is assigned in the spreadsheet.');
-      }
+      onLogin(enteredId, data.role === 'admin' ? 'admin' : 'user');
+    } catch (err: any) {
+      setErrorMsg('Could not reach the server. Please try again.');
+    } finally {
+      setVerifying(false);
     }
   };
 
   const activeError = errorMsg || loginError;
+  const busy = isLoggingIn || verifying;
 
   return (
     <div className="min-h-screen bg-gray-50/50 flex flex-col items-center justify-center p-4 sm:p-6 select-none animate-in fade-in duration-200">
@@ -139,10 +133,11 @@ export default function LoginScreen({
             <button
               id="login-submit-btn"
               type="submit"
-              className="w-full px-5 py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs transition shadow-sm hover:shadow-md flex items-center justify-center gap-2 cursor-pointer"
+              disabled={busy}
+              className="w-full px-5 py-3.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white font-bold rounded-xl text-xs transition shadow-sm hover:shadow-md flex items-center justify-center gap-2 cursor-pointer"
             >
-              Enter Workspace
-              <ArrowRight size={13} />
+              {busy ? 'Verifying…' : 'Enter Workspace'}
+              {!busy && <ArrowRight size={13} />}
             </button>
           </form>
 
