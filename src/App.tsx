@@ -635,14 +635,10 @@ export default function App() {
     setIsLoggingIn(true);
 
     try {
+      // Credentials (User ID + Passkey) were already verified server-side
+      // against Supabase `app_users` in LoginScreen before onLogin was
+      // called — role here is the DB-verified role, not a client guess.
       if (role === 'admin') {
-        const isAdminEmail = emailLower === '8888' ||
-                             adminEmails.some((a) => a.trim().toLowerCase() === emailLower) ||
-                             ADMIN_EMAILS.some((a) => a.trim().toLowerCase() === emailLower);
-        if (!isAdminEmail) {
-          throw new Error(`Access Denied: The ID/Email "${emailLower}" is not registered as an Administrator.`);
-        }
-
         registerLoggedInUser(emailLower);
         setCurrentUserEmail(emailLower);
         setCurrentUserRole('admin');
@@ -650,14 +646,6 @@ export default function App() {
         setActiveTab('dashboard');
         recordLoginActivity(emailLower, 'admin');
       } else {
-        const validIds = ["1859", "9531", "5595", "4001"];
-        const isAllowedUser = validIds.includes(emailLower) || 
-                             allowedUsers.some((u) => u.email.trim().toLowerCase() === emailLower) ||
-                             projects.some((p) => p.userId && String(p.userId).trim().toLowerCase() === emailLower);
-        if (!isAllowedUser) {
-          throw new Error(`Access Denied: The ID "${emailLower}" is not authorized.`);
-        }
-
         registerLoggedInUser(emailLower);
 
         setCurrentUserEmail(emailLower);
