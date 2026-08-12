@@ -17,6 +17,7 @@ import {
   FolderPlus,
 } from 'lucide-react';
 import { motion } from 'motion/react';
+import { numericIdCompare } from '../lib/userUtils';
 
 interface AdminControlPanelProps {
   projects: Project[];
@@ -83,17 +84,32 @@ export default function AdminControlPanel({
 
   const filteredProjects = useMemo(() => {
     const term = projectSearch.trim().toLowerCase();
-    if (!term) return projects;
-    return projects.filter((p) => {
-      const assignedTo = (p.users && p.users[0]) || p.userId || '';
-      return (
-        (p.name || '').toLowerCase().includes(term) ||
-        (p.domain || '').toLowerCase().includes(term) ||
-        (p.location || '').toLowerCase().includes(term) ||
-        (p.region || '').toLowerCase().includes(term) ||
-        String(assignedTo).toLowerCase().includes(term) ||
-        (p.keywords || []).some((k) => k.toLowerCase().includes(term))
-      );
+    const base = !term
+      ? projects
+      : projects.filter((p) => {
+          const assignedTo = (p.users && p.users[0]) || p.userId || '';
+          return (
+            (p.name || '').toLowerCase().includes(term) ||
+            (p.domain || '').toLowerCase().includes(term) ||
+            (p.location || '').toLowerCase().includes(term) ||
+            (p.region || '').toLowerCase().includes(term) ||
+            String(assignedTo).toLowerCase().includes(term) ||
+            (p.keywords || []).some((k) => k.toLowerCase().includes(term))
+          );
+        });
+
+    // Admin's Project Control table is ordered by the assigned user's
+    // numeric ID (not alphabetically / not insertion order), so all of a
+    // given user's projects sit together in a predictable, ID-ordered
+    // sequence. Unassigned projects sort last.
+    return [...base].sort((a, b) => {
+      const idA = a.userId || (a.users && a.users[0]) || '';
+      const idB = b.userId || (b.users && b.users[0]) || '';
+      if (!idA && idB) return 1;
+      if (idA && !idB) return -1;
+      const cmp = numericIdCompare(idA, idB);
+      if (cmp !== 0) return cmp;
+      return (a.name || '').localeCompare(b.name || '');
     });
   }, [projects, projectSearch]);
 
@@ -565,4 +581,3 @@ function ReassignModal({
     </div>
   );
 }
-
