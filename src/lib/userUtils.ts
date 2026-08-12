@@ -34,11 +34,24 @@ export const registerNamesFromProjects = (projects: any[]): void => {
 };
 
 /**
- * Checks if a given userId is the admin.
+ * Checks if a given userId is an admin — the single hardcoded admin ID
+ * always counts, PLUS any ID/email present in the optional `adminEmails`
+ * list (the app's actually-configured admin accounts, which several call
+ * sites already pass in). Previously this second argument was silently
+ * ignored (plain JS lets you call a 1-arg function with 2 args without
+ * erroring), so configured admins who aren't the hardcoded "8888" ID were
+ * never excluded from "all users" lists on the admin side — they showed up
+ * mixed in alongside real team members. Both checks are case-insensitive.
  */
-export const isUserAdmin = (userId: string | null | undefined): boolean => {
+export const isUserAdmin = (
+  userId: string | null | undefined,
+  adminEmails: string[] = []
+): boolean => {
   if (!userId) return false;
-  return String(userId).trim() === ADMIN_USER_ID;
+  const id = String(userId).trim();
+  if (id === ADMIN_USER_ID) return true;
+  const idLower = id.toLowerCase();
+  return adminEmails.some((a) => String(a || '').trim().toLowerCase() === idLower);
 };
 
 /**
@@ -74,6 +87,16 @@ export const getUserDisplayName = (
  * Sheet) for equality. Falls back to resolving both through the Sheet-driven
  * display-name lookup, so "4001" and "Vatsal Patel" are recognized as the
  * same person even if the Sheet stores names in some places and IDs in others.
+ *
+ * IMPORTANT: the name-based fallback below is ONLY safe when at least one of
+ * the two values being compared is NOT itself a real, registered user ID
+ * (i.e. it's a raw name typed into the Sheet's "Users" column instead of an
+ * ID). If BOTH values are real, distinct, registered IDs, they must never be
+ * treated as "the same person" just because they happen to resolve to the
+ * same display name — two different real accounts can legitimately share an
+ * identical name (e.g. two team members both named "Kavita Mishra"), and
+ * matching on name in that case was silently merging/duplicating their
+ * projects and pending stats across each other's user IDs on the admin side.
  */
 export const doesUserMatch = (
   userA: string,
@@ -85,9 +108,34 @@ export const doesUserMatch = (
   const b = userB.trim().toLowerCase();
   if (a === b) return true;
 
+  const aIsKnownId = allowedUsers.some((u) => u.email.trim().toLowerCase() === a);
+  const bIsKnownId = allowedUsers.some((u) => u.email.trim().toLowerCase() === b);
+  if (aIsKnownId && bIsKnownId) return false; // two distinct real IDs — must match on ID only
+
   const nameA = getUserDisplayName(a, allowedUsers).toLowerCase();
   const nameB = getUserDisplayName(b, allowedUsers).toLowerCase();
   if (nameA && nameB && nameA === nameB) return true;
 
   return false;
+};
+
+/**
+ * Comparator for sorting user/project rows by their numeric user ID (e.g.
+ * "7412"). Purely-numeric IDs sort in ascending numeric order (so "9" comes
+ * before "10"); anything non-numeric falls back to plain string sorting and
+ * is pushed after the numeric IDs. Used everywhere the admin side needs to
+ * list users/projects "user ID number se hi" (in numeric-ID order) instead
+ * of alphabetically by display name.
+ */
+export const numericIdCompare = (idA: string | null | undefined, idB: string | null | undefined): number => {
+  const a = String(idA || '').trim();
+  const b = String(idB || '').trim();
+  const numA = Number(a);
+  const numB = Number(b);
+  const aIsNum = a !== '' && !Number.isNaN(numA);
+  const bIsNum = b !== '' && !Number.isNaN(numB);
+  if (aIsNum && bIsNum) return numA - numB;
+  if (aIsNum && !bIsNum) return -1;
+  if (!aIsNum && bIsNum) return 1;
+  return a.localeCompare(b);
 };
