@@ -1281,31 +1281,53 @@ export function normalizeNameKey(name: string | undefined | null): string {
 }
 
 export function buildCanonicalEmailMap(users: { email: string; name?: string }[]): Map<string, string> {
-  const canonicalEmailByName = new Map<string, string>();
   const canonicalEmailByRawEmail = new Map<string, string>();
+
+  // Every real registered account is its own canonical identity by default.
+  users.forEach((u) => {
+    const email = String(u.email || "").trim().toLowerCase();
+    if (!email) return;
+    canonicalEmailByRawEmail.set(email, email);
+  });
+
+  // Count how many DISTINCT real accounts share each normalized display name.
+  const emailsByName = new Map<string, Set<string>>();
   users.forEach((u) => {
     const email = String(u.email || "").trim().toLowerCase();
     if (!email) return;
     const nameKey = normalizeNameKey(u.name);
-    if (nameKey) {
-      if (!canonicalEmailByName.has(nameKey)) canonicalEmailByName.set(nameKey, email);
-      canonicalEmailByRawEmail.set(email, canonicalEmailByName.get(nameKey)!);
-      // ALSO key the map by the person's normalized NAME itself, not just
-      // their email/ID. Root cause found in production: a Google Sheet's
-      // "Users" column sometimes has a person's NAME typed in instead of
-      // their numeric ID (e.g. "kavita mishra" instead of "5595"). That
-      // raw string flows straight into task_assignments.user_email as if
-      // it were a real login ID, creating a phantom "user" that is really
-      // just her real account's name — which is exactly what showed up as
-      // a second, separate lineup card for her. Registering the name as a
-      // lookup key too means resolveCanonicalEmail() folds that phantom
-      // row back onto her real account automatically, without needing a
-      // manual DB fix every time a sheet has this typo.
-      if (!canonicalEmailByRawEmail.has(nameKey)) canonicalEmailByRawEmail.set(nameKey, canonicalEmailByName.get(nameKey)!);
-    } else {
-      canonicalEmailByRawEmail.set(email, email);
+    if (!nameKey) return;
+    if (!emailsByName.has(nameKey)) emailsByName.set(nameKey, new Set());
+    emailsByName.get(nameKey)!.add(email);
+  });
+
+  // Only fold a NAME onto a canonical email when that name belongs to
+  // EXACTLY ONE real registered account. This is what lets a phantom "name
+  // typed in instead of the numeric ID" row in a project's Users column
+  // (e.g. "kavita mishra" instead of "5595") resolve back onto that one
+  // real person's real account — the original bug this map was built to
+  // fix.
+  //
+  // BUG FIXED HERE: the previous version folded by name unconditionally —
+  // the FIRST real account seen with a given name became "the" canonical
+  // email for that name, and every OTHER real account that happened to
+  // share the exact same display name got silently merged into it too.
+  // Two different real team members legitimately sharing a name (e.g. two
+  // people both named "Kavita Mishra") were being treated as the SAME
+  // person: one person's task lineup, submissions, and pending counts were
+  // getting attributed to the other's account — which is exactly what
+  // showed up as "different/extra items in today's lineup" and admin
+  // seeing a different project set than what the actual assigned user saw.
+  // Now, when a name is shared by 2+ real accounts, it's left deliberately
+  // AMBIGUOUS and is never used to fold anyone's identity — each of those
+  // accounts keeps its own separate email as its canonical identity.
+  emailsByName.forEach((emails, nameKey) => {
+    if (emails.size === 1) {
+      const [onlyEmail] = Array.from(emails);
+      if (!canonicalEmailByRawEmail.has(nameKey)) canonicalEmailByRawEmail.set(nameKey, onlyEmail);
     }
   });
+
   return canonicalEmailByRawEmail;
 }
 
