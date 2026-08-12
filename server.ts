@@ -594,10 +594,20 @@ app.post("/api/projects/reassign", async (req, res) => {
     if (!existing) return res.status(404).json({ error: "Project not found." });
 
     const previousUser = existing.userId || (existing.users && existing.users[0]) || "Unassigned";
+    // ROOT BUG (found and fixed): this used to write `users: [newUserName]`
+    // — the person's display NAME — instead of their real ID. The Task
+    // Lineup engine reads `project.users` as a list of assignee IDs
+    // (generateLineupForDate), so every reassignment was silently planting
+    // a phantom "user" whose ID was literally someone's name (e.g.
+    // "kavita mishra" instead of "5595"). That phantom then got its own
+    // full, separate lineup generated for it — showing up as the SAME
+    // person appearing twice in the admin's Task Lineup with two
+    // different sets of projects. Both `userId` and `users` must hold the
+    // real ID, never the display name.
     const updatedProject = {
       ...existing,
       userId: String(newUserId).trim(),
-      users: [String(newUserName).trim()]
+      users: [String(newUserId).trim()]
     };
     const ok = await saveProjectDb(updatedProject);
     if (!ok) return res.status(500).json({ error: "Failed to reassign project." });
