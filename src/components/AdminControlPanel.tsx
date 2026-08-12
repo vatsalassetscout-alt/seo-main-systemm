@@ -82,6 +82,19 @@ export default function AdminControlPanel({
     setTimeout(() => setStatusMsg(null), 4000);
   };
 
+  // Backend/pipeline still works purely on userId (p.userId / p.users[0]) —
+  // this map is display-only, so Project Control can show the person's
+  // name instead of their raw numeric ID.
+  const nameByUserId = useMemo(() => {
+    const map = new Map<string, string>();
+    users.forEach((u) => {
+      if (u.email) map.set(String(u.email).trim().toLowerCase(), u.name || u.email);
+    });
+    return map;
+  }, [users]);
+  const nameForAssignedId = (id: string): string =>
+    nameByUserId.get(String(id).trim().toLowerCase()) || id;
+
   const filteredProjects = useMemo(() => {
     const term = projectSearch.trim().toLowerCase();
     const base = !term
@@ -203,7 +216,7 @@ export default function AdminControlPanel({
               <FolderPlus size={16} className="text-indigo-600" />
               Project Control
             </h4>
-            <p className="text-xs text-gray-400">Add, edit, delete, and reassign projects.</p>
+            <p className="text-xs text-gray-400">Add, edit, delete, and Aassign projects.</p>
           </div>
           <button
             onClick={() => setShowAddProject(true)}
@@ -272,7 +285,9 @@ export default function AdminControlPanel({
                     </div>
                   </td>
                   <td className="py-3 px-4 font-semibold text-gray-600">
-                    {(p.users && p.users[0]) || p.userId || <span className="text-amber-600">Unassigned</span>}
+                    {(p.users && p.users[0]) || p.userId
+                      ? nameForAssignedId((p.users && p.users[0]) || p.userId)
+                      : <span className="text-amber-600">Unassigned</span>}
                   </td>
                   <td className="py-3 px-4">
                     <div className="flex items-center justify-center gap-1.5">
@@ -543,7 +558,7 @@ function ReassignModal({
         className="bg-white rounded-3xl border border-gray-150 shadow-lg w-full max-w-sm"
       >
         <div className="flex items-center justify-between p-6 border-b border-gray-100">
-          <h3 className="font-extrabold text-gray-900 text-sm">Reassign Project</h3>
+          <h3 className="font-extrabold text-gray-900 text-sm">Assign Project</h3>
           <button onClick={onClose} className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-50 rounded-lg cursor-pointer">
             <X size={16} />
           </button>
