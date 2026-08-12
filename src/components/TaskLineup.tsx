@@ -141,7 +141,17 @@ const StatusBadge = ({ status, isPaused }: { status: string; isPaused?: boolean 
 // Small reusable "list of pending projects" block used for both Yesterday
 // Pending and Today Pending — project names, not just a bare count.
 // `getOwner`, when passed (admin/History view), shows whose task it is.
-const PendingProjectList = ({ items, getOwner }: { items: TaskAssignment[]; getOwner?: (a: TaskAssignment) => string }) => (
+// `onLogWork`, when passed, adds a "Log Work" button next to each item's
+// date that jumps straight to the Work Log pre-filled for that date.
+const PendingProjectList = ({
+  items,
+  getOwner,
+  onLogWork,
+}: {
+  items: TaskAssignment[];
+  getOwner?: (a: TaskAssignment) => string;
+  onLogWork?: (a: TaskAssignment) => void;
+}) => (
   items.length === 0 ? (
     <p className="text-xs font-semibold text-gray-400">Nothing pending — all caught up.</p>
   ) : (
@@ -155,6 +165,16 @@ const PendingProjectList = ({ items, getOwner }: { items: TaskAssignment[]; getO
           <div className="flex items-center gap-2 shrink-0">
             <Badge priority={a.priority} />
             <span className="text-[10px] text-gray-400 font-semibold">{a.date}</span>
+            {onLogWork && (
+              <button
+                type="button"
+                onClick={() => onLogWork(a)}
+                className="flex items-center gap-1 px-2 py-1 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-black rounded-lg transition cursor-pointer"
+              >
+                <PenTool size={11} />
+                Log Work
+              </button>
+            )}
           </div>
         </div>
       ))}
@@ -874,6 +894,7 @@ export default function TaskLineup({
               <PendingProjectList
                 items={historyYesterdayPending}
                 getOwner={isAdmin ? (a) => nameFor(a.userEmail) : undefined}
+                onLogWork={!isAdmin ? (a) => onJumpToWorkLog(a.projectId, a.date) : undefined}
               />
             </div>
             {/* Right: Total Pending — the signed-in user's own all-time
@@ -1039,8 +1060,20 @@ export default function TaskLineup({
                                     <CheckCircle2 size={12} /> Submitted
                                   </span>
                                 ) : (
-                                  <span className="inline-flex items-center gap-1 text-[11px] font-bold text-red-600 shrink-0">
-                                    <Clock size={12} /> Not Submitted
+                                  <span className="inline-flex items-center gap-2 shrink-0">
+                                    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-red-600">
+                                      <Clock size={12} /> Not Submitted
+                                    </span>
+                                    {!isAdmin && (
+                                      <button
+                                        type="button"
+                                        onClick={() => onJumpToWorkLog(a.projectId, a.date)}
+                                        className="flex items-center gap-1 px-2 py-1 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-black rounded-lg transition cursor-pointer"
+                                      >
+                                        <PenTool size={11} />
+                                        Log Work
+                                      </button>
+                                    )}
                                   </span>
                                 )}
                               </div>
