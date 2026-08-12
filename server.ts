@@ -653,12 +653,17 @@ app.get("/api/filters", async (req, res) => {
       uniqueRegions.add("South");
     }
 
-    // Users dropdown now comes ONLY from the dedicated app_users table —
+    // Users dropdown/list now comes ONLY from the dedicated app_users table —
     // no more deriving/guessing names from projects.users, projects.user_id,
     // or submissions.user_email (that guessing logic was the root cause of
-    // project names leaking into the users dropdown).
+    // project names leaking into the users dropdown). Admin-role accounts
+    // are excluded here too — admins are logins, not team members, and
+    // without this filter the admin's own account was showing up as a
+    // normal "user" row (with a Pause button) in Task Lineup's Controls
+    // panel, since that panel just renders every entry in this list.
     const dbUsers = await getUsersDb();
     const finalUsers = dbUsers
+      .filter((u: any) => (u.role || "user") !== "admin")
       .map((u: any) => ({ email: u.email, name: u.name, paused: !!u.paused }))
       .sort((a, b) => a.name.localeCompare(b.name));
 
@@ -767,13 +772,41 @@ app.get("/api/task-lineup/pending-summary", async (req, res) => {
     const clientUserRole = req.headers["x-user-role"];
     const requestedEmail = typeof req.query.userEmail === "string" ? req.query.userEmail : undefined;
 
-    const userEmail = clientUserRole === "admin" ? requestedEmail : (typeof clientUserEmail === "string" ? clientUserEmail : undefined);
+    const rawUserEmail = clientUserRole === "admin" ? requestedEmail : (typeof clientUserEmail === "string" ? clientUserEmail : undefined);
+    if (!rawUserEmail) {
+      return res.json({ yesterdayPending: [], totalPendingCount: 0, totalPending: [] });
+    }
 
     const today = new Date().toISOString().slice(0, 10);
     const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
 
-    const yesterdayPending = await getTaskAssignmentsDb({ date: yesterday, status: "Pending", userEmail });
-    const totalPending = await getTaskAssignmentsDb({ dateTo: today, status: "Pending", userEmail });
+    // Same canonicalization the Daily Assignment Status calendar already
+    // uses (GET /api/task-lineup) — that's exactly why the calendar is
+    // accurate and this endpoint wasn't. Previously this route matched the
+    // raw x-user-email/userEmail header directly against task_assignments,
+    // with no canonicalization and no dedupe at all. If a stray row was
+    // ever filed under a different spelling of the same person's identity
+    // (a second login email, or a project's "Users" column with their NAME
+    // typed in instead of their ID), it was invisible here even though it
+    // was still sitting in the table — so Yesterday Pending / Total
+    // Pending silently disagreed with the calendar. Now both draw from the
+    // exact same canonicalized source. NOTE: this only folds duplicate
+    // rows that resolve to ONE real, unambiguous account — it deliberately
+    // never merges two different real people together (see
+    // buildCanonicalEmailMap), so this fix cannot reintroduce that bug.
+    const users = await getUsersDb();
+    const canonicalMap = buildCanonicalEmailMap(users);
+    const canonicalUserEmail = resolveCanonicalEmail(rawUserEmail, canonicalMap);
+
+    const yesterdayPending = dedupeAssignmentsByCanonicalIdentity(
+      await getTaskAssignmentsDb({ date: yesterday, status: "Pending" }),
+      canonicalMap
+    ).filter((a: any) => a.userEmail === canonicalUserEmail);
+
+    const totalPending = dedupeAssignmentsByCanonicalIdentity(
+      await getTaskAssignmentsDb({ dateTo: today, status: "Pending" }),
+      canonicalMap
+    ).filter((a: any) => a.userEmail === canonicalUserEmail);
 
     return res.json({
       yesterdayPending,
