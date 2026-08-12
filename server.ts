@@ -308,9 +308,9 @@ app.post("/api/auth/verify", (req, res) => {
   const emailLower = email.trim().toLowerCase();
   const isAdmin = isUserAdmin(emailLower);
 
-  if (!ALLOWED_USERS.some(u => u.toLowerCase() === emailLower)) {
-    ALLOWED_USERS.push(emailLower);
-  }
+  // No auto-creation: an unrecognized ID is simply not added here. New
+  // users must be created explicitly by an admin (POST /api/users), which
+  // also enforces the numeric-only userId rule.
 
   const filteredUsers = ALLOWED_USERS
     .filter(u => !isUserAdmin(u))
@@ -515,6 +515,9 @@ app.post("/api/users", async (req, res) => {
   const { userId, name, passkey, role } = req.body;
   if (!userId || !name) {
     return res.status(400).json({ error: "userId and name are required." });
+  }
+  if (!/^\d+$/.test(String(userId).trim())) {
+    return res.status(400).json({ error: "userId must be numeric only (e.g. 1859)." });
   }
   try {
     const ok = await saveUserDb(
