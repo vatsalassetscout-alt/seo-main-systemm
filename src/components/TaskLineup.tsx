@@ -5,6 +5,7 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { AppUser, TaskAssignment } from '../types';
+import { numericIdCompare } from '../lib/userUtils';
 import {
   Trash2,
   Play,
@@ -464,9 +465,12 @@ export default function TaskLineup({
       byEmail.get(emailKey)!.push(a);
     });
 
+    // Ordered by numeric user ID (not alphabetically by name) so each
+    // user's card sits in a predictable, ID-ordered sequence on the admin
+    // side.
     return Array.from(byEmail.entries())
       .map(([emailKey, items]) => [nameFor(emailKey), emailKey, sortPendingFirst(items)] as [string, string, TaskAssignment[]])
-      .sort((a, b) => a[0].localeCompare(b[0]) || a[1].localeCompare(b[1]));
+      .sort((a, b) => numericIdCompare(a[1], b[1]));
   }, [assignments, allowedUsers]);
 
   const myAssignments = useMemo(
@@ -487,17 +491,18 @@ export default function TaskLineup({
     [selectedPendingEmail, pendingAllUsers]
   );
 
-  // History tab's "Yesterday Pending" — pooled across everyone for admins,
-  // just the current user's for everyone else.
+  // History tab's "Yesterday Pending" / "Total Pending" blocks — pooled
+  // across every user for admins (so admin sees everyone's combined
+  // total), and scoped to just the signed-in person for everyone else (so
+  // a regular user only ever sees their own total, never anyone else's).
   const historyYesterdayPending = useMemo(
     () => (isAdmin ? pendingAllUsers.flatMap(u => u.yesterdayPending) : yesterdayPending),
     [isAdmin, pendingAllUsers, yesterdayPending]
   );
-
-  // NOTE: the History tab intentionally does NOT show a pooled "Total
-  // Pending" block next to the calendar. The calendar's right-hand panel
-  // (below) is scoped to whichever single day is selected — just that
-  // day's project count and each project's status — not an all-time total.
+  const historyTotalPending = useMemo(
+    () => (isAdmin ? pendingAllUsers.flatMap(u => u.totalPending) : totalPending),
+    [isAdmin, pendingAllUsers, totalPending]
+  );
 
   // Calendar grid cells (blank leading slots + actual day numbers) for the
   // History tab's assignment-status calendar.
@@ -655,7 +660,7 @@ export default function TaskLineup({
                 ) : pendingAllUsers.length === 0 ? (
                   <p className="text-xs font-bold text-gray-400 px-1">No users configured yet.</p>
                 ) : (
-                  [...pendingAllUsers].sort((a, b) => a.name.localeCompare(b.name)).map(u => (
+                  [...pendingAllUsers].sort((a, b) => numericIdCompare(a.email, b.email)).map(u => (
                     <button
                       key={u.email}
                       onClick={() => setSelectedPendingEmail(u.email)}
@@ -770,7 +775,7 @@ export default function TaskLineup({
                 <p className="px-5 py-4 text-xs font-bold text-gray-400">No users configured yet.</p>
               ) : (
                 <div className="divide-y divide-gray-100">
-                  {[...allowedUsers].sort((a, b) => a.name.localeCompare(b.name)).map((u) => {
+                  {[...allowedUsers].sort((a, b) => numericIdCompare(a.email, b.email)).map((u) => {
                     const paused = !!u.paused;
                     const stats = pendingStatsByEmail.get(u.email.trim().toLowerCase());
                     return (
@@ -860,14 +865,28 @@ export default function TaskLineup({
       {/* ================= HISTORY TAB ================= */}
       {view === 'history' && (
         <div className="space-y-6">
-          <div className="bg-white rounded-2xl border border-gray-150 p-4 shadow-xs">
-            <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">
-              Yesterday Pending ({historyYesterdayPending.length})
-            </p>
-            <PendingProjectList
-              items={historyYesterdayPending}
-              getOwner={isAdmin ? (a) => nameFor(a.userEmail) : undefined}
-            />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Left: Yesterday Pending */}
+            <div className="bg-white rounded-2xl border border-gray-150 p-4 shadow-xs">
+              <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">
+                Yesterday Pending ({historyYesterdayPending.length})
+              </p>
+              <PendingProjectList
+                items={historyYesterdayPending}
+                getOwner={isAdmin ? (a) => nameFor(a.userEmail) : undefined}
+              />
+            </div>
+            {/* Right: Total Pending — the signed-in user's own all-time
+                total, or, for admins, every user's pooled together. */}
+            <div className="bg-white rounded-2xl border border-gray-150 p-4 shadow-xs">
+              <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">
+                Total Pending ({historyTotalPending.length})
+              </p>
+              <PendingProjectList
+                items={historyTotalPending}
+                getOwner={isAdmin ? (a) => nameFor(a.userEmail) : undefined}
+              />
+            </div>
           </div>
 
           {/* Day-by-day assignment status calendar — pick any date, see all
