@@ -5,7 +5,7 @@
 
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { DSREntry, Project, AppUser, ProjectLocation, CustomSubmissionType } from '../types';
-import { getUserDisplayName, isUserAdmin, doesUserMatch } from '../lib/userUtils';
+import { getUserDisplayName, isUserAdmin, doesUserMatch, numericIdCompare } from '../lib/userUtils';
 import { cleanDomain, domainHref } from '../lib/domain';
 import UpdateRankingTable, { ManualRankingGrid } from './UpdateRankingTable';
 import { 
@@ -328,27 +328,22 @@ export default function DSRDashboard({
       }
     });
 
-    const nameToUserObj = new Map<string, { name: string; emails: string[] }>();
+    // One entry per distinct user ID (email) — NOT merged by display name.
+    // Two different real accounts can legitimately share the exact same
+    // display name (e.g. two team members both named "Kavita Mishra");
+    // merging by name here was collapsing/duplicating their selections in
+    // this checklist so picking one silently also picked the other's
+    // projects. Each real ID is now always its own row, and the list is
+    // ordered by numeric user ID rather than alphabetically by name.
+    const idToUserObj = new Map<string, { name: string; emails: string[] }>();
     emailMap.forEach((name, email) => {
-      const displayName = name || getUserDisplayName(email, allowedUsers);
+      const displayName = (name || getUserDisplayName(email, allowedUsers)).trim();
       if (displayName && displayName !== 'Admin') {
-        const trimmedName = displayName.trim();
-        const lowerName = trimmedName.toLowerCase();
-        if (nameToUserObj.has(lowerName)) {
-          const existing = nameToUserObj.get(lowerName)!;
-          if (!existing.emails.includes(email)) {
-            existing.emails.push(email);
-          }
-        } else {
-          nameToUserObj.set(lowerName, {
-            name: trimmedName,
-            emails: [email]
-          });
-        }
+        idToUserObj.set(email, { name: displayName, emails: [email] });
       }
     });
 
-    return Array.from(nameToUserObj.values()).sort((a, b) => a.name.localeCompare(b.name));
+    return Array.from(idToUserObj.values()).sort((a, b) => numericIdCompare(a.emails[0], b.emails[0]));
   }, [allowedUsers, entries, adminEmails]);
 
   // User Projects based on logged-in user or admin's selected users filter
@@ -1948,7 +1943,7 @@ export default function DSRDashboard({
                           .map((u) => {
                             const isChecked = u.emails.every(email => selectedUsers.includes(email));
                             return (
-                              <div key={u.name} className="flex items-center justify-between p-1 rounded hover:bg-gray-50 transition-colors">
+                              <div key={u.emails[0]} className="flex items-center justify-between p-1 rounded hover:bg-gray-50 transition-colors">
                                 <label className="flex items-center gap-2 cursor-pointer text-[11px] text-gray-800 font-bold grow select-none">
                                   <input
                                     type="checkbox"
@@ -1968,7 +1963,10 @@ export default function DSRDashboard({
                                     }}
                                     className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 w-3.5 h-3.5 cursor-pointer"
                                   />
-                                  <span className="truncate">{u.name}</span>
+                                  {/* ID shown alongside the name so two different
+                                      real users who happen to share the same
+                                      display name are always distinguishable. */}
+                                  <span className="truncate">{u.name} <span className="text-gray-400 font-mono normal-case">· {u.emails[0]}</span></span>
                                 </label>
                               </div>
                             );
