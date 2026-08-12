@@ -691,6 +691,16 @@ app.get("/api/task-lineup", async (req, res) => {
     const canonicalMap = buildCanonicalEmailMap(users);
     list = dedupeAssignmentsByCanonicalIdentity(list, canonicalMap);
 
+    // Admin logins are not team members and should never appear as a
+    // "user" in this list — generateLineupForDate now refuses to create
+    // new rows for them, but this also strips out any older rows that
+    // were generated for an admin account before that fix, so the
+    // calendar/pending views clear up immediately without a DB cleanup.
+    const adminEmails = new Set(
+      users.filter((u: any) => (u.role || "user") === "admin").map((u: any) => String(u.email || "").trim().toLowerCase())
+    );
+    list = list.filter((a: any) => !adminEmails.has(a.userEmail));
+
     if (clientUserRole !== "admin" && typeof clientUserEmail === "string" && clientUserEmail) {
       const emailLower = resolveCanonicalEmail(clientUserEmail, canonicalMap);
       list = list.filter((a: any) => a.userEmail === emailLower);
