@@ -46,7 +46,10 @@ import {
   getLineupEngineStateDb,
   setLineupEngineStateDb,
   ensureTodayLineupIfEngineActive,
-  getPendingSummaryAllUsersDb
+  getPendingSummaryAllUsersDb,
+  buildCanonicalEmailMap,
+  resolveCanonicalEmail,
+  dedupeAssignmentsByCanonicalIdentity
 } from "./src/lib/supabaseServer";
 import { detectColumns } from "./src/lib/columnMapper";
 
@@ -678,8 +681,18 @@ app.get("/api/task-lineup", async (req, res) => {
     await ensureTodayLineupIfEngineActive();
 
     let list = await getTaskAssignmentsDb({ date });
+
+    // Collapse duplicate-account rows (same real person, two login emails)
+    // onto one canonical email before returning — this is what fixes the
+    // admin's Daily Assignment Status calendar showing the same project
+    // "repeated" under one person, and makes sure a Work Log submitted
+    // under a non-canonical email still reads as Submitted here.
+    const users = await getUsersDb();
+    const canonicalMap = buildCanonicalEmailMap(users);
+    list = dedupeAssignmentsByCanonicalIdentity(list, canonicalMap);
+
     if (clientUserRole !== "admin" && typeof clientUserEmail === "string" && clientUserEmail) {
-      const emailLower = clientUserEmail.trim().toLowerCase();
+      const emailLower = resolveCanonicalEmail(clientUserEmail, canonicalMap);
       list = list.filter((a: any) => a.userEmail === emailLower);
     }
     return res.json({ date, assignments: list });
@@ -943,13 +956,23 @@ app.post("/api/submissions/append", async (req, res) => {
     }
 
     // Flip any Task Lineup assignment(s) covering the same project/user/date
-    // to "Done" now that a Work Log actually came in for it.
+    // to "Done" now that a Work Log actually came in for it. Assignments
+    // are generated under a person's CANONICAL email (see
+    // buildCanonicalEmailMap), so if this submitter is logged in under a
+    // different (non-canonical) duplicate account email, matching on the
+    // raw userEmail would silently miss the row and the admin's calendar
+    // would keep showing "Not Submitted" forever. Resolve to canonical
+    // first so the flip always lands on the right row.
     try {
+      const usersForCanonical = await getUsersDb();
+      const canonicalMapForSubmission = buildCanonicalEmailMap(usersForCanonical);
+      const canonicalSubmitterEmail = resolveCanonicalEmail(userEmail, canonicalMapForSubmission);
+
       const seenProjectIds = new Set<string>();
       for (const w of worksWithIds) {
         if (w.projectId && !seenProjectIds.has(w.projectId)) {
           seenProjectIds.add(w.projectId);
-          await markTaskAssignmentDoneDb(date, userEmail, w.projectId);
+          await markTaskAssignmentDoneDb(date, canonicalSubmitterEmail, w.projectId);
         }
       }
     } catch (lineupErr: any) {
@@ -1025,11 +1048,18 @@ app.delete("/api/submissions/:id", requireAdmin, async (req, res) => {
 
     if (target && Array.isArray(target.works)) {
       try {
+        // Same canonical-email resolution as the append route above, so
+        // reverting a deleted log back to "Pending" hits the same
+        // assignment row that was flipped to "Done" in the first place.
+        const usersForCanonical = await getUsersDb();
+        const canonicalMapForSubmission = buildCanonicalEmailMap(usersForCanonical);
+        const canonicalSubmitterEmail = resolveCanonicalEmail(target.userEmail, canonicalMapForSubmission);
+
         const seenProjectIds = new Set<string>();
         for (const w of target.works) {
           if (w.projectId && !seenProjectIds.has(w.projectId)) {
             seenProjectIds.add(w.projectId);
-            await markTaskAssignmentPendingDb(target.date, target.userEmail, w.projectId);
+            await markTaskAssignmentPendingDb(target.date, canonicalSubmitterEmail, w.projectId);
           }
         }
       } catch (lineupErr: any) {
