@@ -1228,6 +1228,61 @@ export async function markTaskAssignmentPendingDb(date: string, userEmail: strin
 }
 
 
+// let every call site canonicalize consistently.
+export function buildCanonicalEmailMap(users: { email: string; name?: string }[]): Map<string, string> {
+  const canonicalEmailByName = new Map<string, string>();
+  const canonicalEmailByRawEmail = new Map<string, string>();
+  users.forEach((u) => {
+    const email = String(u.email || "").trim().toLowerCase();
+    if (!email) return;
+    const nameKey = String(u.name || "").trim().toLowerCase();
+    if (nameKey) {
+      if (!canonicalEmailByName.has(nameKey)) canonicalEmailByName.set(nameKey, email);
+      canonicalEmailByRawEmail.set(email, canonicalEmailByName.get(nameKey)!);
+    } else {
+      canonicalEmailByRawEmail.set(email, email);
+    }
+  });
+  return canonicalEmailByRawEmail;
+}
+
+export function resolveCanonicalEmail(rawEmail: string, canonicalMap: Map<string, string>): string {
+  const email = String(rawEmail || "").trim().toLowerCase();
+  return canonicalMap.get(email) || email;
+}
+
+// Collapses task_assignments rows belonging to the same real person (same
+// canonical email) + project + date down to one row — same precedence
+// rules as dedupeAssignments (prefer "Done" over "Pending", then the most
+// recently created row) but keyed on canonical identity so duplicate
+// ACCOUNT rows (different emails, same person) merge too, not just exact
+// email duplicates. Returned rows have userEmail rewritten to the
+// canonical email so grouping/display is consistent.
+export function dedupeAssignmentsByCanonicalIdentity(rows: any[], canonicalMap: Map<string, string>): any[] {
+  const byKey = new Map<string, any>();
+  rows.forEach((r) => {
+    const canonicalEmail = resolveCanonicalEmail(r.userEmail, canonicalMap);
+    const candidate = { ...r, userEmail: canonicalEmail };
+    const key = `${candidate.date}::${canonicalEmail}::${candidate.projectId}`;
+    const prev = byKey.get(key);
+    if (!prev) {
+      byKey.set(key, candidate);
+      return;
+    }
+    const prevDone = prev.status === "Done";
+    const curDone = candidate.status === "Done";
+    if (curDone && !prevDone) {
+      byKey.set(key, candidate);
+    } else if (curDone === prevDone) {
+      const prevTime = new Date(prev.createdAt || 0).getTime();
+      const curTime = new Date(candidate.createdAt || 0).getTime();
+      if (curTime >= prevTime) byKey.set(key, candidate);
+    }
+  });
+  return Array.from(byKey.values());
+}
+
+
 function ymd(d: Date): string {
   return d.toISOString().slice(0, 10);
 }
