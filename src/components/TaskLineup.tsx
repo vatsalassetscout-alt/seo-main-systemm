@@ -446,19 +446,18 @@ export default function TaskLineup({
   const isNamePaused = (displayName: string) =>
     allowedUsers.some(u => u.name.trim().toLowerCase() === displayName.trim().toLowerCase() && !!u.paused);
 
-  // Grouped by display NAME (not raw email). Two app_users rows can share the
-  // same name with different emails (a known duplicate-account issue — see
-  // Admin Settings > Users) which used to render as two separate cards for
-  // the same person. We first group each account's assignments separately
-  // (so every account's list stays exactly as the lineup engine generated
-  // it), then for each name we keep ONLY the one account whose list is the
-  // day's real generated lineup — the one with the most rows (ties broken by
-  // whichever has more still-Pending items). Previously this unioned every
-  // duplicate account's items together by project, which could pull in a
-  // second, stale account's rows and inflate a person's card well past the
-  // daily cap (e.g. showing 16-17 when the person themself only ever saw
-  // their own capped lineup). Picking a single account's list instead means
-  // admin sees exactly what that person sees when they're logged in.
+  // Grouped by canonical EMAIL — one card per real account. The backend
+  // (`/api/task-lineup`) already collapses duplicate-account rows onto a
+  // single canonical email before this data ever reaches the client, so
+  // there is exactly one row-set per real person in `assignments` already.
+  // This used to re-merge rows by display NAME and then pick whichever
+  // duplicate account's list "looked more complete" — that extra picking
+  // step is what caused admin's per-user card to sometimes show a
+  // different set of projects than what the user themself sees on their
+  // own Task Lineup page. Grouping straight from email with the exact same
+  // filter+sort used for `myAssignments` below guarantees admin's card for
+  // a user is byte-for-byte identical to what that user sees when logged
+  // in themselves.
   const groupedByUser = useMemo(() => {
     const byEmail = new Map<string, TaskAssignment[]>();
     assignments.forEach(a => {
@@ -467,25 +466,8 @@ export default function TaskLineup({
       byEmail.get(emailKey)!.push(a);
     });
 
-    const byName = new Map<string, { displayName: string; items: TaskAssignment[] }>();
-    byEmail.forEach((items, emailKey) => {
-      const displayName = nameFor(emailKey);
-      const key = displayName.trim().toLowerCase();
-      const existing = byName.get(key);
-      if (!existing) {
-        byName.set(key, { displayName, items });
-        return;
-      }
-      const existingPending = existing.items.filter(a => a.status !== 'Done').length;
-      const candidatePending = items.filter(a => a.status !== 'Done').length;
-      const candidateIsBetter =
-        items.length > existing.items.length ||
-        (items.length === existing.items.length && candidatePending > existingPending);
-      if (candidateIsBetter) byName.set(key, { displayName, items });
-    });
-
-    return Array.from(byName.values())
-      .map((v) => [v.displayName, sortPendingFirst(v.items)] as [string, TaskAssignment[]])
+    return Array.from(byEmail.entries())
+      .map(([emailKey, items]) => [nameFor(emailKey), sortPendingFirst(items)] as [string, TaskAssignment[]])
       .sort((a, b) => a[0].localeCompare(b[0]));
   }, [assignments, allowedUsers]);
 
@@ -514,20 +496,10 @@ export default function TaskLineup({
     [isAdmin, pendingAllUsers, yesterdayPending]
   );
 
-  // History tab's "Total Pending" — every not-yet-submitted task across
-  // every date (not just today), pooled across everyone for admins, just
-  // the current user's for everyone else. Deduped by id as a safety net —
-  // getPendingSummaryAllUsersDb already dedupes duplicate-account rows
-  // server-side, but this keeps the list honest even if that ever changes.
-  const historyTotalPending = useMemo(() => {
-    const source = isAdmin ? pendingAllUsers.flatMap(u => u.totalPending) : totalPending;
-    const seen = new Set<string>();
-    return source.filter((a) => {
-      if (seen.has(a.id)) return false;
-      seen.add(a.id);
-      return true;
-    });
-  }, [isAdmin, pendingAllUsers, totalPending]);
+  // NOTE: the History tab intentionally does NOT show a pooled "Total
+  // Pending" block next to the calendar. The calendar's right-hand panel
+  // (below) is scoped to whichever single day is selected — just that
+  // day's project count and each project's status — not an all-time total.
 
   // Calendar grid cells (blank leading slots + actual day numbers) for the
   // History tab's assignment-status calendar.
