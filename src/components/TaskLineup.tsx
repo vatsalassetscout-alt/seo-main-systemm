@@ -436,15 +436,13 @@ export default function TaskLineup({
 
   const nameFor = (email: string) => allowedUsers.find(u => u.email.trim().toLowerCase() === email.trim().toLowerCase())?.name || email;
 
-  // Quick lookup: is this person currently paused? Checked by display NAME,
-  // not raw email — same reasoning as groupedByUser below: the same person
-  // can have two different app_users rows (a known duplicate-account issue),
-  // and a task's userEmail might belong to whichever of their accounts
-  // *isn't* the one that got paused. Matching by name means pausing someone
-  // (any of their accounts) correctly marks ALL of their listed tasks as
-  // Paused, not just the ones tied to that one exact email.
-  const isNamePaused = (displayName: string) =>
-    allowedUsers.some(u => u.name.trim().toLowerCase() === displayName.trim().toLowerCase() && !!u.paused);
+  // Quick lookup: is this person currently paused? Checked by EMAIL — not
+  // display name. Two different real accounts can legitimately share the
+  // exact same display name (e.g. two team members both named "Kavita
+  // Mishra"); matching by name would wrongly mark BOTH of them as paused
+  // the moment either one's account gets paused.
+  const isEmailPaused = (email: string) =>
+    allowedUsers.some(u => u.email.trim().toLowerCase() === email.trim().toLowerCase() && !!u.paused);
 
   // Grouped by canonical EMAIL — one card per real account. The backend
   // (`/api/task-lineup`) already collapses duplicate-account rows onto a
@@ -467,8 +465,8 @@ export default function TaskLineup({
     });
 
     return Array.from(byEmail.entries())
-      .map(([emailKey, items]) => [nameFor(emailKey), sortPendingFirst(items)] as [string, TaskAssignment[]])
-      .sort((a, b) => a[0].localeCompare(b[0]));
+      .map(([emailKey, items]) => [nameFor(emailKey), emailKey, sortPendingFirst(items)] as [string, string, TaskAssignment[]])
+      .sort((a, b) => a[0].localeCompare(b[0]) || a[1].localeCompare(b[1]));
   }, [assignments, allowedUsers]);
 
   const myAssignments = useMemo(
@@ -818,13 +816,20 @@ export default function TaskLineup({
                   <p className="text-sm font-bold text-gray-500">No lineup generated for this date yet.</p>
                 </div>
               ) : (
-                groupedByUser.map(([displayName, list]) => {
+                groupedByUser.map(([displayName, emailKey, list]) => {
                   const doneCount = list.filter(a => a.status === 'Done').length;
                   return (
-                    <div key={displayName} className="bg-white rounded-2xl border border-gray-150 overflow-hidden shadow-xs">
+                    <div key={emailKey} className="bg-white rounded-2xl border border-gray-150 overflow-hidden shadow-xs">
                       <div className="flex items-center justify-between px-5 py-3 bg-gray-50 border-b border-gray-150 gap-3">
                         <div>
-                          <p className="text-xs font-black text-gray-900">{displayName}</p>
+                          <p className="text-xs font-black text-gray-900">
+                            {displayName}
+                            {/* ID shown alongside the name so two people who
+                                happen to share the same display name (a real,
+                                legitimate case — not a bug) are always
+                                distinguishable at a glance in the admin view. */}
+                            <span className="ml-1.5 font-mono font-bold text-gray-400 normal-case">· {emailKey}</span>
+                          </p>
                           <p className="text-[10px] font-bold text-gray-400">{doneCount}/{list.length} completed today</p>
                         </div>
                         <PriorityDistribution items={list} />
@@ -838,7 +843,7 @@ export default function TaskLineup({
                             </div>
                             <div className="flex items-center gap-3">
                               <Badge priority={a.priority} />
-                              <StatusBadge status={a.status} isPaused={isNamePaused(displayName)} />
+                              <StatusBadge status={a.status} isPaused={isEmailPaused(emailKey)} />
                             </div>
                           </div>
                         ))}
