@@ -1265,13 +1265,28 @@ export async function markTaskAssignmentPendingDb(date: string, userEmail: strin
 // under), and (b) could show the same project twice under one name in that
 // calendar if old rows exist under both of their emails. These helpers
 // let every call site canonicalize consistently.
+// Normalizes a display name into a stable grouping key: trims, lowercases,
+// AND collapses any run of internal whitespace (double spaces, tabs, a
+// stray newline pasted from a spreadsheet) down to one space. Plain
+// `.trim().toLowerCase()` leaves "Kavita  Mishra" (double space) and
+// "Kavita Mishra" (single space) as two DIFFERENT keys — which is exactly
+// what let two duplicate-account rows for the same real person dodge every
+// canonicalization check below and both receive a full, separate lineup
+// (visible as the same name showing up as two separate cards in the admin
+// Task Lineup view). Every canonicalization site in this file must use
+// this helper, not its own inline trim/lowercase, so they all agree on
+// which rows belong to the same person.
+export function normalizeNameKey(name: string | undefined | null): string {
+  return String(name || "").trim().toLowerCase().replace(/\s+/g, " ");
+}
+
 export function buildCanonicalEmailMap(users: { email: string; name?: string }[]): Map<string, string> {
   const canonicalEmailByName = new Map<string, string>();
   const canonicalEmailByRawEmail = new Map<string, string>();
   users.forEach((u) => {
     const email = String(u.email || "").trim().toLowerCase();
     if (!email) return;
-    const nameKey = String(u.name || "").trim().toLowerCase();
+    const nameKey = normalizeNameKey(u.name);
     if (nameKey) {
       if (!canonicalEmailByName.has(nameKey)) canonicalEmailByName.set(nameKey, email);
       canonicalEmailByRawEmail.set(email, canonicalEmailByName.get(nameKey)!);
@@ -1464,7 +1479,7 @@ export async function generateLineupForDate(
     const email = String(u.email || "").trim().toLowerCase();
     if (!email) return;
     if (u.paused) pausedEmails.add(email);
-    const nameKey = String(u.name || "").trim().toLowerCase();
+    const nameKey = normalizeNameKey(u.name);
     if (nameKey) {
       if (!canonicalEmailByName.has(nameKey)) canonicalEmailByName.set(nameKey, email);
       canonicalEmailByRawEmail.set(email, canonicalEmailByName.get(nameKey)!);
@@ -1824,7 +1839,7 @@ export async function getPendingSummaryAllUsersDb(
   users.forEach((u) => {
     const email = String(u.email || "").trim().toLowerCase();
     if (!email) return;
-    const nameKey = String(u.name || "").trim().toLowerCase();
+    const nameKey = normalizeNameKey(u.name);
     if (nameKey) {
       if (!canonicalEmailByName.has(nameKey)) canonicalEmailByName.set(nameKey, email);
       canonicalEmailByRawEmail.set(email, canonicalEmailByName.get(nameKey)!);
