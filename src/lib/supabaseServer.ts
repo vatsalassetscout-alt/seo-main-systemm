@@ -1491,6 +1491,12 @@ export async function generateLineupForDate(
   // path into this function can ever assign work to an admin.
   users = users.filter((u) => (u.role || "user") !== "admin");
 
+  // Only numeric-ID accounts (e.g. "1859") are real team members eligible
+  // for a Task Lineup. Any leftover/legacy non-numeric app_users row
+  // (name typed into the ID field, stray email, etc.) is excluded here so
+  // it can never receive project assignments.
+  users = users.filter((u) => /^\d+$/.test(String(u.email || "").trim()));
+
   const dow = new Date(dateStr + "T00:00:00Z").getUTCDay();
   if (dow === 0) {
     return { generated: false, reason: "Sundays are a rest day - no lineup is generated.", count: 0, date: dateStr };
