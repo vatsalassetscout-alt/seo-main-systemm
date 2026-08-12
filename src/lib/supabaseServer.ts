@@ -249,20 +249,42 @@ export async function saveProjectsBulkDb(projects: any[]): Promise<boolean> {
   const sb = getSupabase();
   if (sb) {
     try {
-      const rows = projects.map(p => ({
-        id: p.id,
-        name: p.name,
-        code: p.code,
-        domain: p.domain,
-        location: p.location,
-        region: p.region,
-        users: p.users || [],
-        user_id: p.userId,
-        priority: p.priority || "",
-        frequency: p.frequency || "",
-        keywords: p.keywords || [],
-        description: p.description || ""
-      }));
+      // Assignment (userId/users) is managed inside the app via
+      // Admin > Reassign Project, which only ever writes to Supabase — it
+      // has no way to also update the Google Sheet. If a bulk sync (e.g.
+      // "Sync from Sheet") then blindly overwrote user_id/users with
+      // whatever's in the Sheet for that row, any reassignment done since
+      // the Sheet was last updated would silently get wiped back to
+      // blank/stale the next time someone clicks Sync — which is exactly
+      // what was happening. So: only let the Sheet REPLACE the assignment
+      // when the Sheet actually has a non-empty value for it; otherwise
+      // keep whatever is already in Supabase for that project.
+      const existingList = await getProjectsDb();
+      const existingById = new Map<string, any>(existingList.map((p: any) => [p.id, p]));
+
+      const rows = projects.map(p => {
+        const existing = existingById.get(p.id);
+        const incomingUsers = Array.isArray(p.users) ? p.users.filter((u: any) => String(u || "").trim()) : [];
+        const incomingUserId = String(p.userId || "").trim();
+
+        const resolvedUsers = incomingUsers.length > 0 ? incomingUsers : (existing?.users || []);
+        const resolvedUserId = incomingUserId ? incomingUserId : (existing?.userId || "");
+
+        return {
+          id: p.id,
+          name: p.name,
+          code: p.code,
+          domain: p.domain,
+          location: p.location,
+          region: p.region,
+          users: resolvedUsers,
+          user_id: resolvedUserId,
+          priority: p.priority || "",
+          frequency: p.frequency || "",
+          keywords: p.keywords || [],
+          description: p.description || ""
+        };
+      });
 
       // Perform upsert
       const { error } = await sb
@@ -1227,7 +1249,21 @@ export async function markTaskAssignmentPendingDb(date: string, userEmail: strin
   }
 }
 
-
+// ---------------------------------------------------------------------
+// Duplicate-account canonicalization (shared helper)
+// ---------------------------------------------------------------------
+// Two app_users rows can share a display name but have different login
+// emails (a known duplicate-account issue — see Admin Settings > Users).
+// generateLineupForDate() and getPendingSummaryAllUsersDb() already
+// collapse every email onto one "canonical" email per name so a real
+// person's work is only ever assigned/counted once. This was NOT applied
+// where Task Lineup rows are read back for display, or where a Work Log
+// submission flips an assignment to "Done" — so a person logging in under
+// their non-canonical email would (a) never see their submission reflected
+// as "Submitted" in the admin's Daily Assignment Status calendar (the
+// update targeted a user_email that no assignment row was ever written
+// under), and (b) could show the same project twice under one name in that
+// calendar if old rows exist under both of their emails. These helpers
 // let every call site canonicalize consistently.
 export function buildCanonicalEmailMap(users: { email: string; name?: string }[]): Map<string, string> {
   const canonicalEmailByName = new Map<string, string>();
@@ -1387,9 +1423,19 @@ function selectDailyCandidates<
 export async function generateLineupForDate(
   dateStr: string,
   projects: any[],
-  users: { email: string; name: string; paused?: boolean }[],
+  users: { email: string; name: string; paused?: boolean; role?: string }[],
   force: boolean = false
 ): Promise<{ generated: boolean; reason?: string; count: number; date: string }> {
+  // Admin accounts are logins, not team members doing SEO work — they
+  // should never receive a Task Lineup of their own. Without this, an
+  // admin's account (role: 'admin' in app_users) was being treated as just
+  // another user by the generator, so it would show up as its own entry
+  // in the admin's Daily Assignment Status calendar and in "Check
+  // Pendings" — mixed in with actual team members, where it doesn't
+  // belong. Filtering here (rather than at every call site) guarantees no
+  // path into this function can ever assign work to an admin.
+  users = users.filter((u) => (u.role || "user") !== "admin");
+
   const dow = new Date(dateStr + "T00:00:00Z").getUTCDay();
   if (dow === 0) {
     return { generated: false, reason: "Sundays are a rest day - no lineup is generated.", count: 0, date: dateStr };
@@ -1747,7 +1793,7 @@ export async function ensureTodayLineupIfEngineActive(): Promise<void> {
 // still-pending count, and the all-time still-pending count, for every
 // configured user in one shot (avoids N round trips from the client).
 export async function getPendingSummaryAllUsersDb(
-  users: { email: string; name: string }[]
+  users: { email: string; name: string; role?: string }[]
 ): Promise<Array<{
   email: string;
   name: string;
@@ -1757,6 +1803,10 @@ export async function getPendingSummaryAllUsersDb(
   yesterdayPending: any[];
   totalPending: any[];
 }>> {
+  // Same reasoning as generateLineupForDate: an admin login is not a team
+  // member and should never appear in the per-user pending breakdown.
+  users = users.filter((u) => (u.role || "user") !== "admin");
+
   const today = new Date().toISOString().slice(0, 10);
   const yesterday = addDays(today, -1);
   const all = await getTaskAssignmentsDb({ dateTo: today });
