@@ -1290,6 +1290,18 @@ export function buildCanonicalEmailMap(users: { email: string; name?: string }[]
     if (nameKey) {
       if (!canonicalEmailByName.has(nameKey)) canonicalEmailByName.set(nameKey, email);
       canonicalEmailByRawEmail.set(email, canonicalEmailByName.get(nameKey)!);
+      // ALSO key the map by the person's normalized NAME itself, not just
+      // their email/ID. Root cause found in production: a Google Sheet's
+      // "Users" column sometimes has a person's NAME typed in instead of
+      // their numeric ID (e.g. "kavita mishra" instead of "5595"). That
+      // raw string flows straight into task_assignments.user_email as if
+      // it were a real login ID, creating a phantom "user" that is really
+      // just her real account's name — which is exactly what showed up as
+      // a second, separate lineup card for her. Registering the name as a
+      // lookup key too means resolveCanonicalEmail() folds that phantom
+      // row back onto her real account automatically, without needing a
+      // manual DB fix every time a sheet has this typo.
+      if (!canonicalEmailByRawEmail.has(nameKey)) canonicalEmailByRawEmail.set(nameKey, canonicalEmailByName.get(nameKey)!);
     } else {
       canonicalEmailByRawEmail.set(email, email);
     }
@@ -1299,7 +1311,13 @@ export function buildCanonicalEmailMap(users: { email: string; name?: string }[]
 
 export function resolveCanonicalEmail(rawEmail: string, canonicalMap: Map<string, string>): string {
   const email = String(rawEmail || "").trim().toLowerCase();
-  return canonicalMap.get(email) || email;
+  if (canonicalMap.has(email)) return canonicalMap.get(email)!;
+  // Fallback: the raw value might be a NAME (with irregular spacing) rather
+  // than an email/ID — e.g. "Kavita  Mishra" instead of "kavita mishra" or
+  // her real ID. Try the whitespace-collapsed form before giving up.
+  const nameForm = normalizeNameKey(rawEmail);
+  if (canonicalMap.has(nameForm)) return canonicalMap.get(nameForm)!;
+  return email;
 }
 
 // Collapses task_assignments rows belonging to the same real person (same
@@ -1465,32 +1483,22 @@ export async function generateLineupForDate(
   }
 
   // Two app_users rows can end up sharing the same display name (a known
-  // duplicate-account issue — see Admin Settings > Users). Without this,
-  // the generator treats them as two different people and assigns the same
-  // project to both, which is exactly what shows up as "the same person
-  // twice" in the Task Lineup. Collapse every email that shares a name onto
-  // one canonical email (the first one encountered for that name) so a real
-  // person's work is only ever assigned once, no matter how many logins
-  // they have on file.
-  const canonicalEmailByRawEmail = new Map<string, string>();
-  const canonicalEmailByName = new Map<string, string>();
+  // duplicate-account issue — see Admin Settings > Users), and a project's
+  // "Users" column can also have a person's NAME typed in instead of their
+  // real ID (a Google Sheets data-entry mistake) — both cases must resolve
+  // to the SAME real person's canonical email, or the generator treats them
+  // as different people and assigns the same project twice ("the same
+  // person twice" in the Task Lineup). buildCanonicalEmailMap/
+  // resolveCanonicalEmail (shared helpers, defined above) handle both
+  // cases — do not re-implement this mapping inline here.
+  const canonicalMap = buildCanonicalEmailMap(users);
   const pausedEmails = new Set<string>();
   users.forEach((u) => {
     const email = String(u.email || "").trim().toLowerCase();
     if (!email) return;
     if (u.paused) pausedEmails.add(email);
-    const nameKey = normalizeNameKey(u.name);
-    if (nameKey) {
-      if (!canonicalEmailByName.has(nameKey)) canonicalEmailByName.set(nameKey, email);
-      canonicalEmailByRawEmail.set(email, canonicalEmailByName.get(nameKey)!);
-    } else {
-      canonicalEmailByRawEmail.set(email, email);
-    }
   });
-  const canonicalOf = (rawEmail: string): string => {
-    const email = rawEmail.trim().toLowerCase();
-    return canonicalEmailByRawEmail.get(email) || email;
-  };
+  const canonicalOf = (rawEmail: string): string => resolveCanonicalEmail(rawEmail, canonicalMap);
   // A person counts as paused if any of their duplicate accounts is paused.
   const rawPausedByCanonical = new Set<string>();
   pausedEmails.forEach((e) => rawPausedByCanonical.add(canonicalOf(e)));
@@ -1826,31 +1834,14 @@ export async function getPendingSummaryAllUsersDb(
   const yesterday = addDays(today, -1);
   const all = await getTaskAssignmentsDb({ dateTo: today });
 
-  // Same duplicate-account collapsing as generateLineupForDate: two
-  // app_users rows can share a display name but have different emails
-  // (a known duplicate-account issue — see Admin Settings > Users). Every
-  // assignment actually gets written under ONE canonical email for that
-  // name, so without this collapsing here too, the "Total" shown for a
-  // person's OTHER (non-canonical) email would wrongly read as a small/odd
-  // number instead of their real all-time total. Canonicalize every user
-  // onto the first email seen for their name before counting.
-  const canonicalEmailByName = new Map<string, string>();
-  const canonicalEmailByRawEmail = new Map<string, string>();
-  users.forEach((u) => {
-    const email = String(u.email || "").trim().toLowerCase();
-    if (!email) return;
-    const nameKey = normalizeNameKey(u.name);
-    if (nameKey) {
-      if (!canonicalEmailByName.has(nameKey)) canonicalEmailByName.set(nameKey, email);
-      canonicalEmailByRawEmail.set(email, canonicalEmailByName.get(nameKey)!);
-    } else {
-      canonicalEmailByRawEmail.set(email, email);
-    }
-  });
-  const canonicalOf = (rawEmail: string): string => {
-    const email = String(rawEmail || "").trim().toLowerCase();
-    return canonicalEmailByRawEmail.get(email) || email;
-  };
+  // Same canonicalization as generateLineupForDate: two app_users rows can
+  // share a display name but have different emails, AND a project's
+  // "Users" column can have a person's NAME typed in instead of their real
+  // ID — both resolve to one canonical email via the shared helpers below,
+  // so the "Total" shown for a person's non-canonical email/name-typo row
+  // isn't wrongly split off as its own tiny total.
+  const canonicalMap = buildCanonicalEmailMap(users);
+  const canonicalOf = (rawEmail: string): string => resolveCanonicalEmail(rawEmail, canonicalMap);
 
   const perUser = new Map<string, any[]>();
   all.forEach((a) => {
