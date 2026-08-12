@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { AppUser, Project } from '../types';
-import { isUserAdmin as isAdminId } from '../lib/userUtils';
+import { isUserAdmin as isAdminId, numericIdCompare } from '../lib/userUtils';
 import {
   Plus,
   Trash2,
@@ -64,7 +64,10 @@ export function mergeUsers(
     });
   });
 
-  return Array.from(byId.values()).sort((a, b) => a.name.localeCompare(b.name));
+  // Sorted by numeric user ID (not by name) so the admin's Users list —
+  // and every panel that reuses this same merged pipeline (Reassign
+  // dropdown, Project Control, etc.) — lists people in user-ID order.
+  return Array.from(byId.values()).sort((a, b) => numericIdCompare(a.email, b.email));
 }
 
 interface UserManagementPanelProps {
