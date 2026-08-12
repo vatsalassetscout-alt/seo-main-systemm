@@ -883,35 +883,14 @@ export default function TaskLineup({
       {/* ================= HISTORY TAB ================= */}
       {view === 'history' && (
         <div className="space-y-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="bg-white rounded-2xl border border-gray-150 p-4 shadow-xs">
-              <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">
-                Yesterday Pending ({historyYesterdayPending.length})
-              </p>
-              <PendingProjectList
-                items={historyYesterdayPending}
-                getOwner={isAdmin ? (a) => nameFor(a.userEmail) : undefined}
-              />
-            </div>
-            <div className="bg-white rounded-2xl border border-gray-150 p-4 shadow-xs">
-              <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">
-                Total Pending ({historyTotalPending.length})
-              </p>
-              {isAdmin ? (
-                pendingAllLoading ? (
-                  <p className="text-xs font-semibold text-gray-400">Loading…</p>
-                ) : (
-                  <PendingProjectList
-                    items={historyTotalPending}
-                    getOwner={(a) => nameFor(a.userEmail)}
-                  />
-                )
-              ) : todayPendingLoading ? (
-                <p className="text-xs font-semibold text-gray-400">Loading…</p>
-              ) : (
-                <PendingProjectList items={historyTotalPending} />
-              )}
-            </div>
+          <div className="bg-white rounded-2xl border border-gray-150 p-4 shadow-xs">
+            <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">
+              Yesterday Pending ({historyYesterdayPending.length})
+            </p>
+            <PendingProjectList
+              items={historyYesterdayPending}
+              getOwner={isAdmin ? (a) => nameFor(a.userEmail) : undefined}
+            />
           </div>
 
           {/* Day-by-day assignment status calendar — pick any date, see all
@@ -1034,11 +1013,25 @@ export default function TaskLineup({
                         </span>
                       </div>
                       <div className="flex-1 space-y-4 overflow-y-auto pr-1">
-                      {historyCalGroupedByUser.map(([userName, items]) => (
+                      {historyCalGroupedByUser.map(([userName, items]) => {
+                        const submittedCount = items.filter((a) => a.status === 'Done').length;
+                        const pendingCount = items.length - submittedCount;
+                        return (
                         <div key={userName} className="bg-white rounded-xl border border-gray-150 overflow-hidden">
                           {isAdmin && (
-                            <div className="px-3.5 py-2 bg-gray-50 border-b border-gray-150">
+                            <div className="px-3.5 py-2 bg-gray-50 border-b border-gray-150 flex items-center justify-between gap-2 flex-wrap">
                               <p className="text-[11px] font-black text-gray-900">{userName}</p>
+                              <div className="flex items-center gap-1.5">
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-lg bg-slate-100 text-[10px] font-black text-slate-600">
+                                  {items.length} Lineup
+                                </span>
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-lg bg-emerald-50 text-[10px] font-black text-emerald-700">
+                                  {submittedCount} Submitted
+                                </span>
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-lg bg-red-50 text-[10px] font-black text-red-600">
+                                  {pendingCount} Pending
+                                </span>
+                              </div>
                             </div>
                           )}
                           <div className="divide-y divide-gray-100">
@@ -1058,7 +1051,8 @@ export default function TaskLineup({
                             ))}
                           </div>
                         </div>
-                      ))}
+                        );
+                      })}
                       </div>
                     </>
                   )}
