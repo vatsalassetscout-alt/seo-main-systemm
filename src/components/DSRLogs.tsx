@@ -177,7 +177,12 @@ export default function DSRLogs({
     });
 
     // Overwrite with assigned name from allowedUsers
+    // Guarded: a malformed allowedUsers row with a missing/null email (e.g.
+    // stale cached data from before the app_users backend fix) used to crash
+    // this whole screen with a white screen, since `u.email.trim()` threw on
+    // a null email. Skip any row without a usable email instead of crashing.
     allowedUsers.forEach(u => {
+      if (!u || !u.email || !u.email.trim()) return;
       map[u.email.trim().toLowerCase()] = u.name || getUserDisplayName(u.email, allowedUsers);
     });
 
@@ -986,11 +991,7 @@ export default function DSRLogs({
                                       );
                                     }
 
-                                    const rawKeywords = work.selectedKeywords || work.customValues?.selectedKeywords || [];
-                                    const keywordsList = (Array.isArray(rawKeywords)
-                                      ? rawKeywords
-                                      : (typeof rawKeywords === 'string' ? rawKeywords.split(',').map((s: string) => s.trim()) : [])
-                                    ).filter(Boolean) as string[];
+                                    const keywordsList = (((work.selectedKeywords || work.customValues?.selectedKeywords || []) as string[]).filter(Boolean));
                                     const hasNumericMetrics = (
                                       work.listingCount > 0 ||
                                       work.blogCount > 0 ||
