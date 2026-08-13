@@ -986,7 +986,11 @@ export default function DSRLogs({
                                       );
                                     }
 
-                                    const keywordsList = (((work.selectedKeywords || work.customValues?.selectedKeywords || []) as string[]).filter(Boolean));
+                                    const rawKeywords = work.selectedKeywords || work.customValues?.selectedKeywords || [];
+                                    const keywordsList = (Array.isArray(rawKeywords)
+                                      ? rawKeywords
+                                      : (typeof rawKeywords === 'string' ? rawKeywords.split(',').map((s: string) => s.trim()) : [])
+                                    ).filter(Boolean) as string[];
                                     const hasNumericMetrics = (
                                       work.listingCount > 0 ||
                                       work.blogCount > 0 ||
