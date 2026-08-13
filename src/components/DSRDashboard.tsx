@@ -3661,7 +3661,7 @@ export default function DSRDashboard({
                           id: `alert-${Date.now()}-${Math.random().toString(36).substr(2, 9)}-${email.replace(/[^a-z0-9]/gi, '')}`,
                           projectId: selectedPlanProject.id,
                           projectName: selectedPlanProject.name,
-                          projectDomain: selectedPlanProject.domain,
+                          projectDomain: cleanDomain(selectedPlanProject.domain),
                           message: planMessage.trim(),
                           createdAt: new Date().toISOString(),
                           adminEmail: currentUserEmail || 'Admin',
