@@ -152,7 +152,7 @@ export default function AdminControlPanel({
   };
 
   const handleDeleteProject = async (project: Project) => {
-    if (!window.confirm(`Permanently delete "${project.name || project.domain}"? This cannot be undone.`)) return;
+    if (!window.confirm(`Permanently delete "${project.name || normalizeDomain(project.domain || '')}"? This cannot be undone.`)) return;
     setBusy(true);
     try {
       const res = await fetch('/api/projects', {
