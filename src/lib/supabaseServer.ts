@@ -356,7 +356,19 @@ export async function getUsersDb(): Promise<{ email: string; name: string; pause
       } else if (data) {
         // NOTE: passkey is intentionally never returned here — this list is
         // consumed by the frontend admin dropdown and must not leak credentials.
-        return data.map((u: any) => ({ email: u.user_id, name: u.name, paused: !!u.paused, role: u.role || 'user' }));
+        // ROOT BUG (found and fixed): a malformed/duplicate app_users row
+        // with a null/empty user_id (e.g. left over from the Kavita/5595
+        // duplicate-account cleanup) was being mapped straight through as
+        // `{ email: null, ... }`. The frontend (DSRLogs.tsx, DSRDashboard.tsx,
+        // TaskLineup.tsx, App.tsx) calls `u.email.trim()` in many places
+        // without a null check, assuming every entry in this list has a real
+        // ID — one bad row crashed the whole Work Log History screen (white
+        // screen) for anyone whose data happened to trigger that code path.
+        // Filtering out rows with no usable user_id here, at the source,
+        // protects every one of those call sites at once.
+        return data
+          .filter((u: any) => u.user_id && String(u.user_id).trim())
+          .map((u: any) => ({ email: String(u.user_id).trim(), name: u.name, paused: !!u.paused, role: u.role || 'user' }));
       }
     } catch (err) {
       console.error("Supabase exception for getUsersDb:", err);
