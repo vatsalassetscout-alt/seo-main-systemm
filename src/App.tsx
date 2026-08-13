@@ -18,6 +18,7 @@ import TaskLineup from './components/TaskLineup';
 import LoginScreen from './components/LoginScreen';
 import { initAuth, googleSignIn, getAccessToken, logout } from './lib/firebase';
 import { getUserDisplayName, registerNamesFromProjects, doesUserMatch } from './lib/userUtils';
+import { cleanDomain } from './lib/domain';
 import {
   fetchProjectsFromSheet,
   fetchSubmissionsFromSheet,
@@ -1294,7 +1295,7 @@ export default function App() {
                   <span className="text-xl shrink-0 mt-0.5">🚨</span>
                   <div className="text-left">
                     <h4 className="font-extrabold text-sm text-amber-900 tracking-tight">
-                      Action Required: {alert.projectName} {alert.projectDomain ? `(${alert.projectDomain})` : ''}
+                      Action Required: {alert.projectName} {alert.projectDomain ? `(${cleanDomain(alert.projectDomain)})` : ''}
                     </h4>
                     <p className="text-xs text-amber-950 font-bold mt-1">
                       Work on this project for <span className="font-mono text-amber-900 bg-amber-100 border border-amber-250 px-1.5 py-0.5 rounded font-black">{alert.date}</span>
