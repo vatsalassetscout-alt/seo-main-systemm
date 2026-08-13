@@ -6,6 +6,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Project, CustomSubmissionType, DSREntry, AppUser, ProjectLocation } from '../types';
 import { getUserDisplayName, isUserAdmin } from '../lib/userUtils';
+import { cleanDomain } from '../lib/domain';
 import {
   Plus,
   Trash2,
@@ -389,7 +390,7 @@ export default function DSRSettings({
                       alertType: 'project_assignment',
                       userEmail: email.trim().toLowerCase(),
                       projectId: projectId,
-                      projectDomain: matchedProj?.domain || matchedProj?.name || '',
+                      projectDomain: cleanDomain(matchedProj?.domain) || matchedProj?.name || '',
                       projectName: matchedProj?.name || '',
                       date: date,
                       message: customMsg || `Admin has requested that you submit a Work Log for ${matchedProj?.name || 'domain'} for the reporting date of ${date}.`,
@@ -449,7 +450,7 @@ export default function DSRSettings({
                             })
                           : projects;
                         return filtered.map(p => (
-                          <option key={p.id} value={p.id}>{p.domain || p.name}</option>
+                          <option key={p.id} value={p.id}>{cleanDomain(p.domain) || p.name}</option>
                         ));
                       })()}
                     </select>
