@@ -177,12 +177,7 @@ export default function DSRLogs({
     });
 
     // Overwrite with assigned name from allowedUsers
-    // Guarded: a malformed allowedUsers row with a missing/null email (e.g.
-    // stale cached data from before the app_users backend fix) used to crash
-    // this whole screen with a white screen, since `u.email.trim()` threw on
-    // a null email. Skip any row without a usable email instead of crashing.
     allowedUsers.forEach(u => {
-      if (!u || !u.email || !u.email.trim()) return;
       map[u.email.trim().toLowerCase()] = u.name || getUserDisplayName(u.email, allowedUsers);
     });
 
@@ -290,8 +285,8 @@ export default function DSRLogs({
         
         // Resolve matches against full project dynamic entity (name & code)
         const matchedProj = projects.find(p => p.id === work.projectId);
-        const fullProjName = matchedProj ? matchedProj.name.toLowerCase() : '';
-        const fullProjCode = matchedProj ? matchedProj.code.toLowerCase() : '';
+        const fullProjName = matchedProj ? (matchedProj.name || '').toLowerCase() : '';
+        const fullProjCode = matchedProj ? (matchedProj.code || '').toLowerCase() : '';
 
         const query = searchTerm.toLowerCase();
 
@@ -348,7 +343,7 @@ export default function DSRLogs({
       const matchesProject = selectedProjectId === 'all' || worksList.some(w => {
         if (!w) return false;
         if (w.projectId === selectedProjectId) return true;
-        if (selectedProjObj && w.projectName && w.projectName.toLowerCase().trim() === selectedProjObj.name.toLowerCase().trim()) return true;
+        if (selectedProjObj && w.projectName && selectedProjObj.name && w.projectName.toLowerCase().trim() === selectedProjObj.name.toLowerCase().trim()) return true;
         return false;
       });
 
@@ -414,7 +409,7 @@ export default function DSRLogs({
         if (!matchesProj) {
           if (w.projectId === selectedProjectId) {
             matchesProj = true;
-          } else if (selectedProjObj && w.projectName && w.projectName.toLowerCase().trim() === selectedProjObj.name.toLowerCase().trim()) {
+          } else if (selectedProjObj && w.projectName && selectedProjObj.name && w.projectName.toLowerCase().trim() === selectedProjObj.name.toLowerCase().trim()) {
             matchesProj = true;
           }
         }
@@ -991,7 +986,11 @@ export default function DSRLogs({
                                       );
                                     }
 
-                                    const keywordsList = (((work.selectedKeywords || work.customValues?.selectedKeywords || []) as string[]).filter(Boolean));
+                                    const rawKeywords = work.selectedKeywords || work.customValues?.selectedKeywords || [];
+                                    const keywordsList = (Array.isArray(rawKeywords)
+                                      ? rawKeywords
+                                      : (typeof rawKeywords === 'string' ? rawKeywords.split(',').map((s: string) => s.trim()) : [])
+                                    ).filter(Boolean) as string[];
                                     const hasNumericMetrics = (
                                       work.listingCount > 0 ||
                                       work.blogCount > 0 ||
@@ -1117,16 +1116,24 @@ export default function DSRLogs({
                                   )}
 
                                   {/* Content Update — its own block, same level as Submissions, not a numerical quantity so kept separate. Shown after SEO Submission (On/Off Page Activities) and Backlinks. */}
-                                  {work.contentUpdates && work.contentUpdates.length > 0 && (
-                                    <div className="space-y-1.5">
-                                      <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">Content Update</h4>
-                                      <div className="flex flex-wrap items-baseline gap-1.5">
-                                        <span className="text-[10.5px] font-bold text-slate-600 font-sans">
-                                          {work.contentUpdates.map((cu: string) => CONTENT_UPDATE_LABELS[cu] || cu).join(', ')}
-                                        </span>
+                                  {(() => {
+                                    const contentUpdatesArr = Array.isArray(work.contentUpdates)
+                                      ? work.contentUpdates
+                                      : (typeof work.contentUpdates === 'string' && work.contentUpdates
+                                          ? work.contentUpdates.split(',').map((s: string) => s.trim()).filter(Boolean)
+                                          : []);
+                                    if (contentUpdatesArr.length === 0) return null;
+                                    return (
+                                      <div className="space-y-1.5">
+                                        <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">Content Update</h4>
+                                        <div className="flex flex-wrap items-baseline gap-1.5">
+                                          <span className="text-[10.5px] font-bold text-slate-600 font-sans">
+                                            {contentUpdatesArr.map((cu: string) => CONTENT_UPDATE_LABELS[cu] || cu).join(', ')}
+                                          </span>
+                                        </div>
                                       </div>
-                                    </div>
-                                  )}
+                                    );
+                                  })()}
                                 </div>
                               );
                               });
