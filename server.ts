@@ -38,6 +38,7 @@ import {
   generateLineupForDate,
   regenerateLineupForUserOnDateDb,
   backfillMissingLineupForDateDb,
+  trimLineupToDailyCapForDateDb,
   markTaskAssignmentDoneDb,
   markTaskAssignmentPendingDb,
   deleteTaskAssignmentsForDateDb,
@@ -881,6 +882,22 @@ app.post("/api/task-lineup/restore", requireAdmin, async (req, res) => {
     return res.json({ success: true, date, ...result });
   } catch (err: any) {
     console.error("POST /api/task-lineup/restore error:", err);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// POST one-time repair: trims any user back down to DAILY_LINEUP_CAP_PER_USER
+// (15) for a given date if the Restore Lineup flow over-added and pushed
+// them past it (e.g. showing 30 instead of 15). Removes the MOST RECENTLY
+// CREATED rows first — i.e. the "added later" ones — and never touches a
+// row already marked Done.
+app.post("/api/task-lineup/trim", requireAdmin, async (req, res) => {
+  try {
+    const date = req.body?.date || new Date().toISOString().slice(0, 10);
+    const result = await trimLineupToDailyCapForDateDb(date);
+    return res.json({ success: true, date, ...result });
+  } catch (err: any) {
+    console.error("POST /api/task-lineup/trim error:", err);
     return res.status(500).json({ error: err.message });
   }
 });
