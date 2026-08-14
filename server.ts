@@ -36,8 +36,6 @@ import {
   renameUserDb,
   getTaskAssignmentsDb,
   generateLineupForDate,
-  clearPendingAssignmentsForUserOnDateDb,
-  clearAllPendingAssignmentsForDateDb,
   regenerateLineupForUserOnDateDb,
   markTaskAssignmentDoneDb,
   markTaskAssignmentPendingDb,
@@ -823,14 +821,22 @@ app.get("/api/task-lineup/pending-summary", async (req, res) => {
 });
 
 // POST toggle a user's pause state (admin only).
-// - Pausing: their existing Pending (not-yet-submitted) lineup for TODAY is
-//   cleared out, so it doesn't sit there un-worked while they're off. This
-//   doesn't lose the project from the rotation — it just drops out of this
-//   week's "already assigned" count, so it's naturally eligible to be picked
-//   again once they're back.
-// - Resuming: today's lineup is immediately refilled for just this one user,
-//   using the exact same deficit/carry-forward logic as the daily generator,
-//   so the queue continues right where it left off instead of skipping ahead.
+// - Pausing: TODAY's already-generated lineup for this user is left exactly
+//   as it is — nothing gets cleared, and anything already Submitted stays
+//   Submitted. Pausing only stops them from being picked up by FUTURE
+//   generation runs (generateLineupForDate skips paused users entirely —
+//   see rawPausedByCanonical in supabaseServer.ts), so tomorrow's lineup
+//   simply won't include them while they're paused.
+//   (Previously this cleared today's still-Pending rows immediately, which
+//   is exactly what was wiping out a lineup the user hadn't finished
+//   working yet, even though they were only meant to be paused starting
+//   the next day.)
+// - Resuming: today's row is left alone (it was never touched, so it's
+//   already there / still visible). `regenerateLineupForUserOnDateDb` is
+//   still called as a safety net for the one case where today's lineup
+//   never existed for this user in the first place (e.g. they were paused
+//   before the day's cycle ever ran for them) — it's a no-op if a row for
+//   today already exists, so it can never duplicate or overwrite anything.
 app.post("/api/task-lineup/pause", requireAdmin, async (req, res) => {
   try {
     const { userEmail, paused } = req.body;
@@ -841,9 +847,7 @@ app.post("/api/task-lineup/pause", requireAdmin, async (req, res) => {
     const ok = await setUserPausedDb(normalizedEmail, paused);
     const today = new Date().toISOString().slice(0, 10);
 
-    if (paused) {
-      await clearPendingAssignmentsForUserOnDateDb(today, normalizedEmail);
-    } else {
+    if (!paused) {
       try {
         const [projects, users] = await Promise.all([getProjectsDb(), getUsersDb()]);
         const me = users.find((u: any) => String(u.email || "").trim().toLowerCase() === normalizedEmail);
@@ -900,9 +904,18 @@ app.post("/api/task-lineup/engine/start", requireAdmin, async (req, res) => {
   }
 });
 
-// POST pause/resume the whole engine (admin only) — the "long vacation"
-// switch. While paused, no new day's lineup auto-generates; resuming picks
-// back up the same day without needing Start Cycle again.
+// POST pause/resume the whole engine (admin only) — the "Stop Cycle" /
+// "Run Cycle" switch. Stopping does NOT touch any existing assignment —
+// TODAY's lineup (including whatever is still Pending) stays exactly as it
+// is and stays visible/workable for everyone. All Stop Cycle does is skip
+// the auto-generate step for any day the engine is paused on, so no NEW
+// lineup gets created for tomorrow (or any later day) while stopped.
+// Resuming doesn't need to "refill" anything: ensureTodayLineupIfEngineActive
+// only generates when today's date has no lineup yet, so —
+//   - resuming the SAME day it was stopped: today's lineup is already there
+//     (never cleared), so this is a no-op and it just picks back up as-is.
+//   - resuming on a LATER day: that day never got a lineup while stopped,
+//     so this generates a fresh NEW lineup for it, same as any normal day.
 app.post("/api/task-lineup/engine/pause", requireAdmin, async (req, res) => {
   try {
     const { paused } = req.body;
@@ -922,20 +935,7 @@ app.post("/api/task-lineup/engine/pause", requireAdmin, async (req, res) => {
       return res.status(500).json({ error: "Failed to save the cycle's paused state — check server logs / Supabase connection." });
     }
 
-    const today = new Date().toISOString().slice(0, 10);
-    if (paused) {
-      // Stopping the cycle: clear out today's still-Pending assignments for
-      // EVERY user right away, so nothing stays assigned/visible on the
-      // users' side while stopped. Only "Pending" rows are removed — any
-      // already-"Done" work stays logged. Because generateLineupForDate's
-      // deficit math only looks at days up to "yesterday", this doesn't
-      // erase progress: resuming just regenerates today's lineup from the
-      // same rotation state, continuing the cycle instead of skipping ahead.
-      const cleared = await clearAllPendingAssignmentsForDateDb(today);
-      if (!cleared) {
-        console.error("Failed to clear today's pending assignments after stopping the cycle.");
-      }
-    } else {
+    if (!paused) {
       await ensureTodayLineupIfEngineActive();
     }
     const state = await getLineupEngineStateDb();
