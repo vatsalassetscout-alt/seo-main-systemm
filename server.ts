@@ -834,10 +834,8 @@ app.get("/api/task-lineup/pending-summary", async (req, res) => {
 //   the next day.)
 // - Resuming: today's row is left alone (it was never touched, so it's
 //   already there / still visible). `regenerateLineupForUserOnDateDb` is
-//   still called as a safety net for the one case where today's lineup
-//   never existed for this user in the first place (e.g. they were paused
-//   before the day's cycle ever ran for them) — it's a no-op if a row for
-//   today already exists, so it can never duplicate or overwrite anything.
+//   still called as a safety net — it only fills in projects this user is
+//   missing for today and never touches/duplicates ones they already have.
 app.post("/api/task-lineup/pause", requireAdmin, async (req, res) => {
   try {
     const { userEmail, paused } = req.body;
