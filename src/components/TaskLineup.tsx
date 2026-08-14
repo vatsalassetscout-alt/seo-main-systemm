@@ -18,6 +18,7 @@ import {
   ChevronDown,
   ChevronUp,
   CalendarDays,
+  RotateCcw,
 } from 'lucide-react';
 
 interface TaskLineupProps {
@@ -388,6 +389,32 @@ export default function TaskLineup({
     }
   };
 
+  const handleRestoreToday = async () => {
+    setEngineBusy(true);
+    setGenerateMsg(null);
+    try {
+      const res = await fetch('/api/task-lineup/restore', {
+        method: 'POST',
+        headers: authHeaders,
+        body: JSON.stringify({ date: activeDate }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || 'Failed to restore the lineup.');
+      const count = Array.isArray(data.restoredUsers) ? data.restoredUsers.length : 0;
+      setGenerateMsg(
+        count > 0
+          ? `Restored ${count} user${count === 1 ? '' : 's'}' lineup for ${activeDate} (${data.totalInserted} project${data.totalInserted === 1 ? '' : 's'}).`
+          : `Nothing to restore for ${activeDate} — everyone already has a lineup.`
+      );
+      await Promise.all([loadLineup(activeDate), loadPendingAllUsers()]);
+    } catch (err: any) {
+      console.error('Failed to restore lineup:', err);
+      setGenerateMsg(`Couldn't restore the lineup: ${err?.message || 'check server logs.'}`);
+    } finally {
+      setEngineBusy(false);
+    }
+  };
+
   const handleDelete = async () => {
     const confirmed = window.confirm(
       `Full reset: this deletes EVERY task assignment for EVERY user on EVERY date (not just ${activeDate}), clears Yesterday Pending and Total Pending back to 0, and stops the cycle — you'll need to hit "Start Cycle" again afterwards. This cannot be undone. Continue?`
@@ -603,6 +630,15 @@ export default function TaskLineup({
                   {enginePaused ? 'Run Cycle' : 'Stop Cycle'}
                 </button>
               )}
+              <button
+                onClick={handleRestoreToday}
+                disabled={engineBusy}
+                className="flex items-center gap-1.5 px-3 py-2 bg-emerald-50 hover:bg-emerald-100 disabled:opacity-40 disabled:cursor-not-allowed text-emerald-700 text-xs font-bold rounded-xl transition cursor-pointer"
+                title={`One-time repair: refills ${activeDate}'s lineup for anyone whose rows got wiped by the old Pause/Stop Cycle bug. Doesn't touch anyone who already has a lineup for this date.`}
+              >
+                <RotateCcw size={13} />
+                Restore Lineup
+              </button>
               <button
                 onClick={handleDelete}
                 disabled={deleting || generating}
