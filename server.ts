@@ -37,6 +37,7 @@ import {
   getTaskAssignmentsDb,
   generateLineupForDate,
   regenerateLineupForUserOnDateDb,
+  backfillMissingLineupForDateDb,
   markTaskAssignmentDoneDb,
   markTaskAssignmentPendingDb,
   deleteTaskAssignmentsForDateDb,
@@ -862,6 +863,24 @@ app.post("/api/task-lineup/pause", requireAdmin, async (req, res) => {
     return res.json({ success: ok });
   } catch (err: any) {
     console.error("POST /api/task-lineup/pause error:", err);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// POST one-time repair for the old Pause / Stop Cycle bug: refills TODAY's
+// (or a given date's) lineup for every eligible, non-paused user who
+// currently has ZERO assignment rows for that date — i.e. whoever's lineup
+// got hard-deleted by the old behavior. Anyone who already has rows for the
+// date (submitted or still pending) is left completely untouched. Safe to
+// call more than once — it's a no-op for anyone already restored.
+app.post("/api/task-lineup/restore", requireAdmin, async (req, res) => {
+  try {
+    const date = req.body?.date || new Date().toISOString().slice(0, 10);
+    const [projects, users] = await Promise.all([getProjectsDb(), getUsersDb()]);
+    const result = await backfillMissingLineupForDateDb(date, projects, users);
+    return res.json({ success: true, date, ...result });
+  } catch (err: any) {
+    console.error("POST /api/task-lineup/restore error:", err);
     return res.status(500).json({ error: err.message });
   }
 });
