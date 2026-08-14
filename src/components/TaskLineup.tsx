@@ -657,24 +657,6 @@ export default function TaskLineup({
                 </button>
               )}
               <button
-                onClick={handleRestoreToday}
-                disabled={engineBusy}
-                className="flex items-center gap-1.5 px-3 py-2 bg-emerald-50 hover:bg-emerald-100 disabled:opacity-40 disabled:cursor-not-allowed text-emerald-700 text-xs font-bold rounded-xl transition cursor-pointer"
-                title={`One-time repair: refills ${activeDate}'s lineup for anyone whose rows got wiped by the old Pause/Stop Cycle bug. Doesn't touch anyone who already has a lineup for this date.`}
-              >
-                <RotateCcw size={13} />
-                Restore Lineup
-              </button>
-              <button
-                onClick={handleTrimToday}
-                disabled={engineBusy}
-                className="flex items-center gap-1.5 px-3 py-2 bg-orange-50 hover:bg-orange-100 disabled:opacity-40 disabled:cursor-not-allowed text-orange-700 text-xs font-bold rounded-xl transition cursor-pointer"
-                title={`One-time repair: trims anyone over the daily 15-project cap on ${activeDate} back down to 15, removing the most-recently-added rows first. Never touches Done rows.`}
-              >
-                <Trash2 size={13} />
-                Trim to 15
-              </button>
-              <button
                 onClick={handleDelete}
                 disabled={deleting || generating}
                 className="flex items-center gap-1.5 px-3 py-2 bg-red-50 hover:bg-red-100 disabled:opacity-40 disabled:cursor-not-allowed text-red-700 text-xs font-bold rounded-xl transition cursor-pointer"
