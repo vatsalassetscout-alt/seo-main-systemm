@@ -1802,6 +1802,43 @@ export async function regenerateLineupForUserOnDateDb(
   return { count: toInsert.length };
 }
 
+/**
+ * Backfills TODAY's (or any given date's) lineup for every eligible user who
+ * currently has NO assignment row for that date at all — i.e. it repairs
+ * exactly the damage the old Pause / Stop Cycle bug used to do (hard-
+ * deleting today's Pending rows), without touching anyone who already has
+ * rows for the date (submitted or still pending). It's just
+ * regenerateLineupForUserOnDateDb looped across the team, so it reuses the
+ * exact same deficit/carry-forward math and is a safe no-op per-user if
+ * they already have something for this date. Admin-only, meant to be run
+ * once to recover from the old bug — not part of the normal daily flow.
+ */
+export async function backfillMissingLineupForDateDb(
+  dateStr: string,
+  projects: any[],
+  users: { email: string; name: string; paused?: boolean; role?: string }[]
+): Promise<{ restoredUsers: string[]; totalInserted: number }> {
+  const eligible = users
+    .filter((u) => (u.role || "user") !== "admin")
+    .filter((u) => /^\d+$/.test(String(u.email || "").trim()))
+    .filter((u) => !u.paused); // respect pause: don't hand paused users a lineup
+
+  const restoredUsers: string[] = [];
+  let totalInserted = 0;
+
+  for (const u of eligible) {
+    const email = String(u.email || "").trim().toLowerCase();
+    if (!email) continue;
+    const result = await regenerateLineupForUserOnDateDb(dateStr, projects, { email, name: u.name });
+    if (result.count > 0) {
+      restoredUsers.push(email);
+      totalInserted += result.count;
+    }
+  }
+
+  return { restoredUsers, totalInserted };
+}
+
 // =========================================================================
 // TASK LINEUP ENGINE STATE — makes "Start Cycle" a one-time, lifetime action.
 // `active` is set once, the first time an admin starts the cycle, and never
