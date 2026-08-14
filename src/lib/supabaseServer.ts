@@ -1839,6 +1839,62 @@ export async function backfillMissingLineupForDateDb(
   return { restoredUsers, totalInserted };
 }
 
+/**
+ * One-time repair for the Restore Lineup / regenerate flow briefly
+ * over-adding projects (pushing some users' daily count above the normal
+ * DAILY_LINEUP_CAP_PER_USER ceiling, e.g. showing 30 instead of 15).
+ * For any user over the cap on this date, trims them back down to the cap
+ * by deleting the MOST RECENTLY CREATED rows first — i.e. exactly the
+ * "added later" ones — never touching a "Done" (already submitted) row.
+ * If a user is still over the cap after every Pending row is gone (all
+ * their over-cap rows are Done), it stops there rather than ever deleting
+ * submitted work.
+ */
+export async function trimLineupToDailyCapForDateDb(
+  dateStr: string
+): Promise<{ trimmedUsers: { userEmail: string; removed: number }[]; totalRemoved: number }> {
+  const sb = getSupabase();
+  if (!sb) return { trimmedUsers: [], totalRemoved: 0 };
+
+  const all = await getTaskAssignmentsDb({ date: dateStr });
+  const byUser = new Map<string, any[]>();
+  all.forEach((a: any) => {
+    const email = String(a.userEmail || "").trim().toLowerCase();
+    if (!email) return;
+    if (!byUser.has(email)) byUser.set(email, []);
+    byUser.get(email)!.push(a);
+  });
+
+  const trimmedUsers: { userEmail: string; removed: number }[] = [];
+  let totalRemoved = 0;
+
+  for (const [userEmail, rows] of byUser.entries()) {
+    if (rows.length <= DAILY_LINEUP_CAP_PER_USER) continue;
+
+    const overBy = rows.length - DAILY_LINEUP_CAP_PER_USER;
+    const pendingRows = rows
+      .filter((a) => String(a.status || "").toLowerCase() !== "done")
+      .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()); // newest first
+
+    const idsToRemove = pendingRows.slice(0, overBy).map((a) => a.id).filter(Boolean);
+    if (idsToRemove.length === 0) continue;
+
+    try {
+      const { error } = await sb.from("task_assignments").delete().in("id", idsToRemove);
+      if (error) {
+        console.warn(`Supabase trim failed for ${userEmail}:`, error.message);
+        continue;
+      }
+      trimmedUsers.push({ userEmail, removed: idsToRemove.length });
+      totalRemoved += idsToRemove.length;
+    } catch (err) {
+      console.error(`Supabase trim exception for ${userEmail}:`, err);
+    }
+  }
+
+  return { trimmedUsers, totalRemoved };
+}
+
 // =========================================================================
 // TASK LINEUP ENGINE STATE — makes "Start Cycle" a one-time, lifetime action.
 // `active` is set once, the first time an admin starts the cycle, and never
