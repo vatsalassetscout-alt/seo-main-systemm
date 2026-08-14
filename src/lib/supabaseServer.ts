@@ -1725,15 +1725,9 @@ export async function clearAllPendingAssignmentsForDateDb(dateStr: string): Prom
  * Fills in ONE user's lineup for ONE date using the exact same deficit /
  * carry-forward logic as generateLineupForDate — but scoped to a single
  * person, so it can safely run mid-day (e.g. the moment an admin resumes a
- * paused user, or a Restore Lineup repair) without touching or duplicating
- * anyone else's assignments for that date.
- *
- * IMPORTANT: this fills in whatever's MISSING, not "only if the user has
- * zero rows for the date". A user who already has 3 Submitted projects
- * today but is still owed more (e.g. their other Pending rows got wiped by
- * the old Pause/Stop Cycle bug) still gets those missing ones restored —
- * only projects they ALREADY have a row for today (Pending or Done) are
- * skipped, so this can never duplicate or touch existing work.
+ * paused user) without touching or duplicating anyone else's assignments
+ * for that date. If this user already has any assignment for the date, it
+ * does nothing (avoids duplicates from being called twice).
  */
 export async function regenerateLineupForUserOnDateDb(
   dateStr: string,
@@ -1746,11 +1740,10 @@ export async function regenerateLineupForUserOnDateDb(
   const userEmail = String(user.email || "").trim().toLowerCase();
   if (!userEmail) return { count: 0 };
 
-  // Projects this user already has ANY row for today (Pending or Done) —
-  // these are the only ones excluded from insertion below. Everything else
-  // this person is owed today still gets filled in.
+  // Already has assignments for this date (e.g. resumed twice, or paused
+  // and unpaused again before this ran) — don't duplicate.
   const existingForUser = await getTaskAssignmentsDb({ date: dateStr, userEmail });
-  const alreadyHaveProjectIds = new Set(existingForUser.map((a: any) => a.projectId));
+  if (existingForUser.length > 0) return { count: 0 };
 
   const weekStart = weekStartMonday(dateStr);
   const monthStart = monthStartOf(dateStr);
@@ -1761,9 +1754,6 @@ export async function regenerateLineupForUserOnDateDb(
   // Counts EVERY assignment so far this period — Pending or Done — so a
   // project already assigned (even if still un-submitted) naturally isn't
   // re-offered until its period's target has room again. No carry-forward.
-  // (This deliberately only looks at days BEFORE dateStr, same as
-  // generateLineupForDate, so it stays correct even when re-run mid-day
-  // against a date that already has some rows.)
   const countThisWeek = new Map<string, number>();
   const countThisMonth = new Map<string, number>();
   periodSoFar.forEach((a) => {
@@ -1775,8 +1765,6 @@ export async function regenerateLineupForUserOnDateDb(
   const candidates: Candidate[] = [];
 
   projects.forEach((p) => {
-    if (alreadyHaveProjectIds.has(p.id)) return; // already has a row today — never touch/duplicate it
-
     const priority = String(p.priority || "").toUpperCase();
     const rule = PRIORITY_RULES[priority];
     if (!rule) return;
@@ -1815,15 +1803,15 @@ export async function regenerateLineupForUserOnDateDb(
 }
 
 /**
- * Backfills TODAY's (or any given date's) lineup for every eligible,
- * non-paused user — filling in whatever's MISSING for each of them. This
- * covers both cases the old Pause / Stop Cycle bug could cause: a user with
- * ZERO rows for the date, and a user who already has some rows (e.g. 3
- * Submitted projects) but is still missing others that got wiped. Nothing
- * that already exists for a user+date+project is ever touched or
- * duplicated — see regenerateLineupForUserOnDateDb. Admin-only, meant to be
- * run once (or as many times as needed) to recover from the old bug — not
- * part of the normal daily flow.
+ * Backfills TODAY's (or any given date's) lineup for every eligible user who
+ * currently has NO assignment row for that date at all — i.e. it repairs
+ * exactly the damage the old Pause / Stop Cycle bug used to do (hard-
+ * deleting today's Pending rows), without touching anyone who already has
+ * rows for the date (submitted or still pending). It's just
+ * regenerateLineupForUserOnDateDb looped across the team, so it reuses the
+ * exact same deficit/carry-forward math and is a safe no-op per-user if
+ * they already have something for this date. Admin-only, meant to be run
+ * once to recover from the old bug — not part of the normal daily flow.
  */
 export async function backfillMissingLineupForDateDb(
   dateStr: string,
