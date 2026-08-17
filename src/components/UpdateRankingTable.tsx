@@ -4,35 +4,86 @@
  */
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Project } from '../types';
-import { cleanDomain } from '../lib/domain';
-import { Plus, X, ArrowUpDown, Palette, Search, Check, Loader2, ChevronDown } from 'lucide-react';
+import { Plus, X, ArrowUpDown, Palette, Search, Check, Loader2, ChevronDown, Users, Trash2, Type } from 'lucide-react';
+
+/* ==========================================================================
+ * DATA MODEL
+ * ------------------------------------------------------------------------
+ * This tab is now a free-form spreadsheet (Google-Sheets-style) instead of
+ * a fixed grid driven by the Projects list. Rows are just rows - anyone
+ * with edit rights can add, remove, and fill them with anything. A brand
+ * new sheet is seeded with 3 default columns (Project Name / Location /
+ * Domain) and a handful of blank rows, exactly like opening a fresh sheet.
+ * ========================================================================== */
 
 export interface RankingColumn {
   id: string;
   name: string;
+  /** Header background color for this column (Google-Sheets "fill color"). */
+  headerColor?: string;
+  /** Text color applied to every cell in this column. */
+  textColor?: string;
+}
+
+export interface RankingRow {
+  id: string;
+  /** columnId -> cell text. Missing key = empty cell. */
+  cells: Record<string, string>;
+  /** Row highlight color (the existing "color tag" feature). */
+  color?: string;
 }
 
 export interface ManualRankingGrid {
   columns: RankingColumn[];
-  values: Record<string, Record<string, string>>; // projectId -> columnId -> numeric string
-  rowColors: Record<string, string>; // legacy field, kept for backward compatibility with saved data
+  rows: RankingRow[];
+}
+
+export interface RankingUserOption {
+  name: string;
+  emails: string[];
+}
+
+const uid = (prefix: string) => `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+
+const DEFAULT_COLUMN_DEFS: Array<{ id: string; name: string }> = [
+  { id: 'col-project-name', name: 'Project Name' },
+  { id: 'col-location', name: 'Location' },
+  { id: 'col-domain', name: 'Domain' },
+];
+
+const DEFAULT_BLANK_ROWS = 12;
+
+/** A brand-new, empty sheet: default columns + a page of blank rows, just like opening a fresh Google Sheet. */
+export function createEmptySheet(): ManualRankingGrid {
+  return {
+    columns: DEFAULT_COLUMN_DEFS.map(c => ({ id: c.id, name: c.name })),
+    rows: Array.from({ length: DEFAULT_BLANK_ROWS }, () => ({ id: uid('row'), cells: {} })),
+  };
 }
 
 interface UpdateRankingTableProps {
-  projects: Project[];
+  /** Admin can only VIEW a chosen user's sheet here; regular users get full editing rights on their own sheet. */
   isAdmin?: boolean;
+  canEdit: boolean;
+  /** The email/id of whoever's sheet is currently loaded (used to tag autosaves). */
+  currentUserEmail?: string;
   grid: ManualRankingGrid;
   setGrid: React.Dispatch<React.SetStateAction<ManualRankingGrid>>;
   isLoading: boolean;
   /** Height (px) of the sticky filters+tab-bar block above this table, so the
       table header can stick right below it instead of hiding under it. */
   stickyOffset?: number;
+
+  /** Admin-only: single-select "which user's sheet am I viewing" picker.
+      Deliberately separate from the multi-select Users filter in the main
+      filter block near Location - that filter never reaches this section,
+      and picking a user here never touches that filter either. */
+  usersList?: RankingUserOption[];
+  selectedUserEmail?: string;
+  onSelectedUserChange?: (email: string) => void;
 }
 
-const EMPTY_GRID: ManualRankingGrid = { columns: [], values: {}, rowColors: {} };
-
-// Full color palette offered for the row color-tagging filter (24 presets)
+// Fill-color palette for header cells and the row color-tagging feature (24 presets)
 const COLOR_SWATCHES = [
   { label: 'Green', value: '#d1fae5' },
   { label: 'Emerald', value: '#a7f3d0' },
@@ -60,72 +111,98 @@ const COLOR_SWATCHES = [
   { label: 'Dark Purple', value: '#d8b4fe' },
 ];
 
-// Only digits and commas allowed while typing ranking values
-const sanitizeNumericInput = (raw: string) => raw.replace(/[^0-9,]/g, '');
+// Solid text-color palette for the per-column "text color" feature
+const TEXT_COLOR_SWATCHES = [
+  { label: 'Black', value: '#111827' },
+  { label: 'Gray', value: '#6b7280' },
+  { label: 'Red', value: '#dc2626' },
+  { label: 'Orange', value: '#ea580c' },
+  { label: 'Amber', value: '#b45309' },
+  { label: 'Green', value: '#16a34a' },
+  { label: 'Teal', value: '#0d9488' },
+  { label: 'Blue', value: '#2563eb' },
+  { label: 'Indigo', value: '#4f46e5' },
+  { label: 'Purple', value: '#9333ea' },
+  { label: 'Pink', value: '#db2777' },
+];
 
-// Turns "1,234" style strings into a comparable number for sorting (blank -> sorts last)
-const numericSortValue = (raw: string | undefined): number => {
-  if (!raw) return -Infinity;
-  const cleaned = raw.replace(/,/g, '').trim();
-  if (cleaned === '') return -Infinity;
-  const n = parseFloat(cleaned);
-  return isNaN(n) ? -Infinity : n;
-};
-
-// Sizes a ranking column based on its name length instead of a fixed oversized width.
-// Keeps short names (e.g. "W1") compact while still fitting longer names (e.g. "July Check").
+// Sizes a column based on its name length instead of a fixed oversized width.
 const columnWidth = (name: string): number => {
-  const px = 56 + name.length * 8;
-  return Math.min(180, Math.max(76, px));
+  const px = 72 + name.length * 8;
+  return Math.min(220, Math.max(110, px));
 };
 
-// Frozen (sticky) left-side columns - Sr No / Project Name / Domain / Location
-// always sit at these exact widths, no matter what's in them or how many
-// ranking columns get added. Only the ranking columns scroll horizontally,
-// like frozen panes in Google Sheets.
-const CHECKBOX_COL_WIDTH = 40;   // color-mode checkbox column
-const SR_NO_COL_WIDTH = 56;      // "Sr No." column
-const NAME_COL_WIDTH = 200;      // widened to fit full project names
-const DOMAIN_COL_WIDTH = 240;    // widened to fit full domain URLs
-const LOCATION_COL_WIDTH = 140;  // widened to fit full location names
+const SR_NO_COL_WIDTH = 48;
+const CHECKBOX_COL_WIDTH = 36;
 
-export default function UpdateRankingTable({ projects, isAdmin = false, grid, setGrid, isLoading, stickyOffset = 0 }: UpdateRankingTableProps) {
-  // Permissions are intentionally flipped from "isAdmin": admin can only VIEW
-  // this section (plus use the sort filter), while regular users get full
-  // editing rights (values, add/rename/delete columns, color tagging).
-  const canEdit = !isAdmin;
+// Compares two cell values the way a spreadsheet would: numeric if both
+// sides parse as numbers, otherwise a normal case-insensitive text sort.
+// Blank cells always sort to the bottom regardless of direction.
+const compareCells = (a: string, b: string, dir: 'asc' | 'desc'): number => {
+  const aTrim = (a || '').trim();
+  const bTrim = (b || '').trim();
+  const aEmpty = aTrim === '';
+  const bEmpty = bTrim === '';
+  if (aEmpty && bEmpty) return 0;
+  if (aEmpty) return 1;
+  if (bEmpty) return -1;
+
+  const an = parseFloat(aTrim.replace(/,/g, ''));
+  const bn = parseFloat(bTrim.replace(/,/g, ''));
+  if (!isNaN(an) && !isNaN(bn)) {
+    return dir === 'asc' ? an - bn : bn - an;
+  }
+  return dir === 'asc' ? aTrim.localeCompare(bTrim) : bTrim.localeCompare(aTrim);
+};
+
+export default function UpdateRankingTable({
+  isAdmin = false,
+  canEdit,
+  currentUserEmail = '',
+  grid,
+  setGrid,
+  isLoading,
+  stickyOffset = 0,
+  usersList = [],
+  selectedUserEmail = '',
+  onSelectedUserChange,
+}: UpdateRankingTableProps) {
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Sort filter (High to Low / Low to High) applied to one chosen column.
-  // This is local, per-session state only (never saved/shared), so an admin's
-  // chosen sort never affects what a user sees, and vice versa.
+  // Sort filter (High-to-low / Low-to-high / A-Z / Z-A, spreadsheet-style)
+  // applied to one chosen column. Local, per-session only.
   const [sortColumnId, setSortColumnId] = useState<string>('');
   const [sortDirection, setSortDirection] = useState<'desc' | 'asc'>('desc');
   const [sortPanelOpen, setSortPanelOpen] = useState(false);
   const sortPanelRef = useRef<HTMLDivElement | null>(null);
 
-  // Color-tagging filter mode - available to admin and user alike
+  // Row color-tagging filter mode
   const [colorModeOn, setColorModeOn] = useState(false);
   const [selectedRowIds, setSelectedRowIds] = useState<Record<string, boolean>>({});
   const [customColor, setCustomColor] = useState('#c7d2fe');
 
+  // Per-column formatting popover (fill color + text color)
+  const [colorMenuColId, setColorMenuColId] = useState<string | null>(null);
+  const colorMenuRef = useRef<HTMLDivElement | null>(null);
+
+  // Admin-only "which user's sheet" picker
+  const [userPickerOpen, setUserPickerOpen] = useState(false);
+  const [userPickerSearch, setUserPickerSearch] = useState('');
+  const userPickerRef = useRef<HTMLDivElement | null>(null);
+
   const skipNextAutoSave = useRef(true);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // Always-current copy of the grid, readable from cleanup/unmount handlers
-  // without a stale-closure problem.
   const gridRef = useRef(grid);
   useEffect(() => { gridRef.current = grid; }, [grid]);
 
-  // Grid data is now fetched once, up front, by the parent DSRDashboard
-  // (alongside projects/rankings) and handed down as a prop, so switching
-  // into this tab no longer triggers its own network request or spinner.
+  // Whenever the underlying sheet owner changes (admin swaps who they're
+  // viewing), don't treat the freshly-loaded data as an edit to autosave.
+  useEffect(() => { skipNextAutoSave.current = true; }, [currentUserEmail]);
 
-  // Debounced auto-save whenever the grid changes (skip the very first load)
-  // Debounce shortened to 400ms for a snappier feel; typing updates the UI
-  // instantly (optimistic) while the save happens quietly in the background.
+  // Debounced autosave. Never runs for a read-only (admin) view.
   useEffect(() => {
+    if (!canEdit || !currentUserEmail) return;
     if (skipNextAutoSave.current) {
       skipNextAutoSave.current = false;
       return;
@@ -138,71 +215,66 @@ export default function UpdateRankingTable({ projects, isAdmin = false, grid, se
         const res = await fetch('/api/manual-rankings', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(grid)
+          body: JSON.stringify({ user: currentUserEmail, columns: grid.columns, rows: grid.rows })
         });
         setSaveState(res.ok ? 'saved' : 'error');
       } catch (e) {
-        console.error('Failed to save Manual Ranking data to Supabase:', e);
+        console.error('Failed to save ranking sheet to Supabase:', e);
         setSaveState('error');
       }
     }, 400);
-    // This only cancels the timer to reset the debounce window when the
-    // grid changes again (normal debounce behavior) - it does NOT lose data
-    // because the effect re-runs right after with the newer grid value.
     return () => {
       if (saveTimer.current) clearTimeout(saveTimer.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [grid]);
+  }, [grid, canEdit, currentUserEmail]);
 
-  // FIX: this tab (UpdateRankingTable) fully unmounts whenever the user
-  // switches to any other dashboard tab. Previously, if you tagged a color
-  // or edited a cell and switched tabs within the 400ms debounce window,
-  // the cleanup above cancelled the pending save and it was silently lost -
-  // never reaching Supabase. That's the "I colored it but it's not there"
-  // bug. This effect's cleanup runs ONLY on true unmount (empty deps array)
-  // and flushes any still-pending save immediately, using `keepalive: true`
-  // so the request survives past the component being torn down.
+  // Flush any still-pending save immediately on unmount (e.g. switching tabs
+  // mid-debounce), so a quick edit right before navigating away isn't lost.
   useEffect(() => {
     return () => {
-      if (saveTimer.current) {
+      if (saveTimer.current && canEdit && currentUserEmail) {
         clearTimeout(saveTimer.current);
         saveTimer.current = null;
         try {
           fetch('/api/manual-rankings', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(gridRef.current),
+            body: JSON.stringify({ user: currentUserEmail, columns: gridRef.current.columns, rows: gridRef.current.rows }),
             keepalive: true
-          }).catch((e) => console.error('Failed to flush pending save to Supabase on unmount:', e));
+          }).catch((e) => console.error('Failed to flush pending save on unmount:', e));
         } catch (e) {
-          console.error('Failed to flush pending save to Supabase on unmount:', e);
+          console.error('Failed to flush pending save on unmount:', e);
         }
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Close the sort panel when clicking outside of it
+  // Close popovers when clicking outside of them
   useEffect(() => {
-    if (!sortPanelOpen) return;
     const handleClickOutside = (e: MouseEvent) => {
-      if (sortPanelRef.current && !sortPanelRef.current.contains(e.target as Node)) {
+      if (sortPanelOpen && sortPanelRef.current && !sortPanelRef.current.contains(e.target as Node)) {
         setSortPanelOpen(false);
+      }
+      if (colorMenuColId && colorMenuRef.current && !colorMenuRef.current.contains(e.target as Node)) {
+        setColorMenuColId(null);
+      }
+      if (userPickerOpen && userPickerRef.current && !userPickerRef.current.contains(e.target as Node)) {
+        setUserPickerOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [sortPanelOpen]);
+  }, [sortPanelOpen, colorMenuColId, userPickerOpen]);
+
+  /* ---------------------------- column ops ---------------------------- */
 
   const addColumn = () => {
     if (!canEdit) return;
-    const name = window.prompt('Name this new ranking column (e.g. "Week 1", "July Check"):');
+    const name = window.prompt('Name this new column (e.g. "Week 1", "Notes"):');
     if (!name || !name.trim()) return;
-    const newCol: RankingColumn = {
-      id: `col-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-      name: name.trim()
-    };
-    setGrid(prev => ({ ...prev, columns: [...prev.columns, newCol] }));
+    setGrid(prev => ({ ...prev, columns: [...prev.columns, { id: uid('col'), name: name.trim() }] }));
   };
 
   const renameColumn = (colId: string) => {
@@ -210,10 +282,7 @@ export default function UpdateRankingTable({ projects, isAdmin = false, grid, se
     const current = grid.columns.find(c => c.id === colId);
     const name = window.prompt('Rename column:', current?.name || '');
     if (!name || !name.trim()) return;
-    setGrid(prev => ({
-      ...prev,
-      columns: prev.columns.map(c => c.id === colId ? { ...c, name: name.trim() } : c)
-    }));
+    setGrid(prev => ({ ...prev, columns: prev.columns.map(c => c.id === colId ? { ...c, name: name.trim() } : c) }));
   };
 
   const deleteColumn = (colId: string) => {
@@ -222,84 +291,151 @@ export default function UpdateRankingTable({ projects, isAdmin = false, grid, se
     setGrid(prev => ({
       ...prev,
       columns: prev.columns.filter(c => c.id !== colId),
-      values: Object.fromEntries(
-        Object.entries(prev.values).map(([pid, row]: [string, Record<string, string>]) => {
-          const rest: Record<string, string> = Object.assign({}, row);
-          delete rest[colId];
-          return [pid, rest] as [string, Record<string, string>];
-        })
-      )
+      rows: prev.rows.map(r => {
+        if (!(colId in r.cells)) return r;
+        const cells = { ...r.cells };
+        delete cells[colId];
+        return { ...r, cells };
+      })
     }));
     if (sortColumnId === colId) setSortColumnId('');
   };
 
-  const updateCell = (projectId: string, colId: string, raw: string) => {
+  const setColumnColor = (colId: string, field: 'headerColor' | 'textColor', value: string) => {
     if (!canEdit) return;
-    const value = sanitizeNumericInput(raw);
     setGrid(prev => ({
       ...prev,
-      values: {
-        ...prev.values,
-        [projectId]: { ...(prev.values[projectId] || {}), [colId]: value }
-      }
+      columns: prev.columns.map(c => c.id === colId ? { ...c, [field]: value || undefined } : c)
     }));
   };
 
-  // Checking a column in the sort panel makes that the active sort column immediately
+  const clearColumnFormatting = (colId: string) => {
+    if (!canEdit) return;
+    setGrid(prev => ({
+      ...prev,
+      columns: prev.columns.map(c => c.id === colId ? { ...c, headerColor: undefined, textColor: undefined } : c)
+    }));
+  };
+
+  /* ------------------------------ row ops ------------------------------ */
+
+  const addRow = () => {
+    if (!canEdit) return;
+    setGrid(prev => ({ ...prev, rows: [...prev.rows, { id: uid('row'), cells: {} }] }));
+  };
+
+  const deleteRow = (rowId: string) => {
+    if (!canEdit) return;
+    setGrid(prev => ({ ...prev, rows: prev.rows.filter(r => r.id !== rowId) }));
+    setSelectedRowIds(prev => {
+      if (!(rowId in prev)) return prev;
+      const next = { ...prev };
+      delete next[rowId];
+      return next;
+    });
+  };
+
+  const updateCell = (rowId: string, colId: string, raw: string) => {
+    if (!canEdit) return;
+    setGrid(prev => ({
+      ...prev,
+      rows: prev.rows.map(r => r.id === rowId ? { ...r, cells: { ...r.cells, [colId]: raw } } : r)
+    }));
+  };
+
+  // Google-Sheets-style paste: pasting a multi-cell block (tab/newline
+  // separated, exactly what copying a range from Google Sheets or Excel
+  // puts on the clipboard) fills cells starting at the focused cell,
+  // growing the sheet with extra rows/columns automatically if the pasted
+  // block is bigger than what's currently there.
+  const handleCellPaste = (e: React.ClipboardEvent<HTMLInputElement>, rowId: string, colId: string) => {
+    if (!canEdit) return;
+    const text = e.clipboardData?.getData('text/plain') ?? '';
+    if (!text.includes('\t') && !text.includes('\n')) return; // single value: let the browser handle it normally
+
+    e.preventDefault();
+    let lines = text.replace(/\r/g, '').split('\n');
+    while (lines.length > 1 && lines[lines.length - 1] === '') lines.pop();
+    const block = lines.map(line => line.split('\t'));
+
+    setGrid(prev => {
+      const columns = [...prev.columns];
+      const rows = prev.rows.map(r => ({ ...r, cells: { ...r.cells } }));
+
+      const startRowIdx = rows.findIndex(r => r.id === rowId);
+      const startColIdx = columns.findIndex(c => c.id === colId);
+      if (startRowIdx === -1 || startColIdx === -1) return prev;
+
+      const widestPasteRow = Math.max(...block.map(r => r.length));
+      while (columns.length < startColIdx + widestPasteRow) {
+        columns.push({ id: uid('col'), name: `Column ${columns.length + 1}` });
+      }
+      while (rows.length < startRowIdx + block.length) {
+        rows.push({ id: uid('row'), cells: {} });
+      }
+
+      block.forEach((lineCells, ri) => {
+        const targetRow = rows[startRowIdx + ri];
+        lineCells.forEach((val, ci) => {
+          const targetCol = columns[startColIdx + ci];
+          targetRow.cells[targetCol.id] = val;
+        });
+      });
+
+      return { columns, rows };
+    });
+  };
+
+  /* ------------------------------ sorting ------------------------------ */
+
   const chooseSortColumn = (colId: string) => {
     setSortColumnId(prev => (prev === colId ? '' : colId));
   };
 
+  /* --------------------------- row color tag ---------------------------- */
+
   const applyColorToSelected = (color: string) => {
-    setGrid(prev => {
-      const nextColors = { ...prev.rowColors };
-      Object.keys(selectedRowIds).forEach(pid => {
-        if (selectedRowIds[pid]) nextColors[pid] = color;
-      });
-      return { ...prev, rowColors: nextColors };
-    });
+    setGrid(prev => ({
+      ...prev,
+      rows: prev.rows.map(r => selectedRowIds[r.id] ? { ...r, color } : r)
+    }));
     setSelectedRowIds({});
   };
 
   const clearColorFromSelected = () => {
-    setGrid(prev => {
-      const nextColors = { ...prev.rowColors };
-      Object.keys(selectedRowIds).forEach(pid => {
-        if (selectedRowIds[pid]) delete nextColors[pid];
-      });
-      return { ...prev, rowColors: nextColors };
-    });
+    setGrid(prev => ({
+      ...prev,
+      rows: prev.rows.map(r => selectedRowIds[r.id] ? { ...r, color: undefined } : r)
+    }));
     setSelectedRowIds({});
   };
 
-  const visibleProjects = useMemo(() => {
-    let list = projects.filter(p => {
-      if (!searchTerm.trim()) return true;
-      const term = searchTerm.toLowerCase();
-      return (p.name || '').toLowerCase().includes(term) || (p.domain || '').toLowerCase().includes(term);
-    });
+  /* --------------------------- derived state ---------------------------- */
 
+  const visibleRows = useMemo(() => {
+    let list = grid.rows;
+    if (searchTerm.trim()) {
+      const term = searchTerm.toLowerCase();
+      list = list.filter(r => Object.values(r.cells).some(v => (v || '').toLowerCase().includes(term)));
+    }
     if (sortColumnId) {
-      list = [...list].sort((a, b) => {
-        const av = numericSortValue(grid.values[a.id]?.[sortColumnId]);
-        const bv = numericSortValue(grid.values[b.id]?.[sortColumnId]);
-        return sortDirection === 'desc' ? bv - av : av - bv;
-      });
+      list = [...list].sort((a, b) => compareCells(a.cells[sortColumnId] || '', b.cells[sortColumnId] || '', sortDirection));
     }
     return list;
-  }, [projects, searchTerm, sortColumnId, sortDirection, grid.values]);
+  }, [grid.rows, searchTerm, sortColumnId, sortDirection]);
 
   const selectedCount = Object.values(selectedRowIds).filter(Boolean).length;
-
-  // Frozen pane: Sr No / Project Name / Domain / Location stay pinned at
-  // fixed widths no matter what ranking columns get added - only the ranking
-  // columns scroll horizontally.
-  const srNoLeft = colorModeOn ? CHECKBOX_COL_WIDTH : 0;
-  const nameLeft = srNoLeft + SR_NO_COL_WIDTH;
-  const domainLeft = nameLeft + NAME_COL_WIDTH;
-  const locationLeft = domainLeft + DOMAIN_COL_WIDTH;
-
   const activeSortColumnName = grid.columns.find(c => c.id === sortColumnId)?.name;
+
+  const selectedUserOption = useMemo(
+    () => usersList.find(u => u.emails.includes(selectedUserEmail)),
+    [usersList, selectedUserEmail]
+  );
+  const filteredUserOptions = useMemo(() => {
+    const term = userPickerSearch.toLowerCase().trim();
+    if (!term) return usersList;
+    return usersList.filter(u => u.name.toLowerCase().includes(term) || u.emails.some(e => e.toLowerCase().includes(term)));
+  }, [usersList, userPickerSearch]);
 
   return (
     <div>
@@ -311,19 +447,73 @@ export default function UpdateRankingTable({ projects, isAdmin = false, grid, se
           </h3>
           <p className="text-[10px] text-gray-500 font-semibold mt-0.5">
             {canEdit
-              ? 'Manually track ranking numbers per project across as many columns as you need.'
-              : 'View ranking numbers per project. Sort and search freely.'}
+              ? 'A free-form sheet, just like Google Sheets - type, paste, add rows/columns, color-code, and sort freely.'
+              : isAdmin
+                ? 'Pick a user below to view their sheet (view-only).'
+                : 'View this sheet. Sort and search freely.'}
           </p>
         </div>
 
         <div className="flex items-center gap-2 flex-wrap relative">
-          {/* Save status */}
-          <div className="flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1.5 rounded-lg bg-white border border-gray-200">
-            {saveState === 'saving' && <><Loader2 size={11} className="animate-spin text-indigo-500" /> Saving…</>}
-            {saveState === 'saved' && <><Check size={11} className="text-emerald-600" /> Saved</>}
-            {saveState === 'error' && <span className="text-rose-600">Save failed</span>}
-            {saveState === 'idle' && <span className="text-gray-400">All changes saved</span>}
-          </div>
+          {/* Admin-only: single-select "viewing which user's sheet" picker.
+              Intentionally separate from the main Users filter near Location -
+              that filter has zero effect on this section. */}
+          {isAdmin && (
+            <div className="relative" ref={userPickerRef}>
+              <button
+                onClick={() => setUserPickerOpen(v => !v)}
+                className={`flex items-center gap-1.5 text-xs font-bold border rounded-xl px-2.5 py-2 cursor-pointer transition ${
+                  selectedUserEmail ? 'bg-indigo-600 border-indigo-700 text-white' : 'bg-white border-gray-200 hover:bg-gray-50 text-gray-700'
+                }`}
+              >
+                <Users size={12} />
+                {selectedUserOption ? selectedUserOption.name : 'Select a user'}
+                <ChevronDown size={12} />
+              </button>
+
+              {userPickerOpen && (
+                <div className="absolute right-0 top-full mt-1.5 w-64 max-w-[85vw] max-h-80 overflow-y-auto bg-white border border-gray-200 rounded-xl shadow-xl z-50 p-3">
+                  <p className="text-[10px] font-black text-gray-500 uppercase tracking-wider mb-2">Viewing user's sheet</p>
+                  <input
+                    type="text"
+                    value={userPickerSearch}
+                    onChange={(e) => setUserPickerSearch(e.target.value)}
+                    placeholder="Search user..."
+                    className="w-full mb-2 px-2 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-[11px] font-bold focus:outline-hidden focus:ring-1 focus:ring-indigo-500"
+                  />
+                  <div className="flex flex-col gap-0.5 max-h-56 overflow-y-auto">
+                    {filteredUserOptions.length === 0 && (
+                      <p className="text-[11px] text-gray-400 font-semibold px-1 py-1">No users found.</p>
+                    )}
+                    {filteredUserOptions.map(u => {
+                      const isSelected = u.emails.includes(selectedUserEmail);
+                      return (
+                        <button
+                          key={u.emails[0]}
+                          onClick={() => { onSelectedUserChange?.(isSelected ? '' : u.emails[0]); setUserPickerOpen(false); setUserPickerSearch(''); }}
+                          className={`text-left text-[11px] font-bold px-2 py-1.5 rounded-lg cursor-pointer transition ${
+                            isSelected ? 'bg-indigo-600 text-white' : 'hover:bg-gray-50 text-gray-800'
+                          }`}
+                        >
+                          {u.name} <span className={`font-mono normal-case ${isSelected ? 'text-indigo-100' : 'text-gray-400'}`}>· {u.emails[0]}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Save status - editors only */}
+          {canEdit && (
+            <div className="flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1.5 rounded-lg bg-white border border-gray-200">
+              {saveState === 'saving' && <><Loader2 size={11} className="animate-spin text-indigo-500" /> Saving…</>}
+              {saveState === 'saved' && <><Check size={11} className="text-emerald-600" /> Saved</>}
+              {saveState === 'error' && <span className="text-rose-600">Save failed</span>}
+              {saveState === 'idle' && <span className="text-gray-400">All changes saved</span>}
+            </div>
+          )}
 
           <div className="relative w-full sm:w-56">
             <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-400">
@@ -333,14 +523,12 @@ export default function UpdateRankingTable({ projects, isAdmin = false, grid, se
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search projects or domain..."
+              placeholder="Search anywhere in the sheet..."
               className="w-full text-xs pl-8 pr-3 py-2 border border-gray-200 rounded-xl focus:outline-hidden focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 bg-white"
             />
           </div>
 
-          {/* Sort filter: High to Low / Low to High, applied to a chosen column.
-              This is per-user local state: an admin's sort choice is only ever
-              visible in the admin's own view, and a user's sort choice only in theirs. */}
+          {/* Sort filter */}
           <div className="relative" ref={sortPanelRef}>
             <button
               onClick={() => setSortPanelOpen(v => !v)}
@@ -349,7 +537,7 @@ export default function UpdateRankingTable({ projects, isAdmin = false, grid, se
               }`}
             >
               <ArrowUpDown size={12} />
-              {sortColumnId ? `${activeSortColumnName}: ${sortDirection === 'desc' ? 'High → Low' : 'Low → High'}` : 'Sort'}
+              {sortColumnId ? `${activeSortColumnName}: ${sortDirection === 'desc' ? 'High → Low / Z → A' : 'Low → High / A → Z'}` : 'Sort'}
               <ChevronDown size={12} />
             </button>
 
@@ -378,7 +566,7 @@ export default function UpdateRankingTable({ projects, isAdmin = false, grid, se
                 <p className="text-[10px] font-black text-gray-500 uppercase tracking-wider mb-2">Apply to column</p>
                 {grid.columns.length === 0 ? (
                   <p className="text-[11px] text-gray-400 font-semibold">
-                    {canEdit ? 'Add a ranking column first.' : 'No ranking columns yet.'}
+                    {canEdit ? 'Add a column first.' : 'No columns yet.'}
                   </p>
                 ) : (
                   <div className="flex flex-col gap-1.5">
@@ -408,7 +596,7 @@ export default function UpdateRankingTable({ projects, isAdmin = false, grid, se
             )}
           </div>
 
-          {/* Color tagging filter - users only; admin is view-only here */}
+          {/* Row color tagging - editors only */}
           {canEdit && (
             <button
               onClick={() => { setColorModeOn(v => !v); setSelectedRowIds({}); }}
@@ -420,11 +608,21 @@ export default function UpdateRankingTable({ projects, isAdmin = false, grid, se
               Color Tag {colorModeOn ? 'On' : ''}
             </button>
           )}
+
+          {/* Add row - editors only */}
+          {canEdit && (
+            <button
+              onClick={addRow}
+              title="Add a new row"
+              className="flex items-center gap-1.5 text-xs font-bold border border-dashed border-indigo-300 text-indigo-600 rounded-xl px-2.5 py-2 cursor-pointer hover:bg-indigo-50 transition"
+            >
+              <Plus size={12} /> Row
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Color palette bar - shown once rows are checked in color mode (users only).
-          Sticky so it stays fixed in view instead of scrolling away with the table. */}
+      {/* Color palette bar - shown once rows are checked in color mode */}
       {canEdit && colorModeOn && selectedCount > 0 && (
         <div className="sticky top-0 z-40 mx-4 mt-3 p-3 bg-indigo-50 border border-indigo-150 rounded-xl shadow-md">
           <div className="flex items-center justify-between mb-2">
@@ -446,8 +644,6 @@ export default function UpdateRankingTable({ projects, isAdmin = false, grid, se
                 style={{ backgroundColor: sw.value }}
               />
             ))}
-
-            {/* Custom color picker - pick any color beyond the presets */}
             <div className="flex items-center gap-1 ml-1 pl-2 border-l border-indigo-200">
               <input
                 type="color"
@@ -467,67 +663,100 @@ export default function UpdateRankingTable({ projects, isAdmin = false, grid, se
         </div>
       )}
 
-      {isLoading ? (
-        <div className="p-12 text-center text-xs text-gray-500 font-bold">Loading ranking data...</div>
-      ) : visibleProjects.length === 0 ? (
+      {isAdmin && !selectedUserEmail ? (
         <div className="p-12 text-center text-xs text-gray-500 font-bold bg-slate-50/40 rounded-b-2xl border-t border-slate-150">
-          No projects found matching the search criteria.
+          Pick a user from the dropdown above to view their sheet.
         </div>
+      ) : isLoading ? (
+        <div className="p-12 text-center text-xs text-gray-500 font-bold">Loading sheet...</div>
       ) : (
         <div className="overflow-x-auto overflow-y-auto rounded-b-2xl mt-1 max-h-[560px]">
           <table className="text-left text-xs border-collapse w-full" style={{ tableLayout: 'fixed' }}>
             <thead className="bg-slate-50/70 text-slate-500 font-extrabold text-[10px] uppercase border-b border-gray-150 sticky top-0 z-20">
               <tr>
-                {colorModeOn && <th className="px-3 py-3 sticky left-0 top-0 bg-slate-50 z-40" style={{ width: CHECKBOX_COL_WIDTH, minWidth: CHECKBOX_COL_WIDTH, maxWidth: CHECKBOX_COL_WIDTH }}></th>}
+                {colorModeOn && <th className="px-2 py-3 sticky left-0 top-0 bg-slate-50 z-40" style={{ width: CHECKBOX_COL_WIDTH, minWidth: CHECKBOX_COL_WIDTH }}></th>}
                 <th
-                  className="px-3 py-3 text-center sticky top-0 bg-slate-50 z-40"
-                  style={{ left: srNoLeft, width: SR_NO_COL_WIDTH, minWidth: SR_NO_COL_WIDTH, maxWidth: SR_NO_COL_WIDTH }}
+                  className="px-2 py-3 text-center sticky top-0 bg-slate-50 z-40"
+                  style={{ left: colorModeOn ? CHECKBOX_COL_WIDTH : 0, width: SR_NO_COL_WIDTH, minWidth: SR_NO_COL_WIDTH }}
                 >
-                  Sr No.
-                </th>
-                <th
-                  className="px-1.5 py-3 sticky top-0 bg-slate-50 z-40 truncate"
-                  style={{ left: nameLeft, width: NAME_COL_WIDTH, minWidth: NAME_COL_WIDTH, maxWidth: NAME_COL_WIDTH }}
-                >
-                  Project Name
-                </th>
-                <th
-                  className="px-1.5 py-3 sticky top-0 bg-slate-50 z-40 truncate"
-                  style={{ left: domainLeft, width: DOMAIN_COL_WIDTH, minWidth: DOMAIN_COL_WIDTH, maxWidth: DOMAIN_COL_WIDTH }}
-                >
-                  Domain
-                </th>
-                <th
-                  className="px-1.5 py-3 sticky top-0 bg-slate-50 z-40 truncate"
-                  style={{ left: locationLeft, width: LOCATION_COL_WIDTH, minWidth: LOCATION_COL_WIDTH, maxWidth: LOCATION_COL_WIDTH }}
-                >
-                  Location
+                  #
                 </th>
 
                 {grid.columns.map(col => {
                   const w = columnWidth(col.name);
                   return (
-                    <th key={col.id} className="px-2.5 py-3 group/col relative bg-slate-50 sticky top-0 z-20" style={{ width: w, minWidth: w, maxWidth: w }}>
+                    <th
+                      key={col.id}
+                      className="px-2.5 py-3 group/col relative sticky top-0 z-20"
+                      style={{ width: w, minWidth: w, backgroundColor: col.headerColor || '#f8fafc' }}
+                    >
                       <div className="flex items-center justify-between gap-1">
                         {canEdit ? (
                           <button
                             onClick={() => renameColumn(col.id)}
                             className="truncate text-left hover:text-indigo-600 cursor-pointer"
+                            style={{ color: col.textColor || undefined }}
                             title="Click to rename column"
                           >
                             {col.name}
                           </button>
                         ) : (
-                          <span className="truncate" title={col.name}>{col.name}</span>
+                          <span className="truncate" style={{ color: col.textColor || undefined }} title={col.name}>{col.name}</span>
                         )}
+
                         {canEdit && (
-                          <button
-                            onClick={() => deleteColumn(col.id)}
-                            className="opacity-0 group-hover/col:opacity-100 text-gray-400 hover:text-rose-600 transition cursor-pointer shrink-0"
-                            title="Remove column"
-                          >
-                            <X size={11} />
-                          </button>
+                          <div className="flex items-center gap-0.5 opacity-0 group-hover/col:opacity-100 transition shrink-0">
+                            <div className="relative">
+                              <button
+                                onClick={() => setColorMenuColId(prev => prev === col.id ? null : col.id)}
+                                className="text-gray-400 hover:text-indigo-600 cursor-pointer"
+                                title="Column color / text color"
+                              >
+                                <Palette size={11} />
+                              </button>
+                              {colorMenuColId === col.id && (
+                                <div ref={colorMenuRef} className="absolute right-0 top-full mt-1.5 w-56 bg-white border border-gray-200 rounded-xl shadow-xl z-50 p-3 normal-case text-gray-700">
+                                  <p className="text-[10px] font-black text-gray-500 uppercase tracking-wider mb-1.5 flex items-center gap-1"><Palette size={10} /> Header color</p>
+                                  <div className="flex items-center gap-1 flex-wrap mb-3">
+                                    {COLOR_SWATCHES.slice(0, 12).map(sw => (
+                                      <button
+                                        key={sw.value}
+                                        title={sw.label}
+                                        onClick={() => setColumnColor(col.id, 'headerColor', sw.value)}
+                                        className="w-5 h-5 rounded-full border-2 border-white shadow-2xs cursor-pointer hover:scale-110 transition"
+                                        style={{ backgroundColor: sw.value }}
+                                      />
+                                    ))}
+                                  </div>
+                                  <p className="text-[10px] font-black text-gray-500 uppercase tracking-wider mb-1.5 flex items-center gap-1"><Type size={10} /> Text color</p>
+                                  <div className="flex items-center gap-1 flex-wrap mb-3">
+                                    {TEXT_COLOR_SWATCHES.map(sw => (
+                                      <button
+                                        key={sw.value}
+                                        title={sw.label}
+                                        onClick={() => setColumnColor(col.id, 'textColor', sw.value)}
+                                        className="w-5 h-5 rounded-full border-2 border-white shadow-2xs cursor-pointer hover:scale-110 transition"
+                                        style={{ backgroundColor: sw.value }}
+                                      />
+                                    ))}
+                                  </div>
+                                  <button
+                                    onClick={() => { clearColumnFormatting(col.id); setColorMenuColId(null); }}
+                                    className="text-[10px] font-bold text-gray-500 hover:text-rose-600 cursor-pointer"
+                                  >
+                                    Clear formatting
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                            <button
+                              onClick={() => deleteColumn(col.id)}
+                              className="text-gray-400 hover:text-rose-600 transition cursor-pointer"
+                              title="Remove column"
+                            >
+                              <X size={11} />
+                            </button>
+                          </div>
                         )}
                       </div>
                     </th>
@@ -538,83 +767,75 @@ export default function UpdateRankingTable({ projects, isAdmin = false, grid, se
                   <th className="px-3 py-3 w-12 bg-slate-50 sticky top-0 z-20">
                     <button
                       onClick={addColumn}
-                      title="Add a new ranking column"
+                      title="Add a new column"
                       className="w-7 h-7 flex items-center justify-center rounded-lg border border-dashed border-indigo-300 text-indigo-600 hover:bg-indigo-50 cursor-pointer transition"
                     >
                       <Plus size={14} />
                     </button>
                   </th>
                 )}
-                {/* Filler column: no fixed width, so it soaks up all remaining
-                    horizontal space. Lets a colored row's background extend
-                    all the way to the right edge instead of stopping at the
-                    last data column. */}
+                {/* Filler column: soaks up remaining horizontal space so a
+                    colored row's background extends to the right edge. */}
                 <th className="w-full bg-slate-50 sticky top-0 z-20"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-150">
-              {visibleProjects.map((proj, idx) => {
-                const rowColor = grid.rowColors[proj.id];
-                const isChecked = !!selectedRowIds[proj.id];
+              {visibleRows.length === 0 ? (
+                <tr>
+                  <td colSpan={grid.columns.length + 3} className="p-12 text-center text-xs text-gray-500 font-bold">
+                    {searchTerm ? 'No rows match your search.' : (canEdit ? 'No rows yet - click "+ Row" to start.' : 'No rows yet.')}
+                  </td>
+                </tr>
+              ) : visibleRows.map((row, idx) => {
+                const isChecked = !!selectedRowIds[row.id];
                 return (
-                  <tr key={proj.id} style={rowColor ? { backgroundColor: rowColor } : undefined} className="hover:bg-slate-50/60 transition">
+                  <tr key={row.id} style={row.color ? { backgroundColor: row.color } : undefined} className="hover:bg-slate-50/60 transition group/row">
                     {colorModeOn && (
                       <td
-                        className="px-3 py-2.5 sticky left-0 z-10"
-                        style={{ width: CHECKBOX_COL_WIDTH, minWidth: CHECKBOX_COL_WIDTH, maxWidth: CHECKBOX_COL_WIDTH, backgroundColor: rowColor || '#fff' }}
+                        className="px-2 py-2.5 sticky left-0 z-10"
+                        style={{ width: CHECKBOX_COL_WIDTH, minWidth: CHECKBOX_COL_WIDTH, backgroundColor: row.color || '#fff' }}
                       >
                         <input
                           type="checkbox"
                           checked={isChecked}
-                          onChange={(e) => setSelectedRowIds(prev => ({ ...prev, [proj.id]: e.target.checked }))}
+                          onChange={(e) => setSelectedRowIds(prev => ({ ...prev, [row.id]: e.target.checked }))}
                           className="cursor-pointer"
                         />
                       </td>
                     )}
                     <td
-                      className="px-3 py-2.5 text-center font-bold text-gray-500 sticky z-10"
-                      style={{ left: srNoLeft, width: SR_NO_COL_WIDTH, minWidth: SR_NO_COL_WIDTH, maxWidth: SR_NO_COL_WIDTH, backgroundColor: rowColor || '#fff' }}
+                      className="px-1 py-2.5 text-center font-bold text-gray-400 sticky z-10"
+                      style={{ left: colorModeOn ? CHECKBOX_COL_WIDTH : 0, width: SR_NO_COL_WIDTH, minWidth: SR_NO_COL_WIDTH, backgroundColor: row.color || '#fff' }}
                     >
-                      {idx + 1}
-                    </td>
-                    <td
-                      className="px-1.5 py-2.5 font-bold text-gray-800 sticky z-10 truncate"
-                      style={{ left: nameLeft, width: NAME_COL_WIDTH, minWidth: NAME_COL_WIDTH, maxWidth: NAME_COL_WIDTH, backgroundColor: rowColor || '#fff' }}
-                      title={proj.name}
-                    >
-                      {proj.name}
-                    </td>
-                    <td
-                      className="px-1.5 py-2.5 text-gray-600 font-semibold sticky z-10 truncate"
-                      style={{ left: domainLeft, width: DOMAIN_COL_WIDTH, minWidth: DOMAIN_COL_WIDTH, maxWidth: DOMAIN_COL_WIDTH, backgroundColor: rowColor || '#fff' }}
-                      title={cleanDomain(proj.domain) || ''}
-                    >
-                      {cleanDomain(proj.domain) || '—'}
-                    </td>
-                    <td
-                      className="px-1.5 py-2.5 text-gray-600 font-semibold sticky z-10 truncate"
-                      style={{ left: locationLeft, width: LOCATION_COL_WIDTH, minWidth: LOCATION_COL_WIDTH, maxWidth: LOCATION_COL_WIDTH, backgroundColor: rowColor || '#fff' }}
-                      title={proj.location || ''}
-                    >
-                      {proj.location || '—'}
+                      <span className="group-hover/row:hidden">{idx + 1}</span>
+                      {canEdit && (
+                        <button
+                          onClick={() => deleteRow(row.id)}
+                          className="hidden group-hover/row:inline-flex items-center justify-center text-gray-400 hover:text-rose-600 cursor-pointer"
+                          title="Delete row"
+                        >
+                          <Trash2 size={11} />
+                        </button>
+                      )}
                     </td>
 
                     {grid.columns.map(col => {
                       const w = columnWidth(col.name);
-                      const cellValue = grid.values[proj.id]?.[col.id] || '';
+                      const cellValue = row.cells[col.id] || '';
                       return (
-                        <td key={col.id} className="p-0" style={{ width: w, minWidth: w, maxWidth: w }}>
+                        <td key={col.id} className="p-0" style={{ width: w, minWidth: w, backgroundColor: row.color || undefined }}>
                           {canEdit ? (
                             <input
                               type="text"
-                              inputMode="numeric"
                               value={cellValue}
-                              onChange={(e) => updateCell(proj.id, col.id, e.target.value)}
+                              onChange={(e) => updateCell(row.id, col.id, e.target.value)}
+                              onPaste={(e) => handleCellPaste(e, row.id, col.id)}
                               placeholder="—"
+                              style={{ color: col.textColor || undefined }}
                               className="w-full text-xs font-bold text-gray-800 px-2.5 py-2.5 border border-transparent hover:border-gray-200 focus:border-indigo-400 rounded-lg focus:outline-hidden bg-transparent focus:bg-white transition"
                             />
                           ) : (
-                            <span className="block px-2.5 py-2.5 text-xs font-bold text-gray-800 truncate">
+                            <span className="block px-2.5 py-2.5 text-xs font-bold text-gray-800 truncate" style={{ color: col.textColor || undefined }}>
                               {cellValue || '—'}
                             </span>
                           )}
@@ -623,9 +844,7 @@ export default function UpdateRankingTable({ projects, isAdmin = false, grid, se
                     })}
 
                     {canEdit && <td></td>}
-                    {/* Filler cell: carries the row color out to the full
-                        width of the table, matching the header filler <th>. */}
-                    <td className="w-full" style={{ backgroundColor: rowColor || '#fff' }}></td>
+                    <td className="w-full" style={{ backgroundColor: row.color || undefined }}></td>
                   </tr>
                 );
               })}
