@@ -47,8 +47,8 @@ const uid = (prefix: string) => `${prefix}-${Date.now()}-${Math.random().toStrin
 
 const DEFAULT_COLUMN_DEFS: Array<{ id: string; name: string }> = [
   { id: 'col-project-name', name: 'Project Name' },
-  { id: 'col-location', name: 'Location' },
   { id: 'col-domain', name: 'Domain' },
+  { id: 'col-location', name: 'Location' },
 ];
 
 const DEFAULT_BLANK_ROWS = 12;
@@ -665,6 +665,18 @@ export default function UpdateRankingTable({
               <Plus size={12} /> Row
             </button>
           )}
+
+          {/* Add column - editors only. Sheets are unlimited in both directions,
+              so this is the columns counterpart to "+ Row" above. */}
+          {canEdit && (
+            <button
+              onClick={addColumn}
+              title="Add a new column"
+              className="flex items-center gap-1.5 text-xs font-bold border border-dashed border-indigo-300 text-indigo-600 rounded-xl px-2.5 py-2 cursor-pointer hover:bg-indigo-50 transition"
+            >
+              <Plus size={12} /> Column
+            </button>
+          )}
         </div>
       </div>
 
@@ -732,10 +744,20 @@ export default function UpdateRankingTable({
                   return (
                     <th
                       key={col.id}
-                      className="px-2.5 py-2 text-center sticky top-0 z-20 border border-slate-200 bg-slate-100"
-                      style={{ width: w, minWidth: w }}
+                      className="px-2.5 py-2 text-center sticky top-0 z-20 border border-slate-200 group/col"
+                      style={{ width: w, minWidth: w, backgroundColor: col.headerColor || undefined }}
+                      title={col.name}
                     >
-                      {columnLetter(colIdx)}
+                      <span className="group-hover/col:hidden">{columnLetter(colIdx)}</span>
+                      {canEdit && (
+                        <button
+                          onClick={() => deleteColumn(col.id)}
+                          className="hidden group-hover/col:inline-flex items-center justify-center text-gray-400 hover:text-rose-600 cursor-pointer mx-auto"
+                          title="Delete column"
+                        >
+                          <Trash2 size={11} />
+                        </button>
+                      )}
                     </th>
                   );
                 })}
