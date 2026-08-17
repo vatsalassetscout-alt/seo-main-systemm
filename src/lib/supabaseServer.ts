@@ -1043,14 +1043,14 @@ export async function clearRankingsDb(): Promise<boolean> {
 // MANUAL RANKINGS ("Update Ranking" grid) DB INTERACTION
 // =========================================================================
 
-export async function getManualRankingsDb(): Promise<any> {
+export async function getManualRankingsDb(userKey: string): Promise<any> {
   const sb = getSupabase();
-  if (sb) {
+  if (sb && userKey) {
     try {
       const { data, error } = await sb
         .from("manual_rankings")
         .select("*")
-        .eq("id", "latest")
+        .eq("id", `user:${userKey}`)
         .single();
 
       if (error) {
@@ -2040,12 +2040,12 @@ export async function getPendingSummaryAllUsersDb(
   });
 }
 
-export async function saveManualRankingsDb(gridData: any): Promise<boolean> {
+export async function saveManualRankingsDb(userKey: string, gridData: any): Promise<boolean> {
   const sb = getSupabase();
-  if (sb) {
+  if (sb && userKey) {
     try {
       const row = {
-        id: "latest",
+        id: `user:${userKey}`,
         data: gridData,
         created_at: new Date().toISOString()
       };
