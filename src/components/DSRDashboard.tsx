@@ -271,6 +271,28 @@ export default function DSRDashboard({
   // picked yet, so nothing is shown).
   const rankingTargetEmail = (isAdmin ? rankingViewUserEmail : (currentUserEmail || '')).trim().toLowerCase();
 
+  // The signed-in (or admin-picked) user's own projects, used to seed a
+  // brand-new sheet with real data instead of blank rows - same matching
+  // rules as the main userProjects list above, just keyed off whichever
+  // email the Update Ranking tab is currently pointed at.
+  const rankingTargetProjects = useMemo(() => {
+    if (!rankingTargetEmail) return [];
+    const nameLower = getUserDisplayName(rankingTargetEmail, allowedUsers).toLowerCase();
+    const prefix = rankingTargetEmail.split('@')[0];
+    return projects.filter((p) => {
+      if (p.userId && String(p.userId).trim().toLowerCase() === rankingTargetEmail) return true;
+      if (!p.users || !Array.isArray(p.users) || p.users.length === 0) return false;
+      return p.users.some((user: string) => {
+        const uLower = user.toLowerCase();
+        return uLower === rankingTargetEmail ||
+               uLower === nameLower ||
+               uLower === prefix ||
+               rankingTargetEmail.includes(uLower) ||
+               nameLower.includes(uLower);
+      });
+    });
+  }, [projects, rankingTargetEmail, allowedUsers]);
+
   useEffect(() => {
     if (!rankingTargetEmail) {
       setManualRankingGrid(createEmptySheet());
@@ -288,16 +310,16 @@ export default function DSRDashboard({
           const hasColumns = Array.isArray(data.columns) && data.columns.length > 0;
           const hasRows = Array.isArray(data.rows) && data.rows.length > 0;
           setManualRankingGrid(hasColumns || hasRows
-            ? { columns: hasColumns ? data.columns : createEmptySheet().columns, rows: hasRows ? data.rows : createEmptySheet().rows }
-            : createEmptySheet());
+            ? { columns: hasColumns ? data.columns : createEmptySheet(rankingTargetProjects).columns, rows: hasRows ? data.rows : createEmptySheet(rankingTargetProjects).rows }
+            : createEmptySheet(rankingTargetProjects));
         } else {
           console.error('Failed to load ranking sheet from Supabase: HTTP', res.status);
-          setManualRankingGrid(createEmptySheet());
+          setManualRankingGrid(createEmptySheet(rankingTargetProjects));
         }
       } catch (e) {
         if (!cancelled) {
           console.error('Failed to load ranking sheet from Supabase:', e);
-          setManualRankingGrid(createEmptySheet());
+          setManualRankingGrid(createEmptySheet(rankingTargetProjects));
         }
       } finally {
         if (!cancelled) setManualRankingLoading(false);
@@ -305,7 +327,7 @@ export default function DSRDashboard({
     };
     fetchManualRankings();
     return () => { cancelled = true; };
-  }, [rankingTargetEmail]);
+  }, [rankingTargetEmail, rankingTargetProjects]);
 
   // Employee lookup details
   const employeeEmailToNameMap = useMemo(() => {
