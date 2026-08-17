@@ -4,7 +4,7 @@
  */
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Plus, X, ArrowUpDown, Palette, Search, Check, Loader2, ChevronDown, Users, Trash2, Type } from 'lucide-react';
+import { Plus, X, ArrowUpDown, Palette, Search, Check, Loader2, ChevronDown, Users, Trash2 } from 'lucide-react';
 
 /* ==========================================================================
  * DATA MODEL
@@ -53,12 +53,58 @@ const DEFAULT_COLUMN_DEFS: Array<{ id: string; name: string }> = [
 
 const DEFAULT_BLANK_ROWS = 12;
 
-/** A brand-new, empty sheet: default columns + a page of blank rows, just like opening a fresh Google Sheet. */
-export function createEmptySheet(): ManualRankingGrid {
-  return {
-    columns: DEFAULT_COLUMN_DEFS.map(c => ({ id: c.id, name: c.name })),
-    rows: Array.from({ length: DEFAULT_BLANK_ROWS }, () => ({ id: uid('row'), cells: {} })),
+/** Minimal shape needed to seed a sheet row - matches the app-wide Project type. */
+interface SeedProject {
+  name?: string;
+  location?: string;
+  domain?: string;
+}
+
+/**
+ * A brand-new sheet: the 3 default columns, with row 1 holding the header
+ * text as plain cell data (exactly like a real spreadsheet - the column
+ * chrome above is just A/B/C, the actual "Project Name" label lives in
+ * the first data row) followed by one row per project passed in. If there
+ * are no projects yet, it's padded out with blank rows just like opening
+ * a fresh Google Sheet.
+ */
+export function createEmptySheet(projects: SeedProject[] = []): ManualRankingGrid {
+  const columns = DEFAULT_COLUMN_DEFS.map(c => ({ id: c.id, name: c.name }));
+
+  const headerRow: RankingRow = {
+    id: uid('row'),
+    cells: {
+      'col-project-name': 'Project Name',
+      'col-location': 'Location',
+      'col-domain': 'Domain',
+    },
   };
+
+  const projectRows: RankingRow[] = projects.map(p => ({
+    id: uid('row'),
+    cells: {
+      'col-project-name': p.name || '',
+      'col-location': p.location || '',
+      'col-domain': p.domain || '',
+    },
+  }));
+
+  const blankCount = Math.max(0, DEFAULT_BLANK_ROWS - projectRows.length);
+  const blankRows = Array.from({ length: blankCount }, () => ({ id: uid('row'), cells: {} }));
+
+  return { columns, rows: [headerRow, ...projectRows, ...blankRows] };
+}
+
+/** 0 -> A, 1 -> B, ... 25 -> Z, 26 -> AA, matching real spreadsheet column letters. */
+function columnLetter(index: number): string {
+  let n = index + 1;
+  let letters = '';
+  while (n > 0) {
+    const rem = (n - 1) % 26;
+    letters = String.fromCharCode(65 + rem) + letters;
+    n = Math.floor((n - 1) / 26);
+  }
+  return letters;
 }
 
 interface UpdateRankingTableProps {
@@ -672,117 +718,37 @@ export default function UpdateRankingTable({
       ) : (
         <div className="overflow-x-auto overflow-y-auto rounded-b-2xl mt-1 max-h-[560px]">
           <table className="text-left text-xs border-collapse w-full" style={{ tableLayout: 'fixed' }}>
-            <thead className="bg-slate-50/70 text-slate-500 font-extrabold text-[10px] uppercase border-b border-gray-150 sticky top-0 z-20">
+            <thead className="bg-slate-100 text-slate-500 font-bold text-[11px] sticky top-0 z-20">
               <tr>
-                {colorModeOn && <th className="px-2 py-3 sticky left-0 top-0 bg-slate-50 z-40" style={{ width: CHECKBOX_COL_WIDTH, minWidth: CHECKBOX_COL_WIDTH }}></th>}
+                {colorModeOn && <th className="px-2 py-2 sticky left-0 top-0 bg-slate-100 z-40 border border-slate-200"></th>}
+                {/* Plain row-number corner cell, same as a real spreadsheet's top-left corner block. */}
                 <th
-                  className="px-2 py-3 text-center sticky top-0 bg-slate-50 z-40"
+                  className="px-2 py-2 text-center sticky top-0 bg-slate-100 z-40 border border-slate-200"
                   style={{ left: colorModeOn ? CHECKBOX_COL_WIDTH : 0, width: SR_NO_COL_WIDTH, minWidth: SR_NO_COL_WIDTH }}
-                >
-                  #
-                </th>
+                ></th>
 
-                {grid.columns.map(col => {
+                {grid.columns.map((col, colIdx) => {
                   const w = columnWidth(col.name);
                   return (
                     <th
                       key={col.id}
-                      className="px-2.5 py-3 group/col relative sticky top-0 z-20"
-                      style={{ width: w, minWidth: w, backgroundColor: col.headerColor || '#f8fafc' }}
+                      className="px-2.5 py-2 text-center sticky top-0 z-20 border border-slate-200 bg-slate-100"
+                      style={{ width: w, minWidth: w }}
                     >
-                      <div className="flex items-center justify-between gap-1">
-                        {canEdit ? (
-                          <button
-                            onClick={() => renameColumn(col.id)}
-                            className="truncate text-left hover:text-indigo-600 cursor-pointer"
-                            style={{ color: col.textColor || undefined }}
-                            title="Click to rename column"
-                          >
-                            {col.name}
-                          </button>
-                        ) : (
-                          <span className="truncate" style={{ color: col.textColor || undefined }} title={col.name}>{col.name}</span>
-                        )}
-
-                        {canEdit && (
-                          <div className="flex items-center gap-0.5 opacity-0 group-hover/col:opacity-100 transition shrink-0">
-                            <div className="relative">
-                              <button
-                                onClick={() => setColorMenuColId(prev => prev === col.id ? null : col.id)}
-                                className="text-gray-400 hover:text-indigo-600 cursor-pointer"
-                                title="Column color / text color"
-                              >
-                                <Palette size={11} />
-                              </button>
-                              {colorMenuColId === col.id && (
-                                <div ref={colorMenuRef} className="absolute right-0 top-full mt-1.5 w-56 bg-white border border-gray-200 rounded-xl shadow-xl z-50 p-3 normal-case text-gray-700">
-                                  <p className="text-[10px] font-black text-gray-500 uppercase tracking-wider mb-1.5 flex items-center gap-1"><Palette size={10} /> Header color</p>
-                                  <div className="flex items-center gap-1 flex-wrap mb-3">
-                                    {COLOR_SWATCHES.slice(0, 12).map(sw => (
-                                      <button
-                                        key={sw.value}
-                                        title={sw.label}
-                                        onClick={() => setColumnColor(col.id, 'headerColor', sw.value)}
-                                        className="w-5 h-5 rounded-full border-2 border-white shadow-2xs cursor-pointer hover:scale-110 transition"
-                                        style={{ backgroundColor: sw.value }}
-                                      />
-                                    ))}
-                                  </div>
-                                  <p className="text-[10px] font-black text-gray-500 uppercase tracking-wider mb-1.5 flex items-center gap-1"><Type size={10} /> Text color</p>
-                                  <div className="flex items-center gap-1 flex-wrap mb-3">
-                                    {TEXT_COLOR_SWATCHES.map(sw => (
-                                      <button
-                                        key={sw.value}
-                                        title={sw.label}
-                                        onClick={() => setColumnColor(col.id, 'textColor', sw.value)}
-                                        className="w-5 h-5 rounded-full border-2 border-white shadow-2xs cursor-pointer hover:scale-110 transition"
-                                        style={{ backgroundColor: sw.value }}
-                                      />
-                                    ))}
-                                  </div>
-                                  <button
-                                    onClick={() => { clearColumnFormatting(col.id); setColorMenuColId(null); }}
-                                    className="text-[10px] font-bold text-gray-500 hover:text-rose-600 cursor-pointer"
-                                  >
-                                    Clear formatting
-                                  </button>
-                                </div>
-                              )}
-                            </div>
-                            <button
-                              onClick={() => deleteColumn(col.id)}
-                              className="text-gray-400 hover:text-rose-600 transition cursor-pointer"
-                              title="Remove column"
-                            >
-                              <X size={11} />
-                            </button>
-                          </div>
-                        )}
-                      </div>
+                      {columnLetter(colIdx)}
                     </th>
                   );
                 })}
 
-                {canEdit && (
-                  <th className="px-3 py-3 w-12 bg-slate-50 sticky top-0 z-20">
-                    <button
-                      onClick={addColumn}
-                      title="Add a new column"
-                      className="w-7 h-7 flex items-center justify-center rounded-lg border border-dashed border-indigo-300 text-indigo-600 hover:bg-indigo-50 cursor-pointer transition"
-                    >
-                      <Plus size={14} />
-                    </button>
-                  </th>
-                )}
-                {/* Filler column: soaks up remaining horizontal space so a
-                    colored row's background extends to the right edge. */}
-                <th className="w-full bg-slate-50 sticky top-0 z-20"></th>
+                {/* Filler column: soaks up remaining horizontal space so the
+                    letter-header row extends to the right edge, like Sheets. */}
+                <th className="w-full bg-slate-100 sticky top-0 z-20 border border-slate-200"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-150">
               {visibleRows.length === 0 ? (
                 <tr>
-                  <td colSpan={grid.columns.length + 3} className="p-12 text-center text-xs text-gray-500 font-bold">
+                  <td colSpan={grid.columns.length + 2} className="p-12 text-center text-xs text-gray-500 font-bold">
                     {searchTerm ? 'No rows match your search.' : (canEdit ? 'No rows yet - click "+ Row" to start.' : 'No rows yet.')}
                   </td>
                 </tr>
@@ -804,8 +770,8 @@ export default function UpdateRankingTable({
                       </td>
                     )}
                     <td
-                      className="px-1 py-2.5 text-center font-bold text-gray-400 sticky z-10"
-                      style={{ left: colorModeOn ? CHECKBOX_COL_WIDTH : 0, width: SR_NO_COL_WIDTH, minWidth: SR_NO_COL_WIDTH, backgroundColor: row.color || '#fff' }}
+                      className="px-1 py-2.5 text-center font-bold text-slate-500 sticky z-10 border border-slate-200 bg-slate-100"
+                      style={{ left: colorModeOn ? CHECKBOX_COL_WIDTH : 0, width: SR_NO_COL_WIDTH, minWidth: SR_NO_COL_WIDTH, backgroundColor: row.color || undefined }}
                     >
                       <span className="group-hover/row:hidden">{idx + 1}</span>
                       {canEdit && (
@@ -823,7 +789,7 @@ export default function UpdateRankingTable({
                       const w = columnWidth(col.name);
                       const cellValue = row.cells[col.id] || '';
                       return (
-                        <td key={col.id} className="p-0" style={{ width: w, minWidth: w, backgroundColor: row.color || undefined }}>
+                        <td key={col.id} className="p-0 border border-slate-200" style={{ width: w, minWidth: w, backgroundColor: row.color || undefined }}>
                           {canEdit ? (
                             <input
                               type="text"
@@ -843,7 +809,6 @@ export default function UpdateRankingTable({
                       );
                     })}
 
-                    {canEdit && <td></td>}
                     <td className="w-full" style={{ backgroundColor: row.color || undefined }}></td>
                   </tr>
                 );
