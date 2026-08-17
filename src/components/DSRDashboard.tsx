@@ -7,7 +7,7 @@ import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { DSREntry, Project, AppUser, ProjectLocation, CustomSubmissionType } from '../types';
 import { getUserDisplayName, isUserAdmin, doesUserMatch, numericIdCompare } from '../lib/userUtils';
 import { cleanDomain, domainHref } from '../lib/domain';
-import UpdateRankingTable, { ManualRankingGrid } from './UpdateRankingTable';
+import UpdateRankingTable, { ManualRankingGrid, createEmptySheet } from './UpdateRankingTable';
 import { 
   Calendar, 
   ClipboardCheck, 
@@ -254,40 +254,58 @@ export default function DSRDashboard({
     fetchRankings();
   }, []);
 
-  // Manual/Update Ranking grid - fetched once up front (same as rankings above)
-  // instead of inside UpdateRankingTable, so that tab shows data instantly
-  // instead of showing its own loading spinner every time it's opened.
-  //
-  // Supabase is the ONLY source of truth for this grid now - no localStorage
-  // cache anywhere. Always start empty and show a loading state until the
-  // real fetch from /api/manual-rankings (-> Supabase) resolves.
-  const [manualRankingGrid, setManualRankingGrid] = useState<ManualRankingGrid>({
-    columns: [], values: {}, rowColors: {}
-  });
-  const [manualRankingLoading, setManualRankingLoading] = useState(true);
+  // Update Ranking sheet - one independent, free-form Google-Sheets-style
+  // sheet PER USER. Regular users only ever see and edit their own sheet.
+  // Admins never see everyone's sheets mashed together here - they pick
+  // exactly one user from a dedicated single-select dropdown that lives
+  // inside the Update Ranking toolbar itself (see rankingViewUserEmail
+  // below). That picker is completely separate from the multi-select
+  // "Users" filter in the main filter block near Location - that filter
+  // has no effect on this section, and this section has no effect on it.
+  const [manualRankingGrid, setManualRankingGrid] = useState<ManualRankingGrid>(createEmptySheet());
+  const [manualRankingLoading, setManualRankingLoading] = useState(false);
+  const [rankingViewUserEmail, setRankingViewUserEmail] = useState<string>('');
+
+  // Whose sheet is actually being loaded/shown right now: always "yourself"
+  // for a regular user, or whoever the admin has picked (blank = nobody
+  // picked yet, so nothing is shown).
+  const rankingTargetEmail = (isAdmin ? rankingViewUserEmail : (currentUserEmail || '')).trim().toLowerCase();
 
   useEffect(() => {
+    if (!rankingTargetEmail) {
+      setManualRankingGrid(createEmptySheet());
+      setManualRankingLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setManualRankingLoading(true);
     const fetchManualRankings = async () => {
       try {
-        const res = await fetch('/api/manual-rankings');
+        const res = await fetch(`/api/manual-rankings?user=${encodeURIComponent(rankingTargetEmail)}`);
+        if (cancelled) return;
         if (res.ok) {
           const data = await res.json();
-          setManualRankingGrid({
-            columns: Array.isArray(data.columns) ? data.columns : [],
-            values: data.values && typeof data.values === 'object' ? data.values : {},
-            rowColors: data.rowColors && typeof data.rowColors === 'object' ? data.rowColors : {}
-          });
+          const hasColumns = Array.isArray(data.columns) && data.columns.length > 0;
+          const hasRows = Array.isArray(data.rows) && data.rows.length > 0;
+          setManualRankingGrid(hasColumns || hasRows
+            ? { columns: hasColumns ? data.columns : createEmptySheet().columns, rows: hasRows ? data.rows : createEmptySheet().rows }
+            : createEmptySheet());
         } else {
-          console.error('Failed to load ranking data from Supabase: HTTP', res.status);
+          console.error('Failed to load ranking sheet from Supabase: HTTP', res.status);
+          setManualRankingGrid(createEmptySheet());
         }
       } catch (e) {
-        console.error('Failed to load ranking data from Supabase:', e);
+        if (!cancelled) {
+          console.error('Failed to load ranking sheet from Supabase:', e);
+          setManualRankingGrid(createEmptySheet());
+        }
       } finally {
-        setManualRankingLoading(false);
+        if (!cancelled) setManualRankingLoading(false);
       }
     };
     fetchManualRankings();
-  }, []);
+    return () => { cancelled = true; };
+  }, [rankingTargetEmail]);
 
   // Employee lookup details
   const employeeEmailToNameMap = useMemo(() => {
@@ -3570,8 +3588,12 @@ export default function DSRDashboard({
 
         {activeTab === 'update_ranking' && (
           <UpdateRankingTable
-            projects={filteredProjectsForMetrics}
             isAdmin={isAdmin}
+            canEdit={!isAdmin}
+            currentUserEmail={rankingTargetEmail}
+            usersList={allUsersList}
+            selectedUserEmail={rankingViewUserEmail}
+            onSelectedUserChange={setRankingViewUserEmail}
             grid={manualRankingGrid}
             setGrid={setManualRankingGrid}
             isLoading={manualRankingLoading}
