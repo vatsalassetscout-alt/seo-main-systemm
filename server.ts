@@ -1531,28 +1531,40 @@ app.get("/api/rankings", async (req, res) => {
   }
 });
 
-// GET manual rankings grid ("Update Ranking" tab: dynamic columns, values, row colors)
+// GET a user's Update Ranking sheet - a free-form Google-Sheets-style grid
+// (dynamic columns, dynamic rows, per-column colors, per-row colors). Every
+// user has their own independent sheet, keyed by ?user=<email/id>, so
+// regular users only ever see their own and admins must explicitly ask for
+// one specific user's sheet (never everyone's mashed together).
 app.get("/api/manual-rankings", async (req, res) => {
   try {
-    const grid = await getManualRankingsDb();
-    res.json(grid && Object.keys(grid).length ? grid : { columns: [], values: {}, rowColors: {} });
+    const userKey = String(req.query.user || "").trim().toLowerCase();
+    if (!userKey) {
+      return res.json({ columns: [], rows: [] });
+    }
+    const grid = await getManualRankingsDb(userKey);
+    const ok = grid && (Array.isArray(grid.columns) || Array.isArray(grid.rows));
+    res.json(ok ? grid : { columns: [], rows: [] });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// POST manual rankings grid (full overwrite - saves columns, values, and row colors together)
+// POST a user's Update Ranking sheet (full overwrite - columns + rows together)
 app.post("/api/manual-rankings", async (req, res) => {
   try {
-    const { columns, values, rowColors } = req.body || {};
+    const { user, columns, rows } = req.body || {};
+    const userKey = String(user || "").trim().toLowerCase();
+    if (!userKey) {
+      return res.status(400).json({ error: "Missing user." });
+    }
     const grid = {
       columns: Array.isArray(columns) ? columns : [],
-      values: values && typeof values === 'object' ? values : {},
-      rowColors: rowColors && typeof rowColors === 'object' ? rowColors : {}
+      rows: Array.isArray(rows) ? rows : []
     };
-    const ok = await saveManualRankingsDb(grid);
+    const ok = await saveManualRankingsDb(userKey, grid);
     if (!ok) {
-      return res.status(500).json({ error: "Failed to save manual rankings grid." });
+      return res.status(500).json({ error: "Failed to save the ranking sheet." });
     }
     res.json({ success: true, ...grid });
   } catch (err: any) {
