@@ -354,17 +354,6 @@ export default function UpdateRankingTable({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [sortPanelOpen, colorMenuColId, userPickerOpen, blockPanelOpen, freezePanelOpen]);
 
-  // Measure actual rendered row heights so frozen rows can be pinned at the
-  // right pixel offset (header height, then each frozen row stacked below it).
-  useLayoutEffect(() => {
-    const offsets: number[] = [headerRowElRef.current?.getBoundingClientRect().height || 34];
-    for (let i = 0; i < frozenRows; i++) {
-      const el = frozenRowElRefs.current[i];
-      offsets.push(offsets[offsets.length - 1] + (el?.getBoundingClientRect().height || 37));
-    }
-    setRowTopOffsets(offsets);
-  }, [frozenRows, grid.columns.length, visibleRows.length]);
-
   /* ---------------------------- column ops ---------------------------- */
 
   const addColumn = () => {
@@ -547,6 +536,17 @@ export default function UpdateRankingTable({
     }
     return list;
   }, [grid.rows, searchTerm, sortColumnId, sortDirection]);
+
+  // Measure actual rendered row heights so frozen rows can be pinned at the
+  // right pixel offset (header height, then each frozen row stacked below it).
+  useLayoutEffect(() => {
+    const offsets: number[] = [headerRowElRef.current?.getBoundingClientRect().height || 34];
+    for (let i = 0; i < frozenRows; i++) {
+      const el = frozenRowElRefs.current[i];
+      offsets.push(offsets[offsets.length - 1] + (el?.getBoundingClientRect().height || 37));
+    }
+    setRowTopOffsets(offsets);
+  }, [frozenRows, grid.columns.length, visibleRows.length]);
 
   // Left-offset (px) of each data column, for pinning frozen columns during
   // horizontal scroll. Starts after the sticky row-number (+ checkbox) gutter.
