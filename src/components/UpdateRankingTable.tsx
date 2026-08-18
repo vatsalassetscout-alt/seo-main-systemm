@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Plus, X, ArrowUpDown, Palette, Search, Check, Loader2, ChevronDown, Users, Trash2 } from 'lucide-react';
 
 /* ==========================================================================
@@ -29,8 +29,12 @@ export interface RankingRow {
   id: string;
   /** columnId -> cell text. Missing key = empty cell. */
   cells: Record<string, string>;
-  /** Row highlight color (the existing "color tag" feature). */
+  /** Row highlight color (the existing "color tag" feature - colors the whole row). */
   color?: string;
+  /** columnId -> color for one specific cell. Used by "Color Block" to paint a
+      rectangular range (section + N rows + N columns) instead of a full row.
+      Takes priority over `color` when both are set on the same cell. */
+  cellColors?: Record<string, string>;
 }
 
 export interface ManualRankingGrid {
@@ -51,7 +55,13 @@ const DEFAULT_COLUMN_DEFS: Array<{ id: string; name: string }> = [
   { id: 'col-location', name: 'Location' },
 ];
 
-const DEFAULT_BLANK_ROWS = 12;
+// A brand-new sheet always opens with columns A -> AZ (52 total, same as the
+// first screen of a fresh Google Sheet) and 500 rows, regardless of how many
+// projects are seeded in. The first 3 columns keep their real names above;
+// the rest are blank spreadsheet columns until the user renames them.
+const DEFAULT_TOTAL_COLUMNS = 52; // A..Z, AA..AZ
+const DEFAULT_TOTAL_ROWS = 500;
+const DEFAULT_BLANK_ROWS = DEFAULT_TOTAL_ROWS;
 
 /** Minimal shape needed to seed a sheet row - matches the app-wide Project type. */
 interface SeedProject {
@@ -70,6 +80,10 @@ interface SeedProject {
  */
 export function createEmptySheet(projects: SeedProject[] = []): ManualRankingGrid {
   const columns = DEFAULT_COLUMN_DEFS.map(c => ({ id: c.id, name: c.name }));
+  // Pad out to A..AZ with blank, unnamed spreadsheet columns.
+  while (columns.length < DEFAULT_TOTAL_COLUMNS) {
+    columns.push({ id: uid('col'), name: '' });
+  }
 
   const headerRow: RankingRow = {
     id: uid('row'),
@@ -89,7 +103,7 @@ export function createEmptySheet(projects: SeedProject[] = []): ManualRankingGri
     },
   }));
 
-  const blankCount = Math.max(0, DEFAULT_BLANK_ROWS - projectRows.length);
+  const blankCount = Math.max(0, DEFAULT_BLANK_ROWS - 1 - projectRows.length);
   const blankRows = Array.from({ length: blankCount }, () => ({ id: uid('row'), cells: {} }));
 
   return { columns, rows: [headerRow, ...projectRows, ...blankRows] };
@@ -232,6 +246,26 @@ export default function UpdateRankingTable({
   const [colorMenuColId, setColorMenuColId] = useState<string | null>(null);
   const colorMenuRef = useRef<HTMLDivElement | null>(null);
 
+  // Block color: paint a rectangular range - "section" (start row + start
+  // column) + how many rows/columns the block covers - a single color.
+  const [blockPanelOpen, setBlockPanelOpen] = useState(false);
+  const blockPanelRef = useRef<HTMLDivElement | null>(null);
+  const [blockStartRow, setBlockStartRow] = useState(1);
+  const [blockStartColIdx, setBlockStartColIdx] = useState(0);
+  const [blockRowCount, setBlockRowCount] = useState(1);
+  const [blockColCount, setBlockColCount] = useState(1);
+  const [blockColor, setBlockColor] = useState('#fef3c7');
+
+  // Freeze panes: pin the first N columns (stays put while X-scrolling) and/or
+  // the first N data rows (stays put while Y-scrolling), Google-Sheets style.
+  const [freezePanelOpen, setFreezePanelOpen] = useState(false);
+  const freezePanelRef = useRef<HTMLDivElement | null>(null);
+  const [frozenCols, setFrozenCols] = useState(0);
+  const [frozenRows, setFrozenRows] = useState(0);
+  const [rowTopOffsets, setRowTopOffsets] = useState<number[]>([]); // [0] = header height, [i] = top for frozen data row i-1
+  const headerRowElRef = useRef<HTMLTableRowElement | null>(null);
+  const frozenRowElRefs = useRef<Record<number, HTMLTableRowElement | null>>({});
+
   // Admin-only "which user's sheet" picker
   const [userPickerOpen, setUserPickerOpen] = useState(false);
   const [userPickerSearch, setUserPickerSearch] = useState('');
@@ -309,10 +343,27 @@ export default function UpdateRankingTable({
       if (userPickerOpen && userPickerRef.current && !userPickerRef.current.contains(e.target as Node)) {
         setUserPickerOpen(false);
       }
+      if (blockPanelOpen && blockPanelRef.current && !blockPanelRef.current.contains(e.target as Node)) {
+        setBlockPanelOpen(false);
+      }
+      if (freezePanelOpen && freezePanelRef.current && !freezePanelRef.current.contains(e.target as Node)) {
+        setFreezePanelOpen(false);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [sortPanelOpen, colorMenuColId, userPickerOpen]);
+  }, [sortPanelOpen, colorMenuColId, userPickerOpen, blockPanelOpen, freezePanelOpen]);
+
+  // Measure actual rendered row heights so frozen rows can be pinned at the
+  // right pixel offset (header height, then each frozen row stacked below it).
+  useLayoutEffect(() => {
+    const offsets: number[] = [headerRowElRef.current?.getBoundingClientRect().height || 34];
+    for (let i = 0; i < frozenRows; i++) {
+      const el = frozenRowElRefs.current[i];
+      offsets.push(offsets[offsets.length - 1] + (el?.getBoundingClientRect().height || 37));
+    }
+    setRowTopOffsets(offsets);
+  }, [frozenRows, grid.columns.length, visibleRows.length]);
 
   /* ---------------------------- column ops ---------------------------- */
 
@@ -456,6 +507,33 @@ export default function UpdateRankingTable({
     setSelectedRowIds({});
   };
 
+  /* ---------------------------- block color ------------------------------
+   * Paints a rectangular range: starting cell ("section" = start row #
+   * + start column) plus how many rows/columns the block spans. Applies to
+   * the base (unsorted, unfiltered) sheet order, same as real row numbers. */
+
+  const applyBlockColor = (color: string | undefined) => {
+    if (!canEdit) return;
+    const startRowIdx = Math.max(0, blockStartRow - 1);
+    const startColIdx = Math.max(0, Math.min(blockStartColIdx, grid.columns.length - 1));
+    const rowSpan = Math.max(1, blockRowCount);
+    const colSpan = Math.max(1, blockColCount);
+
+    setGrid(prev => {
+      const targetColIds = prev.columns.slice(startColIdx, startColIdx + colSpan).map(c => c.id);
+      const rows = prev.rows.map((r, idx) => {
+        if (idx < startRowIdx || idx >= startRowIdx + rowSpan) return r;
+        const cellColors = { ...(r.cellColors || {}) };
+        targetColIds.forEach(colId => {
+          if (color) cellColors[colId] = color;
+          else delete cellColors[colId];
+        });
+        return { ...r, cellColors };
+      });
+      return { ...prev, rows };
+    });
+  };
+
   /* --------------------------- derived state ---------------------------- */
 
   const visibleRows = useMemo(() => {
@@ -470,8 +548,24 @@ export default function UpdateRankingTable({
     return list;
   }, [grid.rows, searchTerm, sortColumnId, sortDirection]);
 
+  // Left-offset (px) of each data column, for pinning frozen columns during
+  // horizontal scroll. Starts after the sticky row-number (+ checkbox) gutter.
+  const colLeftBase = (colorModeOn ? CHECKBOX_COL_WIDTH : 0) + SR_NO_COL_WIDTH;
+  const colLeftOffsets = useMemo(() => {
+    let acc = colLeftBase;
+    return grid.columns.map(c => {
+      const left = acc;
+      acc += columnWidth(c.name);
+      return left;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [grid.columns, colLeftBase]);
+
   const selectedCount = Object.values(selectedRowIds).filter(Boolean).length;
-  const activeSortColumnName = grid.columns.find(c => c.id === sortColumnId)?.name;
+  const activeSortColIdx = grid.columns.findIndex(c => c.id === sortColumnId);
+  const activeSortColumnName = activeSortColIdx === -1
+    ? undefined
+    : (grid.columns[activeSortColIdx].name || `Col ${columnLetter(activeSortColIdx)}`);
 
   const selectedUserOption = useMemo(
     () => usersList.find(u => u.emails.includes(selectedUserEmail)),
@@ -616,7 +710,7 @@ export default function UpdateRankingTable({
                   </p>
                 ) : (
                   <div className="flex flex-col gap-1.5">
-                    {grid.columns.map(col => (
+                    {grid.columns.map((col, colIdx) => (
                       <label key={col.id} className="flex items-center gap-2 text-xs font-semibold text-gray-700 cursor-pointer hover:bg-gray-50 rounded-lg px-1.5 py-1">
                         <input
                           type="checkbox"
@@ -624,7 +718,7 @@ export default function UpdateRankingTable({
                           onChange={() => chooseSortColumn(col.id)}
                           className="cursor-pointer"
                         />
-                        <span className="truncate">{col.name}</span>
+                        <span className="truncate">{col.name || `Column ${columnLetter(colIdx)}`}</span>
                       </label>
                     ))}
                   </div>
@@ -654,6 +748,149 @@ export default function UpdateRankingTable({
               Color Tag {colorModeOn ? 'On' : ''}
             </button>
           )}
+
+          {/* Block color - color a rectangular range (section + rows + columns),
+              instead of the whole row like "Color Tag" above. Editors only. */}
+          {canEdit && (
+            <div className="relative" ref={blockPanelRef}>
+              <button
+                onClick={() => setBlockPanelOpen(v => !v)}
+                className={`flex items-center gap-1.5 text-xs font-bold border rounded-xl px-2.5 py-2 cursor-pointer transition ${
+                  blockPanelOpen ? 'bg-indigo-600 border-indigo-700 text-white' : 'bg-white border-gray-200 hover:bg-gray-50 text-gray-700'
+                }`}
+              >
+                <Palette size={12} />
+                Color Block
+                <ChevronDown size={12} />
+              </button>
+
+              {blockPanelOpen && (
+                <div className="absolute right-0 top-full mt-1.5 w-72 max-w-[90vw] bg-white border border-gray-200 rounded-xl shadow-xl z-50 p-3">
+                  <p className="text-[10px] font-black text-gray-500 uppercase tracking-wider mb-2">Section (start cell)</p>
+                  <div className="grid grid-cols-2 gap-2 mb-3">
+                    <label className="text-[10px] font-bold text-gray-600">
+                      Start row
+                      <input
+                        type="number" min={1}
+                        value={blockStartRow}
+                        onChange={(e) => setBlockStartRow(Math.max(1, parseInt(e.target.value) || 1))}
+                        className="mt-1 w-full text-xs font-bold px-2 py-1.5 border border-gray-200 rounded-lg focus:outline-hidden focus:ring-1 focus:ring-indigo-500"
+                      />
+                    </label>
+                    <label className="text-[10px] font-bold text-gray-600">
+                      Start column
+                      <select
+                        value={blockStartColIdx}
+                        onChange={(e) => setBlockStartColIdx(parseInt(e.target.value))}
+                        className="mt-1 w-full text-xs font-bold px-2 py-1.5 border border-gray-200 rounded-lg focus:outline-hidden focus:ring-1 focus:ring-indigo-500"
+                      >
+                        {grid.columns.map((col, idx) => (
+                          <option key={col.id} value={idx}>{columnLetter(idx)}{col.name ? ` · ${col.name}` : ''}</option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
+
+                  <p className="text-[10px] font-black text-gray-500 uppercase tracking-wider mb-2">Number of blocks (size)</p>
+                  <div className="grid grid-cols-2 gap-2 mb-3">
+                    <label className="text-[10px] font-bold text-gray-600">
+                      Rows
+                      <input
+                        type="number" min={1}
+                        value={blockRowCount}
+                        onChange={(e) => setBlockRowCount(Math.max(1, parseInt(e.target.value) || 1))}
+                        className="mt-1 w-full text-xs font-bold px-2 py-1.5 border border-gray-200 rounded-lg focus:outline-hidden focus:ring-1 focus:ring-indigo-500"
+                      />
+                    </label>
+                    <label className="text-[10px] font-bold text-gray-600">
+                      Columns
+                      <input
+                        type="number" min={1}
+                        value={blockColCount}
+                        onChange={(e) => setBlockColCount(Math.max(1, parseInt(e.target.value) || 1))}
+                        className="mt-1 w-full text-xs font-bold px-2 py-1.5 border border-gray-200 rounded-lg focus:outline-hidden focus:ring-1 focus:ring-indigo-500"
+                      />
+                    </label>
+                  </div>
+
+                  <p className="text-[10px] font-black text-gray-500 uppercase tracking-wider mb-2">Color</p>
+                  <div className="flex items-center gap-1.5 flex-wrap mb-3">
+                    {COLOR_SWATCHES.map(sw => (
+                      <button
+                        key={sw.value}
+                        title={sw.label}
+                        onClick={() => setBlockColor(sw.value)}
+                        className={`w-6 h-6 rounded-full border-2 shadow-2xs cursor-pointer hover:scale-110 transition ${blockColor === sw.value ? 'border-indigo-500' : 'border-white'}`}
+                        style={{ backgroundColor: sw.value }}
+                      />
+                    ))}
+                    <input
+                      type="color"
+                      value={blockColor}
+                      onChange={(e) => setBlockColor(e.target.value)}
+                      title="Pick a custom color"
+                      className="w-6 h-6 rounded-full border-2 border-white shadow-2xs cursor-pointer overflow-hidden p-0"
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => applyBlockColor(blockColor)}
+                      className="flex-1 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-2 py-1.5 cursor-pointer transition"
+                    >
+                      Apply
+                    </button>
+                    <button
+                      onClick={() => applyBlockColor(undefined)}
+                      className="text-xs font-bold text-gray-500 hover:text-rose-600 px-2 py-1.5 rounded-lg cursor-pointer transition"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Freeze panes - pin the first N columns and/or first N data rows so
+              they stay put while scrolling (X-scroll for columns, Y for rows). */}
+          <div className="relative" ref={freezePanelRef}>
+            <button
+              onClick={() => setFreezePanelOpen(v => !v)}
+              className={`flex items-center gap-1.5 text-xs font-bold border rounded-xl px-2.5 py-2 cursor-pointer transition ${
+                (frozenCols > 0 || frozenRows > 0) ? 'bg-indigo-600 border-indigo-700 text-white' : 'bg-white border-gray-200 hover:bg-gray-50 text-gray-700'
+              }`}
+            >
+              <ArrowUpDown size={12} />
+              {(frozenCols > 0 || frozenRows > 0) ? `Frozen ${frozenCols}c/${frozenRows}r` : 'Freeze'}
+              <ChevronDown size={12} />
+            </button>
+
+            {freezePanelOpen && (
+              <div className="absolute right-0 top-full mt-1.5 w-64 max-w-[85vw] bg-white border border-gray-200 rounded-xl shadow-xl z-50 p-3">
+                <p className="text-[10px] font-black text-gray-500 uppercase tracking-wider mb-2">Fix columns (from left)</p>
+                <input
+                  type="number" min={0} max={grid.columns.length}
+                  value={frozenCols}
+                  onChange={(e) => setFrozenCols(Math.max(0, Math.min(grid.columns.length, parseInt(e.target.value) || 0)))}
+                  className="w-full mb-3 text-xs font-bold px-2 py-1.5 border border-gray-200 rounded-lg focus:outline-hidden focus:ring-1 focus:ring-indigo-500"
+                />
+                <p className="text-[10px] font-black text-gray-500 uppercase tracking-wider mb-2">Fix rows (from top, below header)</p>
+                <input
+                  type="number" min={0} max={visibleRows.length}
+                  value={frozenRows}
+                  onChange={(e) => setFrozenRows(Math.max(0, Math.min(visibleRows.length, parseInt(e.target.value) || 0)))}
+                  className="w-full mb-3 text-xs font-bold px-2 py-1.5 border border-gray-200 rounded-lg focus:outline-hidden focus:ring-1 focus:ring-indigo-500"
+                />
+                <button
+                  onClick={() => { setFrozenCols(0); setFrozenRows(0); }}
+                  className="text-[10px] font-bold text-gray-500 hover:text-rose-600 cursor-pointer"
+                >
+                  Unfreeze all
+                </button>
+              </div>
+            )}
+          </div>
 
           {/* Add row - editors only */}
           {canEdit && (
@@ -731,7 +968,7 @@ export default function UpdateRankingTable({
         <div className="overflow-x-auto overflow-y-auto rounded-b-2xl mt-1 max-h-[560px]">
           <table className="text-left text-xs border-collapse w-full" style={{ tableLayout: 'fixed' }}>
             <thead className="bg-slate-100 text-slate-500 font-bold text-[11px] sticky top-0 z-20">
-              <tr>
+              <tr ref={headerRowElRef}>
                 {colorModeOn && <th className="px-2 py-2 sticky left-0 top-0 bg-slate-100 z-40 border border-slate-200"></th>}
                 {/* Plain row-number corner cell, same as a real spreadsheet's top-left corner block. */}
                 <th
@@ -741,11 +978,16 @@ export default function UpdateRankingTable({
 
                 {grid.columns.map((col, colIdx) => {
                   const w = columnWidth(col.name);
+                  const isFrozenCol = colIdx < frozenCols;
                   return (
                     <th
                       key={col.id}
-                      className="px-2.5 py-2 text-center sticky top-0 z-20 border border-slate-200 group/col"
-                      style={{ width: w, minWidth: w, backgroundColor: col.headerColor || undefined }}
+                      className={`px-2.5 py-2 text-center sticky top-0 border border-slate-200 group/col ${isFrozenCol ? 'z-30' : 'z-20'} ${!col.headerColor ? 'bg-slate-100' : ''}`}
+                      style={{
+                        width: w, minWidth: w,
+                        backgroundColor: col.headerColor || undefined,
+                        ...(isFrozenCol ? { left: colLeftOffsets[colIdx] } : {}),
+                      }}
                       title={col.name}
                     >
                       <span className="group-hover/col:hidden">{columnLetter(colIdx)}</span>
@@ -776,12 +1018,20 @@ export default function UpdateRankingTable({
                 </tr>
               ) : visibleRows.map((row, idx) => {
                 const isChecked = !!selectedRowIds[row.id];
+                const isFrozenRow = idx < frozenRows;
+                const rowTop = isFrozenRow ? (rowTopOffsets[idx + 1] ?? rowTopOffsets[0] ?? 0) : undefined;
+                const rowStickyStyle = isFrozenRow ? { position: 'sticky' as const, top: rowTop, zIndex: 15 } : undefined;
                 return (
-                  <tr key={row.id} style={row.color ? { backgroundColor: row.color } : undefined} className="hover:bg-slate-50/60 transition group/row">
+                  <tr
+                    key={row.id}
+                    ref={isFrozenRow ? (el) => { frozenRowElRefs.current[idx] = el; } : undefined}
+                    style={row.color && !isFrozenRow ? { backgroundColor: row.color } : undefined}
+                    className="hover:bg-slate-50/60 transition group/row"
+                  >
                     {colorModeOn && (
                       <td
-                        className="px-2 py-2.5 sticky left-0 z-10"
-                        style={{ width: CHECKBOX_COL_WIDTH, minWidth: CHECKBOX_COL_WIDTH, backgroundColor: row.color || '#fff' }}
+                        className="px-2 py-2.5 sticky left-0"
+                        style={{ width: CHECKBOX_COL_WIDTH, minWidth: CHECKBOX_COL_WIDTH, backgroundColor: row.color || '#fff', ...rowStickyStyle, zIndex: isFrozenRow ? 25 : 10 }}
                       >
                         <input
                           type="checkbox"
@@ -792,8 +1042,13 @@ export default function UpdateRankingTable({
                       </td>
                     )}
                     <td
-                      className="px-1 py-2.5 text-center font-bold text-slate-500 sticky z-10 border border-slate-200 bg-slate-100"
-                      style={{ left: colorModeOn ? CHECKBOX_COL_WIDTH : 0, width: SR_NO_COL_WIDTH, minWidth: SR_NO_COL_WIDTH, backgroundColor: row.color || undefined }}
+                      className="px-1 py-2.5 text-center font-bold text-slate-500 sticky border border-slate-200 bg-slate-100"
+                      style={{
+                        left: colorModeOn ? CHECKBOX_COL_WIDTH : 0,
+                        width: SR_NO_COL_WIDTH, minWidth: SR_NO_COL_WIDTH,
+                        backgroundColor: row.color || '#f1f5f9',
+                        ...rowStickyStyle, zIndex: isFrozenRow ? 25 : 10,
+                      }}
                     >
                       <span className="group-hover/row:hidden">{idx + 1}</span>
                       {canEdit && (
@@ -807,11 +1062,24 @@ export default function UpdateRankingTable({
                       )}
                     </td>
 
-                    {grid.columns.map(col => {
+                    {grid.columns.map((col, colIdx) => {
                       const w = columnWidth(col.name);
                       const cellValue = row.cells[col.id] || '';
+                      const blockColorForCell = row.cellColors?.[col.id];
+                      const cellBg = blockColorForCell || row.color || undefined;
+                      const isFrozenCol = colIdx < frozenCols;
                       return (
-                        <td key={col.id} className="p-0 border border-slate-200" style={{ width: w, minWidth: w, backgroundColor: row.color || undefined }}>
+                        <td
+                          key={col.id}
+                          className={`p-0 border border-slate-200 ${isFrozenCol ? 'sticky' : ''}`}
+                          style={{
+                            width: w, minWidth: w,
+                            backgroundColor: (isFrozenCol || isFrozenRow) ? (cellBg || '#fff') : cellBg,
+                            ...(isFrozenCol ? { left: colLeftOffsets[colIdx] } : {}),
+                            ...rowStickyStyle,
+                            zIndex: isFrozenCol && isFrozenRow ? 26 : isFrozenCol ? 12 : isFrozenRow ? 15 : undefined,
+                          }}
+                        >
                           {canEdit ? (
                             <input
                               type="text"
@@ -831,7 +1099,7 @@ export default function UpdateRankingTable({
                       );
                     })}
 
-                    <td className="w-full" style={{ backgroundColor: row.color || undefined }}></td>
+                    <td className="w-full" style={{ backgroundColor: isFrozenRow ? (row.color || '#fff') : (row.color || undefined), ...rowStickyStyle }}></td>
                   </tr>
                 );
               })}
