@@ -61,7 +61,6 @@ const DEFAULT_COLUMN_DEFS: Array<{ id: string; name: string }> = [
 // the rest are blank spreadsheet columns until the user renames them.
 const DEFAULT_TOTAL_COLUMNS = 52; // A..Z, AA..AZ
 const DEFAULT_TOTAL_ROWS = 500;
-const DEFAULT_BLANK_ROWS = DEFAULT_TOTAL_ROWS;
 
 /** Minimal shape needed to seed a sheet row - matches the app-wide Project type. */
 interface SeedProject {
@@ -80,10 +79,6 @@ interface SeedProject {
  */
 export function createEmptySheet(projects: SeedProject[] = []): ManualRankingGrid {
   const columns = DEFAULT_COLUMN_DEFS.map(c => ({ id: c.id, name: c.name }));
-  // Pad out to A..AZ with blank, unnamed spreadsheet columns.
-  while (columns.length < DEFAULT_TOTAL_COLUMNS) {
-    columns.push({ id: uid('col'), name: '' });
-  }
 
   const headerRow: RankingRow = {
     id: uid('row'),
@@ -103,10 +98,26 @@ export function createEmptySheet(projects: SeedProject[] = []): ManualRankingGri
     },
   }));
 
-  const blankCount = Math.max(0, DEFAULT_BLANK_ROWS - 1 - projectRows.length);
-  const blankRows = Array.from({ length: blankCount }, () => ({ id: uid('row'), cells: {} }));
+  return padSheetToDefaults({ columns, rows: [headerRow, ...projectRows] });
+}
 
-  return { columns, rows: [headerRow, ...projectRows, ...blankRows] };
+/**
+ * Pads an ALREADY-LOADED sheet (e.g. one fetched from Supabase that was
+ * saved back when the default was only 3 columns / 12 rows) up to the
+ * current A -> AZ / 500-row default, without touching any existing data.
+ * Safe to call on every load - if the sheet is already big enough it's a
+ * no-op copy.
+ */
+export function padSheetToDefaults(grid: ManualRankingGrid): ManualRankingGrid {
+  const columns = [...grid.columns];
+  while (columns.length < DEFAULT_TOTAL_COLUMNS) {
+    columns.push({ id: uid('col'), name: '' });
+  }
+  const rows = [...grid.rows];
+  while (rows.length < DEFAULT_TOTAL_ROWS) {
+    rows.push({ id: uid('row'), cells: {} });
+  }
+  return { columns, rows };
 }
 
 /** 0 -> A, 1 -> B, ... 25 -> Z, 26 -> AA, matching real spreadsheet column letters. */
