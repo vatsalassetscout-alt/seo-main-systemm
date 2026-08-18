@@ -23,6 +23,8 @@ export interface RankingColumn {
   headerColor?: string;
   /** Text color applied to every cell in this column. */
   textColor?: string;
+  /** User-resized column width in px (drag the header edge, Google-Sheets style). Falls back to the auto-computed width when unset. */
+  width?: number;
 }
 
 export interface RankingRow {
@@ -282,6 +284,40 @@ export default function UpdateRankingTable({
   const [userPickerSearch, setUserPickerSearch] = useState('');
   const userPickerRef = useRef<HTMLDivElement | null>(null);
 
+  // Column resize (drag the right edge of a header cell, Google-Sheets style).
+  // Kept as local state during the drag itself so only the visible rows
+  // repaint on every pixel of movement instead of the whole 500-row grid;
+  // committed into grid.columns[].width (and therefore autosaved) on mouseup.
+  const [colWidths, setColWidths] = useState<Record<string, number>>({});
+
+  // Click-and-drag range selection across cells, like Sheets/Excel. Indices
+  // are positions into the CURRENTLY VISIBLE rows/columns, not row/col ids -
+  // selection is a session-only UI aid (for highlighting + copy), not saved.
+  const [selStart, setSelStart] = useState<{ r: number; c: number } | null>(null);
+  const [selEnd, setSelEnd] = useState<{ r: number; c: number } | null>(null);
+  const isSelectingRef = useRef(false);
+
+  // Row virtualization: with up to 500 rows x 52 columns (26,000 input
+  // boxes), rendering every cell up front is what was tanking page speed
+  // in this section. Only the rows actually scrolled into view (plus a
+  // small overscan buffer) are mounted; the rest are represented by two
+  // lightweight spacer rows so the scrollbar height stays correct.
+  const VIEWPORT_HEIGHT = 560; // matches the max-h-[560px] scroll container below
+  const ROW_OVERSCAN = 10;
+  const [rowHeight, setRowHeight] = useState(37);
+  const [scrollTop, setScrollTop] = useState(0);
+  const scrollRafRef = useRef<number | null>(null);
+  const firstScrollableRowRef = useRef<HTMLTableRowElement | null>(null);
+
+  const handleGridScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const top = e.currentTarget.scrollTop;
+    if (scrollRafRef.current != null) return; // already have a frame queued, skip
+    scrollRafRef.current = requestAnimationFrame(() => {
+      scrollRafRef.current = null;
+      setScrollTop(top);
+    });
+  };
+
   const skipNextAutoSave = useRef(true);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const gridRef = useRef(grid);
@@ -414,6 +450,36 @@ export default function UpdateRankingTable({
     }));
   };
 
+  /** Effective width for a column: live drag value > saved width > auto-computed default. */
+  const getColWidth = (col: RankingColumn): number => colWidths[col.id] ?? col.width ?? columnWidth(col.name);
+
+  // Drag-to-resize a column, like grabbing the edge of a header in Sheets.
+  // Live width changes stay in local `colWidths` state (cheap - only the
+  // visible/virtualized rows re-render); the final width is written into
+  // grid.columns once on mouseup so it persists via the normal autosave.
+  const handleColumnResizeStart = (e: React.MouseEvent, colId: string, currentWidth: number) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const startX = e.clientX;
+    const onMove = (ev: MouseEvent) => {
+      const next = Math.max(60, Math.min(600, currentWidth + (ev.clientX - startX)));
+      setColWidths(prev => ({ ...prev, [colId]: next }));
+    };
+    const onUp = () => {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      setColWidths(prev => {
+        const finalWidth = prev[colId];
+        if (finalWidth != null && canEdit) {
+          setGrid(g => ({ ...g, columns: g.columns.map(c => c.id === colId ? { ...c, width: finalWidth } : c) }));
+        }
+        return prev;
+      });
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  };
+
   /* ------------------------------ row ops ------------------------------ */
 
   const addRow = () => {
@@ -534,6 +600,39 @@ export default function UpdateRankingTable({
     });
   };
 
+  /* ----------------------- click-drag range selection --------------------
+   * Mirrors Sheets/Excel: mousedown on a cell starts a selection, dragging
+   * (mouseenter) over other cells stretches it into a rectangle, mouseup
+   * (anywhere) ends the drag. Ctrl/Cmd+C on a multi-cell selection copies
+   * it as a tab/newline block, same shape Sheets puts on the clipboard. */
+
+  const beginSelect = (r: number, c: number) => {
+    isSelectingRef.current = true;
+    setSelStart({ r, c });
+    setSelEnd({ r, c });
+  };
+  const extendSelect = (r: number, c: number) => {
+    if (isSelectingRef.current) setSelEnd({ r, c });
+  };
+  useEffect(() => {
+    const onUp = () => { isSelectingRef.current = false; };
+    document.addEventListener('mouseup', onUp);
+    return () => document.removeEventListener('mouseup', onUp);
+  }, []);
+
+  const selBounds = useMemo(() => {
+    if (!selStart || !selEnd) return null;
+    return {
+      r0: Math.min(selStart.r, selEnd.r), r1: Math.max(selStart.r, selEnd.r),
+      c0: Math.min(selStart.c, selEnd.c), c1: Math.max(selStart.c, selEnd.c),
+    };
+  }, [selStart, selEnd]);
+
+  const isCellSelected = (r: number, c: number): boolean => {
+    if (!selBounds) return false;
+    return r >= selBounds.r0 && r <= selBounds.r1 && c >= selBounds.c0 && c <= selBounds.c1;
+  };
+
   /* --------------------------- derived state ---------------------------- */
 
   const visibleRows = useMemo(() => {
@@ -566,11 +665,58 @@ export default function UpdateRankingTable({
     let acc = colLeftBase;
     return grid.columns.map(c => {
       const left = acc;
-      acc += columnWidth(c.name);
+      acc += getColWidth(c);
       return left;
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [grid.columns, colLeftBase]);
+  }, [grid.columns, colLeftBase, colWidths]);
+
+  // Only step in for genuine multi-cell selections; a single-cell selection
+  // (or none) falls through to the browser's normal input copy behavior.
+  useEffect(() => {
+    const onCopy = (e: ClipboardEvent) => {
+      if (!selBounds) return;
+      if (selBounds.r0 === selBounds.r1 && selBounds.c0 === selBounds.c1) return;
+      const lines: string[] = [];
+      for (let ri = selBounds.r0; ri <= selBounds.r1; ri++) {
+        const row = visibleRows[ri];
+        const vals: string[] = [];
+        for (let ci = selBounds.c0; ci <= selBounds.c1; ci++) {
+          const col = grid.columns[ci];
+          vals.push(row && col ? (row.cells[col.id] || '') : '');
+        }
+        lines.push(vals.join('\t'));
+      }
+      e.clipboardData?.setData('text/plain', lines.join('\n'));
+      e.preventDefault();
+    };
+    document.addEventListener('copy', onCopy);
+    return () => document.removeEventListener('copy', onCopy);
+  }, [selBounds, visibleRows, grid.columns]);
+
+  // --- Row virtualization math -------------------------------------------
+  // Frozen rows always render (they're normally few, and need to stay in
+  // the sticky flow). Everything after them is windowed: only rows inside
+  // (or just outside, via overscan) the visible viewport are mounted.
+  const frozenFlowHeight = (rowTopOffsets[frozenRows] ?? rowTopOffsets[0] ?? 0) - (rowTopOffsets[0] ?? 0);
+  const scrollableRows = visibleRows.slice(frozenRows);
+  const rawStart = Math.floor(Math.max(0, scrollTop - frozenFlowHeight) / rowHeight) - ROW_OVERSCAN;
+  const virtualStart = Math.max(0, rawStart);
+  const visibleCount = Math.ceil(VIEWPORT_HEIGHT / rowHeight) + ROW_OVERSCAN * 2;
+  const virtualEnd = Math.min(scrollableRows.length, virtualStart + visibleCount);
+  const renderedScrollableRows = scrollableRows.slice(virtualStart, virtualEnd);
+  const topSpacerHeight = virtualStart * rowHeight;
+  const bottomSpacerHeight = (scrollableRows.length - virtualEnd) * rowHeight;
+  // Row-number col + filler col + data cols + optional checkbox col.
+  const totalTableCols = grid.columns.length + 2 + (colorModeOn ? 1 : 0);
+
+  // Measure the true row height once real rows are on screen (falls back
+  // to the 37px default used elsewhere until then).
+  useLayoutEffect(() => {
+    const h = firstScrollableRowRef.current?.getBoundingClientRect().height;
+    if (h && Math.abs(h - rowHeight) > 0.5) setRowHeight(h);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [renderedScrollableRows.length, grid.columns.length]);
 
   const selectedCount = Object.values(selectedRowIds).filter(Boolean).length;
   const activeSortColIdx = grid.columns.findIndex(c => c.id === sortColumnId);
@@ -587,6 +733,105 @@ export default function UpdateRankingTable({
     if (!term) return usersList;
     return usersList.filter(u => u.name.toLowerCase().includes(term) || u.emails.some(e => e.toLowerCase().includes(term)));
   }, [usersList, userPickerSearch]);
+
+  // Renders one data row. Used both for the always-mounted frozen rows and
+  // for the virtualized window of scrollable rows - `idx` is always the
+  // row's real position in visibleRows (row-number label, sticky offsets,
+  // and selection all key off this, regardless of which pass renders it).
+  const renderDataRow = (row: RankingRow, idx: number, isFrozenRow: boolean, isFirstScrollable = false) => {
+    const isChecked = !!selectedRowIds[row.id];
+    const rowTop = isFrozenRow ? (rowTopOffsets[idx + 1] ?? rowTopOffsets[0] ?? 0) : undefined;
+    const rowStickyStyle = isFrozenRow ? { position: 'sticky' as const, top: rowTop, zIndex: 15 } : undefined;
+    return (
+      <tr
+        key={row.id}
+        ref={isFrozenRow ? (el) => { frozenRowElRefs.current[idx] = el; } : (isFirstScrollable ? firstScrollableRowRef : undefined)}
+        style={row.color && !isFrozenRow ? { backgroundColor: row.color } : undefined}
+        className="hover:bg-slate-50/60 transition group/row"
+      >
+        {colorModeOn && (
+          <td
+            className="px-2 py-2.5 sticky left-0"
+            style={{ width: CHECKBOX_COL_WIDTH, minWidth: CHECKBOX_COL_WIDTH, backgroundColor: row.color || '#fff', ...rowStickyStyle, zIndex: isFrozenRow ? 25 : 10 }}
+          >
+            <input
+              type="checkbox"
+              checked={isChecked}
+              onChange={(e) => setSelectedRowIds(prev => ({ ...prev, [row.id]: e.target.checked }))}
+              className="cursor-pointer"
+            />
+          </td>
+        )}
+        <td
+          className="px-1 py-2.5 text-center font-bold text-slate-500 sticky border border-slate-200 bg-slate-100"
+          style={{
+            left: colorModeOn ? CHECKBOX_COL_WIDTH : 0,
+            width: SR_NO_COL_WIDTH, minWidth: SR_NO_COL_WIDTH,
+            backgroundColor: row.color || '#f1f5f9',
+            ...rowStickyStyle, zIndex: isFrozenRow ? 25 : 10,
+          }}
+        >
+          <span className="group-hover/row:hidden">{idx + 1}</span>
+          {canEdit && (
+            <button
+              onClick={() => deleteRow(row.id)}
+              className="hidden group-hover/row:inline-flex items-center justify-center text-gray-400 hover:text-rose-600 cursor-pointer"
+              title="Delete row"
+            >
+              <Trash2 size={11} />
+            </button>
+          )}
+        </td>
+
+        {grid.columns.map((col, colIdx) => {
+          const w = getColWidth(col);
+          const cellValue = row.cells[col.id] || '';
+          const blockColorForCell = row.cellColors?.[col.id];
+          const cellBg = blockColorForCell || row.color || undefined;
+          const isFrozenCol = colIdx < frozenCols;
+          // Only show the drag-selection tint for genuine multi-cell ranges -
+          // a single clicked/focused cell already gets its own input outline.
+          const isRangeSelected = !!selBounds
+            && !(selBounds.r0 === selBounds.r1 && selBounds.c0 === selBounds.c1)
+            && isCellSelected(idx, colIdx);
+          return (
+            <td
+              key={col.id}
+              className={`p-0 border border-slate-200 ${isFrozenCol ? 'sticky' : ''}`}
+              style={{
+                width: w, minWidth: w,
+                backgroundColor: (isFrozenCol || isFrozenRow) ? (cellBg || '#fff') : cellBg,
+                ...(isFrozenCol ? { left: colLeftOffsets[colIdx] } : {}),
+                ...rowStickyStyle,
+                zIndex: isFrozenCol && isFrozenRow ? 26 : isFrozenCol ? 12 : isFrozenRow ? 15 : undefined,
+                boxShadow: isRangeSelected ? 'inset 0 0 0 9999px rgba(99,102,241,0.25)' : undefined,
+              }}
+              onMouseDown={() => beginSelect(idx, colIdx)}
+              onMouseEnter={() => extendSelect(idx, colIdx)}
+            >
+              {canEdit ? (
+                <input
+                  type="text"
+                  value={cellValue}
+                  onChange={(e) => updateCell(row.id, col.id, e.target.value)}
+                  onPaste={(e) => handleCellPaste(e, row.id, col.id)}
+                  placeholder="—"
+                  style={{ color: col.textColor || undefined }}
+                  className="w-full text-xs font-bold text-gray-800 px-2.5 py-2.5 border border-transparent hover:border-gray-200 focus:border-indigo-400 rounded-lg focus:outline-hidden bg-transparent focus:bg-white transition"
+                />
+              ) : (
+                <span className="block px-2.5 py-2.5 text-xs font-bold text-gray-800 truncate" style={{ color: col.textColor || undefined }}>
+                  {cellValue || '—'}
+                </span>
+              )}
+            </td>
+          );
+        })}
+
+        <td className="w-full" style={{ backgroundColor: isFrozenRow ? (row.color || '#fff') : (row.color || undefined), ...rowStickyStyle }}></td>
+      </tr>
+    );
+  };
 
   return (
     <div>
@@ -976,7 +1221,7 @@ export default function UpdateRankingTable({
       ) : isLoading ? (
         <div className="p-12 text-center text-xs text-gray-500 font-bold">Loading sheet...</div>
       ) : (
-        <div className="overflow-x-auto overflow-y-auto rounded-b-2xl mt-1 max-h-[560px]">
+        <div className="overflow-x-auto overflow-y-auto rounded-b-2xl mt-1 max-h-[560px]" onScroll={handleGridScroll}>
           <table className="text-left text-xs border-collapse w-full" style={{ tableLayout: 'fixed' }}>
             <thead className="bg-slate-100 text-slate-500 font-bold text-[11px] sticky top-0 z-20">
               <tr ref={headerRowElRef}>
@@ -988,12 +1233,12 @@ export default function UpdateRankingTable({
                 ></th>
 
                 {grid.columns.map((col, colIdx) => {
-                  const w = columnWidth(col.name);
+                  const w = getColWidth(col);
                   const isFrozenCol = colIdx < frozenCols;
                   return (
                     <th
                       key={col.id}
-                      className={`px-2.5 py-2 text-center sticky top-0 border border-slate-200 group/col ${isFrozenCol ? 'z-30' : 'z-20'} ${!col.headerColor ? 'bg-slate-100' : ''}`}
+                      className={`relative px-2.5 py-2 text-center sticky top-0 border border-slate-200 group/col ${isFrozenCol ? 'z-30' : 'z-20'} ${!col.headerColor ? 'bg-slate-100' : ''}`}
                       style={{
                         width: w, minWidth: w,
                         backgroundColor: col.headerColor || undefined,
@@ -1011,6 +1256,13 @@ export default function UpdateRankingTable({
                           <Trash2 size={11} />
                         </button>
                       )}
+                      {/* Drag-to-resize handle, Google-Sheets style - grab the
+                          right edge of the header and stretch/shrink the column. */}
+                      <div
+                        onMouseDown={(e) => handleColumnResizeStart(e, col.id, w)}
+                        title="Drag to resize column"
+                        className="absolute top-0 right-0 h-full w-2 cursor-col-resize hover:bg-indigo-400/60 active:bg-indigo-500/70 z-10"
+                      />
                     </th>
                   );
                 })}
@@ -1023,97 +1275,36 @@ export default function UpdateRankingTable({
             <tbody className="divide-y divide-gray-150">
               {visibleRows.length === 0 ? (
                 <tr>
-                  <td colSpan={grid.columns.length + 2} className="p-12 text-center text-xs text-gray-500 font-bold">
+                  <td colSpan={totalTableCols} className="p-12 text-center text-xs text-gray-500 font-bold">
                     {searchTerm ? 'No rows match your search.' : (canEdit ? 'No rows yet - click "+ Row" to start.' : 'No rows yet.')}
                   </td>
                 </tr>
-              ) : visibleRows.map((row, idx) => {
-                const isChecked = !!selectedRowIds[row.id];
-                const isFrozenRow = idx < frozenRows;
-                const rowTop = isFrozenRow ? (rowTopOffsets[idx + 1] ?? rowTopOffsets[0] ?? 0) : undefined;
-                const rowStickyStyle = isFrozenRow ? { position: 'sticky' as const, top: rowTop, zIndex: 15 } : undefined;
-                return (
-                  <tr
-                    key={row.id}
-                    ref={isFrozenRow ? (el) => { frozenRowElRefs.current[idx] = el; } : undefined}
-                    style={row.color && !isFrozenRow ? { backgroundColor: row.color } : undefined}
-                    className="hover:bg-slate-50/60 transition group/row"
-                  >
-                    {colorModeOn && (
-                      <td
-                        className="px-2 py-2.5 sticky left-0"
-                        style={{ width: CHECKBOX_COL_WIDTH, minWidth: CHECKBOX_COL_WIDTH, backgroundColor: row.color || '#fff', ...rowStickyStyle, zIndex: isFrozenRow ? 25 : 10 }}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={isChecked}
-                          onChange={(e) => setSelectedRowIds(prev => ({ ...prev, [row.id]: e.target.checked }))}
-                          className="cursor-pointer"
-                        />
-                      </td>
-                    )}
-                    <td
-                      className="px-1 py-2.5 text-center font-bold text-slate-500 sticky border border-slate-200 bg-slate-100"
-                      style={{
-                        left: colorModeOn ? CHECKBOX_COL_WIDTH : 0,
-                        width: SR_NO_COL_WIDTH, minWidth: SR_NO_COL_WIDTH,
-                        backgroundColor: row.color || '#f1f5f9',
-                        ...rowStickyStyle, zIndex: isFrozenRow ? 25 : 10,
-                      }}
-                    >
-                      <span className="group-hover/row:hidden">{idx + 1}</span>
-                      {canEdit && (
-                        <button
-                          onClick={() => deleteRow(row.id)}
-                          className="hidden group-hover/row:inline-flex items-center justify-center text-gray-400 hover:text-rose-600 cursor-pointer"
-                          title="Delete row"
-                        >
-                          <Trash2 size={11} />
-                        </button>
-                      )}
-                    </td>
+              ) : (
+                <>
+                  {/* Frozen rows (if any) always render in full - they're pinned
+                      and typically few. Everything else is virtualized below. */}
+                  {visibleRows.slice(0, frozenRows).map((row, idx) => renderDataRow(row, idx, true))}
 
-                    {grid.columns.map((col, colIdx) => {
-                      const w = columnWidth(col.name);
-                      const cellValue = row.cells[col.id] || '';
-                      const blockColorForCell = row.cellColors?.[col.id];
-                      const cellBg = blockColorForCell || row.color || undefined;
-                      const isFrozenCol = colIdx < frozenCols;
-                      return (
-                        <td
-                          key={col.id}
-                          className={`p-0 border border-slate-200 ${isFrozenCol ? 'sticky' : ''}`}
-                          style={{
-                            width: w, minWidth: w,
-                            backgroundColor: (isFrozenCol || isFrozenRow) ? (cellBg || '#fff') : cellBg,
-                            ...(isFrozenCol ? { left: colLeftOffsets[colIdx] } : {}),
-                            ...rowStickyStyle,
-                            zIndex: isFrozenCol && isFrozenRow ? 26 : isFrozenCol ? 12 : isFrozenRow ? 15 : undefined,
-                          }}
-                        >
-                          {canEdit ? (
-                            <input
-                              type="text"
-                              value={cellValue}
-                              onChange={(e) => updateCell(row.id, col.id, e.target.value)}
-                              onPaste={(e) => handleCellPaste(e, row.id, col.id)}
-                              placeholder="—"
-                              style={{ color: col.textColor || undefined }}
-                              className="w-full text-xs font-bold text-gray-800 px-2.5 py-2.5 border border-transparent hover:border-gray-200 focus:border-indigo-400 rounded-lg focus:outline-hidden bg-transparent focus:bg-white transition"
-                            />
-                          ) : (
-                            <span className="block px-2.5 py-2.5 text-xs font-bold text-gray-800 truncate" style={{ color: col.textColor || undefined }}>
-                              {cellValue || '—'}
-                            </span>
-                          )}
-                        </td>
-                      );
-                    })}
+                  {/* Spacer soaking up the height of rows scrolled past above
+                      the current window, so the scrollbar stays the right size
+                      without those rows actually being mounted. */}
+                  {topSpacerHeight > 0 && (
+                    <tr aria-hidden="true">
+                      <td colSpan={totalTableCols} style={{ height: topSpacerHeight, padding: 0, border: 'none' }} />
+                    </tr>
+                  )}
 
-                    <td className="w-full" style={{ backgroundColor: isFrozenRow ? (row.color || '#fff') : (row.color || undefined), ...rowStickyStyle }}></td>
-                  </tr>
-                );
-              })}
+                  {renderedScrollableRows.map((row, i) =>
+                    renderDataRow(row, frozenRows + virtualStart + i, false, i === 0)
+                  )}
+
+                  {bottomSpacerHeight > 0 && (
+                    <tr aria-hidden="true">
+                      <td colSpan={totalTableCols} style={{ height: bottomSpacerHeight, padding: 0, border: 'none' }} />
+                    </tr>
+                  )}
+                </>
+              )}
             </tbody>
           </table>
         </div>
