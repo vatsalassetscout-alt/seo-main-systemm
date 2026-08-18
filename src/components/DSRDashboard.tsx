@@ -7,7 +7,7 @@ import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { DSREntry, Project, AppUser, ProjectLocation, CustomSubmissionType } from '../types';
 import { getUserDisplayName, isUserAdmin, doesUserMatch, numericIdCompare } from '../lib/userUtils';
 import { cleanDomain, domainHref } from '../lib/domain';
-import UpdateRankingTable, { ManualRankingGrid, createEmptySheet } from './UpdateRankingTable';
+import UpdateRankingTable, { ManualRankingGrid, createEmptySheet, padSheetToDefaults } from './UpdateRankingTable';
 import { 
   Calendar, 
   ClipboardCheck, 
@@ -309,9 +309,9 @@ export default function DSRDashboard({
           const data = await res.json();
           const hasColumns = Array.isArray(data.columns) && data.columns.length > 0;
           const hasRows = Array.isArray(data.rows) && data.rows.length > 0;
-          setManualRankingGrid(hasColumns || hasRows
+          setManualRankingGrid(padSheetToDefaults(hasColumns || hasRows
             ? { columns: hasColumns ? data.columns : createEmptySheet(rankingTargetProjects).columns, rows: hasRows ? data.rows : createEmptySheet(rankingTargetProjects).rows }
-            : createEmptySheet(rankingTargetProjects));
+            : createEmptySheet(rankingTargetProjects)));
         } else {
           console.error('Failed to load ranking sheet from Supabase: HTTP', res.status);
           setManualRankingGrid(createEmptySheet(rankingTargetProjects));
