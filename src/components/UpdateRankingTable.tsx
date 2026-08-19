@@ -274,15 +274,10 @@ export default function UpdateRankingTable({
   const [colorMenuColId, setColorMenuColId] = useState<string | null>(null);
   const colorMenuRef = useRef<HTMLDivElement | null>(null);
 
-  // Block color: paint a rectangular range - "section" (start row + start
-  // column) + how many rows/columns the block covers - a single color.
+  // Cell color: paint whatever cell(s) are currently selected (click, or
+  // click-drag for a range) - no manual row/column numbers needed.
   const [blockPanelOpen, setBlockPanelOpen] = useState(false);
   const blockPanelRef = useRef<HTMLDivElement | null>(null);
-  const [blockStartRow, setBlockStartRow] = useState(1);
-  const [blockStartColIdx, setBlockStartColIdx] = useState(0);
-  const [blockRowCount, setBlockRowCount] = useState(1);
-  const [blockColCount, setBlockColCount] = useState(1);
-  const [blockColor, setBlockColor] = useState('#fef3c7');
 
   // Freeze panes: pin the first N columns (stays put while X-scrolling) and/or
   // the first N data rows (stays put while Y-scrolling), Google-Sheets style.
@@ -629,32 +624,30 @@ export default function UpdateRankingTable({
     setSelectedRowIds({});
   };
 
-  /* ---------------------------- block color ------------------------------
-   * Paints a rectangular range: starting cell ("section" = start row #
-   * + start column) plus how many rows/columns the block spans. Applies to
-   * the base (unsorted, unfiltered) sheet order, same as real row numbers. */
+  /* ---------------------------- cell color --------------------------------
+   * Paints whichever cell(s) are currently selected (single click, or
+   * click-drag for a rectangular range) - no manual row/column entry. */
 
-  const applyBlockColor = (color: string | undefined) => {
-    if (!canEdit) return;
-    const startRowIdx = Math.max(0, blockStartRow - 1);
-    const startColIdx = Math.max(0, Math.min(blockStartColIdx, grid.columns.length - 1));
-    const rowSpan = Math.max(1, blockRowCount);
-    const colSpan = Math.max(1, blockColCount);
+  const applyColorToSelectedCells = (color: string | undefined) => {
+    if (!canEdit || !selBounds) return;
+    const selectedRowIdSet = new Set(
+      visibleRows.slice(selBounds.r0, selBounds.r1 + 1).map(r => r.id)
+    );
+    const targetColIds = grid.columns.slice(selBounds.c0, selBounds.c1 + 1).map(c => c.id);
 
     pushUndoSnapshot();
-    setGrid(prev => {
-      const targetColIds = prev.columns.slice(startColIdx, startColIdx + colSpan).map(c => c.id);
-      const rows = prev.rows.map((r, idx) => {
-        if (idx < startRowIdx || idx >= startRowIdx + rowSpan) return r;
+    setGrid(prev => ({
+      ...prev,
+      rows: prev.rows.map(r => {
+        if (!selectedRowIdSet.has(r.id)) return r;
         const cellColors = { ...(r.cellColors || {}) };
         targetColIds.forEach(colId => {
           if (color) cellColors[colId] = color;
           else delete cellColors[colId];
         });
         return { ...r, cellColors };
-      });
-      return { ...prev, rows };
-    });
+      })
+    }));
   };
 
   /* ----------------------- click-drag range selection --------------------
@@ -1167,93 +1160,44 @@ export default function UpdateRankingTable({
                 }`}
               >
                 <Palette size={12} />
-                Color Block
+                Cell Color
                 <ChevronDown size={12} />
               </button>
 
               {blockPanelOpen && (
-                <div className="absolute right-0 top-full mt-1.5 w-72 max-w-[90vw] bg-white border border-gray-200 rounded-xl shadow-xl z-50 p-3">
-                  <p className="text-[10px] font-black text-gray-500 uppercase tracking-wider mb-2">Section (start cell)</p>
-                  <div className="grid grid-cols-2 gap-2 mb-3">
-                    <label className="text-[10px] font-bold text-gray-600">
-                      Start row
-                      <input
-                        type="number" min={1}
-                        value={blockStartRow}
-                        onChange={(e) => setBlockStartRow(Math.max(1, parseInt(e.target.value) || 1))}
-                        className="mt-1 w-full text-xs font-bold px-2 py-1.5 border border-gray-200 rounded-lg focus:outline-hidden focus:ring-1 focus:ring-indigo-500"
-                      />
-                    </label>
-                    <label className="text-[10px] font-bold text-gray-600">
-                      Start column
-                      <select
-                        value={blockStartColIdx}
-                        onChange={(e) => setBlockStartColIdx(parseInt(e.target.value))}
-                        className="mt-1 w-full text-xs font-bold px-2 py-1.5 border border-gray-200 rounded-lg focus:outline-hidden focus:ring-1 focus:ring-indigo-500"
-                      >
-                        {grid.columns.map((col, idx) => (
-                          <option key={col.id} value={idx}>{columnLetter(idx)}{col.name ? ` · ${col.name}` : ''}</option>
-                        ))}
-                      </select>
-                    </label>
-                  </div>
-
-                  <p className="text-[10px] font-black text-gray-500 uppercase tracking-wider mb-2">Number of blocks (size)</p>
-                  <div className="grid grid-cols-2 gap-2 mb-3">
-                    <label className="text-[10px] font-bold text-gray-600">
-                      Rows
-                      <input
-                        type="number" min={1}
-                        value={blockRowCount}
-                        onChange={(e) => setBlockRowCount(Math.max(1, parseInt(e.target.value) || 1))}
-                        className="mt-1 w-full text-xs font-bold px-2 py-1.5 border border-gray-200 rounded-lg focus:outline-hidden focus:ring-1 focus:ring-indigo-500"
-                      />
-                    </label>
-                    <label className="text-[10px] font-bold text-gray-600">
-                      Columns
-                      <input
-                        type="number" min={1}
-                        value={blockColCount}
-                        onChange={(e) => setBlockColCount(Math.max(1, parseInt(e.target.value) || 1))}
-                        className="mt-1 w-full text-xs font-bold px-2 py-1.5 border border-gray-200 rounded-lg focus:outline-hidden focus:ring-1 focus:ring-indigo-500"
-                      />
-                    </label>
-                  </div>
-
-                  <p className="text-[10px] font-black text-gray-500 uppercase tracking-wider mb-2">Color</p>
+                <div className="absolute right-0 top-full mt-1.5 w-64 max-w-[85vw] bg-white border border-gray-200 rounded-xl shadow-xl z-50 p-3">
+                  <p className="text-[10px] font-bold text-gray-500 mb-2">
+                    {selBounds
+                      ? `${selBounds.r1 - selBounds.r0 + 1} row${selBounds.r1 > selBounds.r0 ? 's' : ''} × ${selBounds.c1 - selBounds.c0 + 1} column${selBounds.c1 > selBounds.c0 ? 's' : ''} selected`
+                      : 'Click a cell (or drag to select a range), then pick a color'}
+                  </p>
                   <div className="flex items-center gap-1.5 flex-wrap mb-3">
                     {COLOR_SWATCHES.map(sw => (
                       <button
                         key={sw.value}
                         title={sw.label}
-                        onClick={() => setBlockColor(sw.value)}
-                        className={`w-6 h-6 rounded-full border-2 shadow-2xs cursor-pointer hover:scale-110 transition ${blockColor === sw.value ? 'border-indigo-500' : 'border-white'}`}
+                        disabled={!selBounds}
+                        onClick={() => { applyColorToSelectedCells(sw.value); setBlockPanelOpen(false); }}
+                        className={`w-6 h-6 rounded-full border-2 border-white shadow-2xs transition ${selBounds ? 'cursor-pointer hover:scale-110' : 'opacity-40 cursor-not-allowed'}`}
                         style={{ backgroundColor: sw.value }}
                       />
                     ))}
                     <input
                       type="color"
-                      value={blockColor}
-                      onChange={(e) => setBlockColor(e.target.value)}
+                      disabled={!selBounds}
+                      onChange={(e) => { applyColorToSelectedCells(e.target.value); setBlockPanelOpen(false); }}
                       title="Pick a custom color"
-                      className="w-6 h-6 rounded-full border-2 border-white shadow-2xs cursor-pointer overflow-hidden p-0"
+                      className="w-6 h-6 rounded-full border-2 border-white shadow-2xs cursor-pointer overflow-hidden p-0 disabled:opacity-40 disabled:cursor-not-allowed"
                     />
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => applyBlockColor(blockColor)}
-                      className="flex-1 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-2 py-1.5 cursor-pointer transition"
-                    >
-                      Apply
-                    </button>
-                    <button
-                      onClick={() => applyBlockColor(undefined)}
-                      className="text-xs font-bold text-gray-500 hover:text-rose-600 px-2 py-1.5 rounded-lg cursor-pointer transition"
-                    >
-                      Clear
-                    </button>
-                  </div>
+                  <button
+                    disabled={!selBounds}
+                    onClick={() => { applyColorToSelectedCells(undefined); setBlockPanelOpen(false); }}
+                    className="text-xs font-bold text-gray-500 hover:text-rose-600 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition"
+                  >
+                    Clear color
+                  </button>
                 </div>
               )}
             </div>
