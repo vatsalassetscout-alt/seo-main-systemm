@@ -1220,19 +1220,41 @@ export default function UpdateRankingTable({
             {freezePanelOpen && (
               <div className="absolute right-0 top-full mt-1.5 w-64 max-w-[85vw] bg-white border border-gray-200 rounded-xl shadow-xl z-50 p-3">
                 <p className="text-[10px] font-black text-gray-500 uppercase tracking-wider mb-2">Fix columns (from left)</p>
-                <input
-                  type="number" min={0} max={grid.columns.length}
-                  value={frozenCols}
-                  onChange={(e) => setFrozenCols(Math.max(0, Math.min(grid.columns.length, parseInt(e.target.value) || 0)))}
-                  className="w-full mb-3 text-xs font-bold px-2 py-1.5 border border-gray-200 rounded-lg focus:outline-hidden focus:ring-1 focus:ring-indigo-500"
-                />
+                <div className="flex flex-col gap-0.5 max-h-40 overflow-y-auto mb-3 pr-1">
+                  {grid.columns.map((col, idx) => (
+                    <label
+                      key={col.id}
+                      className="flex items-center gap-2 text-[11px] font-bold text-gray-700 px-1.5 py-1 rounded-lg hover:bg-gray-50 cursor-pointer"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={idx < frozenCols}
+                        onChange={(e) => setFrozenCols(e.target.checked ? idx + 1 : idx)}
+                        className="cursor-pointer"
+                      />
+                      {columnLetter(idx)}{col.name ? ` · ${col.name}` : ''}
+                    </label>
+                  ))}
+                </div>
+
                 <p className="text-[10px] font-black text-gray-500 uppercase tracking-wider mb-2">Fix rows (from top, below header)</p>
-                <input
-                  type="number" min={0} max={visibleRows.length}
-                  value={frozenRows}
-                  onChange={(e) => setFrozenRows(Math.max(0, Math.min(visibleRows.length, parseInt(e.target.value) || 0)))}
-                  className="w-full mb-3 text-xs font-bold px-2 py-1.5 border border-gray-200 rounded-lg focus:outline-hidden focus:ring-1 focus:ring-indigo-500"
-                />
+                <div className="flex flex-col gap-0.5 max-h-40 overflow-y-auto mb-3 pr-1">
+                  {visibleRows.slice(0, 30).map((row, idx) => (
+                    <label
+                      key={row.id}
+                      className="flex items-center gap-2 text-[11px] font-bold text-gray-700 px-1.5 py-1 rounded-lg hover:bg-gray-50 cursor-pointer"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={idx < frozenRows}
+                        onChange={(e) => setFrozenRows(e.target.checked ? idx + 1 : idx)}
+                        className="cursor-pointer"
+                      />
+                      Row {idx + 1}
+                    </label>
+                  ))}
+                </div>
+
                 <button
                   onClick={() => { setFrozenCols(0); setFrozenRows(0); }}
                   className="text-[10px] font-bold text-gray-500 hover:text-rose-600 cursor-pointer"
