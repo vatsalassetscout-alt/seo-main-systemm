@@ -217,7 +217,7 @@ const columnWidth = (name: string): number => {
   return Math.min(220, Math.max(110, px));
 };
 
-const SR_NO_COL_WIDTH = 48;
+const SR_NO_COL_WIDTH = 60;
 const CHECKBOX_COL_WIDTH = 36;
 
 // Compares two cell values the way a spreadsheet would: numeric if both
@@ -915,7 +915,17 @@ export default function UpdateRankingTable({
             ...rowStickyStyle, zIndex: isFrozenRow ? 25 : 10,
           }}
         >
-          <span className="group-hover/row:hidden">{idx + 1}</span>
+          <span className="flex items-center justify-center gap-1 group-hover/row:hidden">
+            <input
+              type="checkbox"
+              checked={idx < frozenRows}
+              onChange={(e) => setFrozenRows(e.target.checked ? idx + 1 : idx)}
+              onMouseDown={(e) => e.stopPropagation()}
+              title="Freeze rows up to here"
+              className="cursor-pointer"
+            />
+            {idx + 1}
+          </span>
           {canEdit && (
             <button
               onClick={() => deleteRow(row.id)}
@@ -1219,42 +1229,9 @@ export default function UpdateRankingTable({
 
             {freezePanelOpen && (
               <div className="absolute right-0 top-full mt-1.5 w-64 max-w-[85vw] bg-white border border-gray-200 rounded-xl shadow-xl z-50 p-3">
-                <p className="text-[10px] font-black text-gray-500 uppercase tracking-wider mb-2">Fix columns (from left)</p>
-                <div className="flex flex-col gap-0.5 max-h-40 overflow-y-auto mb-3 pr-1">
-                  {grid.columns.map((col, idx) => (
-                    <label
-                      key={col.id}
-                      className="flex items-center gap-2 text-[11px] font-bold text-gray-700 px-1.5 py-1 rounded-lg hover:bg-gray-50 cursor-pointer"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={idx < frozenCols}
-                        onChange={(e) => setFrozenCols(e.target.checked ? idx + 1 : idx)}
-                        className="cursor-pointer"
-                      />
-                      {columnLetter(idx)}{col.name ? ` · ${col.name}` : ''}
-                    </label>
-                  ))}
-                </div>
-
-                <p className="text-[10px] font-black text-gray-500 uppercase tracking-wider mb-2">Fix rows (from top, below header)</p>
-                <div className="flex flex-col gap-0.5 max-h-40 overflow-y-auto mb-3 pr-1">
-                  {visibleRows.slice(0, 30).map((row, idx) => (
-                    <label
-                      key={row.id}
-                      className="flex items-center gap-2 text-[11px] font-bold text-gray-700 px-1.5 py-1 rounded-lg hover:bg-gray-50 cursor-pointer"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={idx < frozenRows}
-                        onChange={(e) => setFrozenRows(e.target.checked ? idx + 1 : idx)}
-                        className="cursor-pointer"
-                      />
-                      Row {idx + 1}
-                    </label>
-                  ))}
-                </div>
-
+                <p className="text-[11px] font-bold text-gray-600 mb-3">
+                  Tick the checkbox on a row number or column letter in the sheet to freeze everything up to it.
+                </p>
                 <button
                   onClick={() => { setFrozenCols(0); setFrozenRows(0); }}
                   className="text-[10px] font-bold text-gray-500 hover:text-rose-600 cursor-pointer"
@@ -1370,7 +1347,17 @@ export default function UpdateRankingTable({
                       }}
                       title={col.name}
                     >
-                      <span className="group-hover/col:hidden">{columnLetter(colIdx)}</span>
+                      <span className="flex flex-col items-center gap-0.5 group-hover/col:hidden">
+                        <input
+                          type="checkbox"
+                          checked={isFrozenCol}
+                          onChange={(e) => setFrozenCols(e.target.checked ? colIdx + 1 : colIdx)}
+                          onMouseDown={(e) => e.stopPropagation()}
+                          title="Freeze columns up to here"
+                          className="cursor-pointer"
+                        />
+                        {columnLetter(colIdx)}
+                      </span>
                       {canEdit && (
                         <button
                           onClick={() => deleteColumn(col.id)}
