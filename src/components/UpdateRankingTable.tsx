@@ -1386,7 +1386,7 @@ export default function UpdateRankingTable({
           onKeyDown={handleSheetKeyDown}
           tabIndex={-1}
         >
-          <table className="text-left text-xs w-full" style={{ tableLayout: 'fixed', borderCollapse: 'separate', borderSpacing: 0 }}>
+          <table className="text-left text-xs border-separate w-full" style={{ tableLayout: 'fixed', borderSpacing: 0 }}>
             <thead className="bg-slate-100 text-slate-500 font-bold text-[11px] sticky top-0 z-40">
               <tr ref={headerRowElRef}>
                 {colorModeOn && <th className="px-2 py-2 sticky left-0 top-0 bg-slate-100 z-40 border border-slate-200"></th>}
