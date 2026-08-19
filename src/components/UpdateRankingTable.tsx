@@ -694,6 +694,59 @@ export default function UpdateRankingTable({
     return () => document.removeEventListener('copy', onCopy);
   }, [selBounds, visibleRows, grid.columns]);
 
+  /* --------------------- select-all / clear-selection --------------------
+   * Ctrl/Cmd+A selects the whole visible sheet (all rows currently shown x
+   * all columns), same as Sheets. Delete/Backspace on a multi-cell range
+   * clears every cell in it in one go. Both are wired up on the scroll
+   * container below via onKeyDown, so they only fire while the sheet
+   * itself has focus (not e.g. the search box). */
+
+  const selectAllCells = () => {
+    if (!grid.columns.length || !visibleRows.length) return;
+    setSelStart({ r: 0, c: 0 });
+    setSelEnd({ r: visibleRows.length - 1, c: grid.columns.length - 1 });
+  };
+
+  const clearSelectedRange = () => {
+    if (!canEdit || !selBounds) return;
+    if (selBounds.r0 === selBounds.r1 && selBounds.c0 === selBounds.c1) return; // single cell: let normal typing/backspace handle it
+    const targetRowIds = new Set(visibleRows.slice(selBounds.r0, selBounds.r1 + 1).map(r => r.id));
+    const targetColIds = new Set(grid.columns.slice(selBounds.c0, selBounds.c1 + 1).map(c => c.id));
+    setGrid(prev => ({
+      ...prev,
+      rows: prev.rows.map(r => {
+        if (!targetRowIds.has(r.id)) return r;
+        const cells = { ...r.cells };
+        targetColIds.forEach(cid => { delete cells[cid]; });
+        return { ...r, cells };
+      })
+    }));
+  };
+
+  const handleSheetKeyDown = (e: React.KeyboardEvent) => {
+    const meta = e.ctrlKey || e.metaKey;
+    if (meta && e.key.toLowerCase() === 'a') {
+      e.preventDefault(); // stop the browser's native "select all text in this input"
+      selectAllCells();
+      return;
+    }
+    if ((e.key === 'Delete' || e.key === 'Backspace') && selBounds && !(selBounds.r0 === selBounds.r1 && selBounds.c0 === selBounds.c1)) {
+      e.preventDefault();
+      clearSelectedRange();
+    }
+  };
+
+  // Clicking anywhere in the sheet that isn't a text input (row/col headers,
+  // a read-only cell, empty space) still moves keyboard focus onto the
+  // scroll container, so Ctrl+A / Delete keep working even outside an
+  // actively-focused cell.
+  const sheetContainerRef = useRef<HTMLDivElement | null>(null);
+  const handleSheetMouseDown = (e: React.MouseEvent) => {
+    if ((e.target as HTMLElement).tagName !== 'INPUT') {
+      sheetContainerRef.current?.focus();
+    }
+  };
+
   // --- Row virtualization math -------------------------------------------
   // Frozen rows always render (they're normally few, and need to stay in
   // the sticky flow). Everything after them is windowed: only rows inside
@@ -843,10 +896,10 @@ export default function UpdateRankingTable({
           </h3>
           <p className="text-[10px] text-gray-500 font-semibold mt-0.5">
             {canEdit
-              ? 'A free-form sheet, just like Google Sheets - type, paste, add rows/columns, color-code, and sort freely.'
+              ? 'A free-form sheet, just like Google Sheets - type, paste, drag to select a range, Ctrl+A to select all, Ctrl+C to copy, Delete to clear a range.'
               : isAdmin
-                ? 'Pick a user below to view their sheet (view-only).'
-                : 'View this sheet. Sort and search freely.'}
+                ? 'Pick a user below to view (and edit) their sheet.'
+                : 'View this sheet. Drag to select a range, Ctrl+C to copy, sort and search freely.'}
           </p>
         </div>
 
@@ -1221,7 +1274,14 @@ export default function UpdateRankingTable({
       ) : isLoading ? (
         <div className="p-12 text-center text-xs text-gray-500 font-bold">Loading sheet...</div>
       ) : (
-        <div className="overflow-x-auto overflow-y-auto rounded-b-2xl mt-1 max-h-[560px]" onScroll={handleGridScroll}>
+        <div
+          ref={sheetContainerRef}
+          className="overflow-x-auto overflow-y-auto rounded-b-2xl mt-1 max-h-[560px] outline-hidden"
+          onScroll={handleGridScroll}
+          onMouseDown={handleSheetMouseDown}
+          onKeyDown={handleSheetKeyDown}
+          tabIndex={-1}
+        >
           <table className="text-left text-xs border-collapse w-full" style={{ tableLayout: 'fixed' }}>
             <thead className="bg-slate-100 text-slate-500 font-bold text-[11px] sticky top-0 z-20">
               <tr ref={headerRowElRef}>
