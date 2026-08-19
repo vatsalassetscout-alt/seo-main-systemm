@@ -3611,7 +3611,7 @@ export default function DSRDashboard({
         {activeTab === 'update_ranking' && (
           <UpdateRankingTable
             isAdmin={isAdmin}
-            canEdit={!isAdmin}
+            canEdit={isAdmin ? !!rankingViewUserEmail : true}
             currentUserEmail={rankingTargetEmail}
             usersList={allUsersList}
             selectedUserEmail={rankingViewUserEmail}
