@@ -4,7 +4,7 @@
  */
 
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Plus, X, ArrowUpDown, Palette, Search, ChevronDown, Users, Trash2 } from 'lucide-react';
+import { Plus, X, ArrowUpDown, Palette, Search, ChevronDown, Users, Trash2, Pin, Check } from 'lucide-react';
 
 /* ==========================================================================
  * DATA MODEL
@@ -281,14 +281,32 @@ export default function UpdateRankingTable({
 
   // Freeze panes: pin the first N columns (stays put while X-scrolling) and/or
   // the first N data rows (stays put while Y-scrolling), Google-Sheets style.
-  // Freezing happens instantly via the checkboxes right on the sheet - above
-  // each column letter, and to the left of each row number. No popup, no
-  // separate "Apply" step.
+  // Nothing is frozen and no checkboxes are shown by default. Clicking the
+  // "Freeze" button in the toolbar turns on `freezeMode`, which reveals the
+  // pick checkboxes (above each column letter, left of each row number).
+  // Nothing actually freezes until "Apply" is clicked, which copies the
+  // pending picks into the real frozenCols/frozenRows and hides the
+  // checkboxes again. "Cancel" discards the picks and hides them too.
   const [frozenCols, setFrozenCols] = useState(0);
   const [frozenRows, setFrozenRows] = useState(0);
+  const [freezeMode, setFreezeMode] = useState(false);
+  const [pendingFrozenCols, setPendingFrozenCols] = useState(0);
+  const [pendingFrozenRows, setPendingFrozenRows] = useState(0);
   const [rowTopOffsets, setRowTopOffsets] = useState<number[]>([]); // [0] = header height, [i] = top for frozen data row i-1
   const headerRowElRef = useRef<HTMLTableRowElement | null>(null);
   const frozenRowElRefs = useRef<Record<number, HTMLTableRowElement | null>>({});
+
+  const startFreezePicker = () => {
+    setPendingFrozenCols(frozenCols);
+    setPendingFrozenRows(frozenRows);
+    setFreezeMode(true);
+  };
+  const applyFreezePicker = () => {
+    setFrozenCols(pendingFrozenCols);
+    setFrozenRows(pendingFrozenRows);
+    setFreezeMode(false);
+  };
+  const cancelFreezePicker = () => setFreezeMode(false);
 
   // Admin-only "which user's sheet" picker
   const [userPickerOpen, setUserPickerOpen] = useState(false);
@@ -738,9 +756,13 @@ export default function UpdateRankingTable({
 
   // Left-offset (px) of each data column, for pinning frozen columns during
   // horizontal scroll. Starts after the sticky row-number (+ checkbox) gutter.
-  const colLeftBase = (colorModeOn ? CHECKBOX_COL_WIDTH : 0) + SR_NO_COL_WIDTH;
+  // Every value here is rounded to a whole pixel up front (not just summed
+  // and rounded once) so each frozen column's `left` lines up exactly with
+  // where the previous one ends - otherwise sub-pixel drift across many
+  // columns can leave a hairline gap between them.
+  const colLeftBase = Math.round((colorModeOn ? CHECKBOX_COL_WIDTH : 0) + SR_NO_COL_WIDTH);
   const colLeftOffsets = useMemo(() => {
-    let acc = Math.round(colLeftBase);
+    let acc = colLeftBase;
     return grid.columns.map(c => {
       const left = acc;
       acc += Math.round(getColWidth(c));
@@ -913,13 +935,15 @@ export default function UpdateRankingTable({
             ...rowStickyStyle, zIndex: isFrozenRow ? 25 : 10,
           }}
         >
-          <input
-            type="checkbox"
-            checked={idx < frozenRows}
-            onChange={(e) => setFrozenRows(e.target.checked ? idx + 1 : idx)}
-            title={idx < frozenRows ? 'Unfreeze from here' : 'Freeze up to this row'}
-            className="align-middle mr-1 cursor-pointer w-3 h-3"
-          />
+          {freezeMode && (
+            <input
+              type="checkbox"
+              checked={idx < pendingFrozenRows}
+              onChange={(e) => setPendingFrozenRows(e.target.checked ? idx + 1 : idx)}
+              title={idx < pendingFrozenRows ? 'Unfreeze from here' : 'Freeze up to this row'}
+              className="align-middle mr-1 cursor-pointer w-3 h-3"
+            />
+          )}
           <span className="group-hover/row:hidden">{idx + 1}</span>
           {canEdit && (
             <button
@@ -1210,11 +1234,46 @@ export default function UpdateRankingTable({
 
           {/* Freeze panes - pin the first N columns and/or first N data rows so
               they stay put while scrolling (X-scroll for columns, Y for rows).
-              Freezing is done with the checkboxes right on the sheet itself
-              (above each column letter, left of each row number) and takes
-              effect instantly - this button is just a status readout + a
-              one-click way to unfreeze everything. */}
-          {(frozenCols > 0 || frozenRows > 0) && (
+              Nothing is checked by default and no checkboxes are visible.
+              Clicking "Freeze" reveals the pick checkboxes (above each column
+              letter, left of each row number); nothing actually freezes
+              until "Apply" is pressed. "Cancel" backs out without changing
+              anything. Once something is frozen, a status pill shows what's
+              pinned with a one-click way to unfreeze everything. */}
+          {!freezeMode ? (
+            <button
+              onClick={startFreezePicker}
+              title="Choose rows/columns to freeze"
+              className="flex items-center gap-1.5 text-xs font-bold border rounded-xl px-2.5 py-2 cursor-pointer transition bg-white border-gray-200 hover:bg-gray-50 text-gray-700"
+            >
+              <Pin size={12} />
+              Freeze
+            </button>
+          ) : (
+            <div className="flex items-center gap-1.5 bg-indigo-50 border border-indigo-200 rounded-xl px-2.5 py-1.5">
+              <span className="text-[10px] font-bold text-indigo-700 pr-1 whitespace-nowrap">
+                Tick columns/rows to freeze
+              </span>
+              <button
+                onClick={applyFreezePicker}
+                title="Apply freeze"
+                className="flex items-center gap-1 text-xs font-bold rounded-lg px-2 py-1.5 cursor-pointer transition bg-indigo-600 text-white hover:bg-indigo-700"
+              >
+                <Check size={12} />
+                Apply
+              </button>
+              <button
+                onClick={cancelFreezePicker}
+                title="Cancel"
+                className="flex items-center gap-1 text-xs font-bold rounded-lg px-2 py-1.5 cursor-pointer transition bg-white border border-gray-200 text-gray-600 hover:bg-gray-50"
+              >
+                <X size={12} />
+                Cancel
+              </button>
+            </div>
+          )}
+
+          {!freezeMode && (frozenCols > 0 || frozenRows > 0) && (
             <button
               onClick={() => { setFrozenCols(0); setFrozenRows(0); }}
               title="Unfreeze all"
@@ -1331,13 +1390,15 @@ export default function UpdateRankingTable({
                       }}
                       title={col.name}
                     >
-                      <input
-                        type="checkbox"
-                        checked={isFrozenCol}
-                        onChange={(e) => setFrozenCols(e.target.checked ? colIdx + 1 : colIdx)}
-                        title={isFrozenCol ? 'Unfreeze from here' : 'Freeze up to this column'}
-                        className="block mx-auto mb-0.5 cursor-pointer w-3 h-3"
-                      />
+                      {freezeMode && (
+                        <input
+                          type="checkbox"
+                          checked={colIdx < pendingFrozenCols}
+                          onChange={(e) => setPendingFrozenCols(e.target.checked ? colIdx + 1 : colIdx)}
+                          title={colIdx < pendingFrozenCols ? 'Unfreeze from here' : 'Freeze up to this column'}
+                          className="block mx-auto mb-0.5 cursor-pointer w-3 h-3"
+                        />
+                      )}
                       <span className="group-hover/col:hidden">{columnLetter(colIdx)}</span>
                       {canEdit && (
                         <button
