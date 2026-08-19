@@ -206,6 +206,14 @@ export default function DSRDashboard({
   const [isProjectDropdownOpen, setIsProjectDropdownOpen] = useState(false);
   const [projectSearchTerm, setProjectSearchTerm] = useState('');
 
+  // Resolved project names for the selected project IDs - used to let the
+  // Update Ranking sheet filter by "Project Name" cell text, since that
+  // sheet is a free-form grid rather than a Projects-linked table.
+  const selectedProjectNames = useMemo(
+    () => projects.filter(p => selectedProjectIds.includes(p.id)).map(p => p.name),
+    [projects, selectedProjectIds]
+  );
+
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
   const [userSearchTerm, setUserSearchTerm] = useState('');
@@ -3620,6 +3628,9 @@ export default function DSRDashboard({
             setGrid={setManualRankingGrid}
             isLoading={manualRankingLoading}
             stickyOffset={tableHeaderTop}
+            globalSearchTerm={commonSearchTerm}
+            locationFilter={selectedLocations}
+            projectNameFilter={selectedProjectNames}
           />
         )}
 
