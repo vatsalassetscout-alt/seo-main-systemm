@@ -4,7 +4,7 @@
  */
 
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Plus, X, ArrowUpDown, Palette, Search, Check, Loader2, ChevronDown, Users, Trash2 } from 'lucide-react';
+import { Plus, X, ArrowUpDown, Palette, Search, ChevronDown, Users, Trash2 } from 'lucide-react';
 
 /* ==========================================================================
  * DATA MODEL
@@ -154,6 +154,18 @@ interface UpdateRankingTableProps {
   usersList?: RankingUserOption[];
   selectedUserEmail?: string;
   onSelectedUserChange?: (email: string) => void;
+
+  /** Wiring from the page-level "Workspace Filters" bar. Only the filters
+      that map onto something this free-form sheet actually has are applied
+      here: the global search box (matched against every cell, same as the
+      sheet's own local search), a Location filter (matched against a
+      column named "Location", if one exists), and a Project filter
+      (matched against a column named "Project Name", if one exists). The
+      workspace Users filter and Date filter are intentionally NOT wired in
+      here - they don't apply to this section. */
+  globalSearchTerm?: string;
+  locationFilter?: string[];
+  projectNameFilter?: string[];
 }
 
 // Fill-color palette for header cells and the row color-tagging feature (24 presets)
@@ -239,6 +251,9 @@ export default function UpdateRankingTable({
   usersList = [],
   selectedUserEmail = '',
   onSelectedUserChange,
+  globalSearchTerm = '',
+  locationFilter = [],
+  projectNameFilter = [],
 }: UpdateRankingTableProps) {
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [searchTerm, setSearchTerm] = useState('');
@@ -322,6 +337,36 @@ export default function UpdateRankingTable({
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const gridRef = useRef(grid);
   useEffect(() => { gridRef.current = grid; }, [grid]);
+
+  // Ctrl/Cmd+Z undo (and Ctrl/Cmd+Shift+Z / Ctrl+Y redo), Sheets-style.
+  // Snapshots of the grid are pushed onto a plain stack right before each
+  // user-triggered mutation; undo pops one off and restores it, pushing the
+  // just-left state onto the redo stack so redo can step forward again.
+  const undoStackRef = useRef<ManualRankingGrid[]>([]);
+  const redoStackRef = useRef<ManualRankingGrid[]>([]);
+  const MAX_UNDO_STEPS = 50;
+
+  const pushUndoSnapshot = () => {
+    undoStackRef.current.push(gridRef.current);
+    if (undoStackRef.current.length > MAX_UNDO_STEPS) undoStackRef.current.shift();
+    redoStackRef.current = []; // a fresh edit invalidates whatever could have been redone
+  };
+
+  const undo = () => {
+    if (!canEdit) return;
+    const prev = undoStackRef.current.pop();
+    if (!prev) return;
+    redoStackRef.current.push(gridRef.current);
+    setGrid(prev);
+  };
+
+  const redo = () => {
+    if (!canEdit) return;
+    const next = redoStackRef.current.pop();
+    if (!next) return;
+    undoStackRef.current.push(gridRef.current);
+    setGrid(next);
+  };
 
   // Whenever the underlying sheet owner changes (admin swaps who they're
   // viewing), don't treat the freshly-loaded data as an edit to autosave.
@@ -407,6 +452,7 @@ export default function UpdateRankingTable({
     if (!canEdit) return;
     const name = window.prompt('Name this new column (e.g. "Week 1", "Notes"):');
     if (!name || !name.trim()) return;
+    pushUndoSnapshot();
     setGrid(prev => ({ ...prev, columns: [...prev.columns, { id: uid('col'), name: name.trim() }] }));
   };
 
@@ -415,12 +461,14 @@ export default function UpdateRankingTable({
     const current = grid.columns.find(c => c.id === colId);
     const name = window.prompt('Rename column:', current?.name || '');
     if (!name || !name.trim()) return;
+    pushUndoSnapshot();
     setGrid(prev => ({ ...prev, columns: prev.columns.map(c => c.id === colId ? { ...c, name: name.trim() } : c) }));
   };
 
   const deleteColumn = (colId: string) => {
     if (!canEdit) return;
     if (!window.confirm('Remove this column and all its filled data? This cannot be undone.')) return;
+    pushUndoSnapshot();
     setGrid(prev => ({
       ...prev,
       columns: prev.columns.filter(c => c.id !== colId),
@@ -436,6 +484,7 @@ export default function UpdateRankingTable({
 
   const setColumnColor = (colId: string, field: 'headerColor' | 'textColor', value: string) => {
     if (!canEdit) return;
+    pushUndoSnapshot();
     setGrid(prev => ({
       ...prev,
       columns: prev.columns.map(c => c.id === colId ? { ...c, [field]: value || undefined } : c)
@@ -444,6 +493,7 @@ export default function UpdateRankingTable({
 
   const clearColumnFormatting = (colId: string) => {
     if (!canEdit) return;
+    pushUndoSnapshot();
     setGrid(prev => ({
       ...prev,
       columns: prev.columns.map(c => c.id === colId ? { ...c, headerColor: undefined, textColor: undefined } : c)
@@ -471,6 +521,7 @@ export default function UpdateRankingTable({
       setColWidths(prev => {
         const finalWidth = prev[colId];
         if (finalWidth != null && canEdit) {
+          pushUndoSnapshot();
           setGrid(g => ({ ...g, columns: g.columns.map(c => c.id === colId ? { ...c, width: finalWidth } : c) }));
         }
         return prev;
@@ -484,11 +535,13 @@ export default function UpdateRankingTable({
 
   const addRow = () => {
     if (!canEdit) return;
+    pushUndoSnapshot();
     setGrid(prev => ({ ...prev, rows: [...prev.rows, { id: uid('row'), cells: {} }] }));
   };
 
   const deleteRow = (rowId: string) => {
     if (!canEdit) return;
+    pushUndoSnapshot();
     setGrid(prev => ({ ...prev, rows: prev.rows.filter(r => r.id !== rowId) }));
     setSelectedRowIds(prev => {
       if (!(rowId in prev)) return prev;
@@ -521,6 +574,7 @@ export default function UpdateRankingTable({
     while (lines.length > 1 && lines[lines.length - 1] === '') lines.pop();
     const block = lines.map(line => line.split('\t'));
 
+    pushUndoSnapshot();
     setGrid(prev => {
       const columns = [...prev.columns];
       const rows = prev.rows.map(r => ({ ...r, cells: { ...r.cells } }));
@@ -558,6 +612,7 @@ export default function UpdateRankingTable({
   /* --------------------------- row color tag ---------------------------- */
 
   const applyColorToSelected = (color: string) => {
+    pushUndoSnapshot();
     setGrid(prev => ({
       ...prev,
       rows: prev.rows.map(r => selectedRowIds[r.id] ? { ...r, color } : r)
@@ -566,6 +621,7 @@ export default function UpdateRankingTable({
   };
 
   const clearColorFromSelected = () => {
+    pushUndoSnapshot();
     setGrid(prev => ({
       ...prev,
       rows: prev.rows.map(r => selectedRowIds[r.id] ? { ...r, color: undefined } : r)
@@ -585,6 +641,7 @@ export default function UpdateRankingTable({
     const rowSpan = Math.max(1, blockRowCount);
     const colSpan = Math.max(1, blockColCount);
 
+    pushUndoSnapshot();
     setGrid(prev => {
       const targetColIds = prev.columns.slice(startColIdx, startColIdx + colSpan).map(c => c.id);
       const rows = prev.rows.map((r, idx) => {
@@ -635,17 +692,47 @@ export default function UpdateRankingTable({
 
   /* --------------------------- derived state ---------------------------- */
 
+  // Columns the page-level Workspace Filters can hook into - matched by
+  // name so this keeps working even if the sheet's column ids differ (e.g.
+  // an older saved sheet, or the user renamed things back to the same label).
+  const locationColId = useMemo(
+    () => grid.columns.find(c => c.name.trim().toLowerCase() === 'location')?.id,
+    [grid.columns]
+  );
+  const projectNameColId = useMemo(
+    () => grid.columns.find(c => c.name.trim().toLowerCase() === 'project name')?.id,
+    [grid.columns]
+  );
+
   const visibleRows = useMemo(() => {
     let list = grid.rows;
     if (searchTerm.trim()) {
       const term = searchTerm.toLowerCase();
       list = list.filter(r => Object.values(r.cells).some(v => (v || '').toLowerCase().includes(term)));
     }
+    // Global search bar from the page-level Workspace Filters - same "match
+    // any cell" behavior as the sheet's own search box above, just wired to
+    // the shared filter bar so typing there also narrows this sheet.
+    if (globalSearchTerm.trim()) {
+      const term = globalSearchTerm.toLowerCase();
+      list = list.filter(r => Object.values(r.cells).some(v => (v || '').toLowerCase().includes(term)));
+    }
+    // Location filter - only has something to match against if this sheet
+    // has a "Location" column (true for the default seeded columns).
+    if (locationFilter.length > 0 && locationColId) {
+      const wanted = new Set(locationFilter.map(l => l.toLowerCase()));
+      list = list.filter(r => wanted.has((r.cells[locationColId] || '').trim().toLowerCase()));
+    }
+    // Project filter - matched against a "Project Name" column, same idea.
+    if (projectNameFilter.length > 0 && projectNameColId) {
+      const wanted = new Set(projectNameFilter.map(p => p.toLowerCase()));
+      list = list.filter(r => wanted.has((r.cells[projectNameColId] || '').trim().toLowerCase()));
+    }
     if (sortColumnId) {
       list = [...list].sort((a, b) => compareCells(a.cells[sortColumnId] || '', b.cells[sortColumnId] || '', sortDirection));
     }
     return list;
-  }, [grid.rows, searchTerm, sortColumnId, sortDirection]);
+  }, [grid.rows, searchTerm, sortColumnId, sortDirection, globalSearchTerm, locationFilter, projectNameFilter, locationColId, projectNameColId]);
 
   // Measure actual rendered row heights so frozen rows can be pinned at the
   // right pixel offset (header height, then each frozen row stacked below it).
@@ -712,6 +799,7 @@ export default function UpdateRankingTable({
     if (selBounds.r0 === selBounds.r1 && selBounds.c0 === selBounds.c1) return; // single cell: let normal typing/backspace handle it
     const targetRowIds = new Set(visibleRows.slice(selBounds.r0, selBounds.r1 + 1).map(r => r.id));
     const targetColIds = new Set(grid.columns.slice(selBounds.c0, selBounds.c1 + 1).map(c => c.id));
+    pushUndoSnapshot();
     setGrid(prev => ({
       ...prev,
       rows: prev.rows.map(r => {
@@ -725,6 +813,16 @@ export default function UpdateRankingTable({
 
   const handleSheetKeyDown = (e: React.KeyboardEvent) => {
     const meta = e.ctrlKey || e.metaKey;
+    if (meta && e.key.toLowerCase() === 'z' && !e.shiftKey) {
+      e.preventDefault();
+      undo();
+      return;
+    }
+    if ((meta && e.key.toLowerCase() === 'y') || (meta && e.shiftKey && e.key.toLowerCase() === 'z')) {
+      e.preventDefault();
+      redo();
+      return;
+    }
     if (meta && e.key.toLowerCase() === 'a') {
       e.preventDefault(); // stop the browser's native "select all text in this input"
       selectAllCells();
@@ -866,6 +964,7 @@ export default function UpdateRankingTable({
                 <input
                   type="text"
                   value={cellValue}
+                  onFocus={pushUndoSnapshot}
                   onChange={(e) => updateCell(row.id, col.id, e.target.value)}
                   onPaste={(e) => handleCellPaste(e, row.id, col.id)}
                   placeholder="—"
@@ -954,13 +1053,12 @@ export default function UpdateRankingTable({
             </div>
           )}
 
-          {/* Save status - editors only */}
-          {canEdit && (
-            <div className="flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1.5 rounded-lg bg-white border border-gray-200">
-              {saveState === 'saving' && <><Loader2 size={11} className="animate-spin text-indigo-500" /> Saving…</>}
-              {saveState === 'saved' && <><Check size={11} className="text-emerald-600" /> Saved</>}
-              {saveState === 'error' && <span className="text-rose-600">Save failed</span>}
-              {saveState === 'idle' && <span className="text-gray-400">All changes saved</span>}
+          {/* Save status - editors only. Kept silent during normal
+              saving/saved/idle states per request; only a real save failure
+              (which risks losing the edit) still surfaces to the user. */}
+          {canEdit && saveState === 'error' && (
+            <div className="flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-600">
+              Save failed - check your connection
             </div>
           )}
 
@@ -1336,7 +1434,9 @@ export default function UpdateRankingTable({
               {visibleRows.length === 0 ? (
                 <tr>
                   <td colSpan={totalTableCols} className="p-12 text-center text-xs text-gray-500 font-bold">
-                    {searchTerm ? 'No rows match your search.' : (canEdit ? 'No rows yet - click "+ Row" to start.' : 'No rows yet.')}
+                    {(searchTerm || globalSearchTerm || locationFilter.length > 0 || projectNameFilter.length > 0)
+                      ? 'No rows match the current search/filters.'
+                      : (canEdit ? 'No rows yet - click "+ Row" to start.' : 'No rows yet.')}
                   </td>
                 </tr>
               ) : (
