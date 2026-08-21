@@ -1688,6 +1688,32 @@ async function sendWeeklyReportEmail(rows: WeeklyReportRow[], weekId: string): P
   }
 }
 
+// In-memory progress tracker for the weekly job. Needed because the job can
+// legitimately take several minutes (it checks every keyword's live SERP
+// ranking, sequentially, page by page) - far longer than any HTTP proxy
+// (Render, cron-job.org, a plain browser tab) will wait for a response. So
+// the trigger endpoint below no longer blocks on the job; it kicks the job
+// off, replies immediately, and callers poll /weekly-report/status instead.
+let weeklyReportProgress: {
+  running: boolean;
+  weekId: string | null;
+  startedAt: string | null;
+  finishedAt: string | null;
+  keywordsDone: number;
+  keywordsTotal: number;
+  lastResult: any | null;
+  lastError: string | null;
+} = {
+  running: false,
+  weekId: null,
+  startedAt: null,
+  finishedAt: null,
+  keywordsDone: 0,
+  keywordsTotal: 0,
+  lastResult: null,
+  lastError: null,
+};
+
 // The main job. force=true skips the "already ran this week" guard (useful
 // for testing from the browser/Postman without waiting for Sunday).
 async function runWeeklyRankingReport(force: boolean = false): Promise<any> {
@@ -1711,33 +1737,40 @@ async function runWeeklyRankingReport(force: boolean = false): Promise<any> {
 
   const rows: WeeklyReportRow[] = [];
 
+  // Pre-count so /weekly-report/status can show "12 / 50 done" while it runs.
+  const plannedKeywords: { project: any; cleaned: string }[] = [];
   for (const project of projects) {
     if (!project?.domain) continue;
     const keywords = mergeProjectKeywords(project, submissions);
-    if (keywords.length === 0) continue;
-
-    if (!rankingsBefore[project.id]) rankingsBefore[project.id] = {};
-
     for (const kw of keywords) {
       const cleaned = kw.trim();
       if (!cleaned) continue;
-
-      const beforeEntry = rankingsBefore[project.id][cleaned];
-      const before = beforeEntry?.ranking || "—";
-
-      const after = await checkSerpRanking(cleaned, project.domain);
-      const timestamp = new Date().toISOString();
-      rankingsBefore[project.id][cleaned] = { ranking: after, lastChecked: timestamp };
-
-      rows.push({
-        projectName: project.name || project.domain,
-        domain: project.domain,
-        keyword: cleaned,
-        before,
-        after,
-        change: buildChangeLabel(before, after),
-      });
+      plannedKeywords.push({ project, cleaned });
     }
+  }
+  weeklyReportProgress.keywordsTotal = plannedKeywords.length;
+  weeklyReportProgress.keywordsDone = 0;
+
+  for (const { project, cleaned } of plannedKeywords) {
+    if (!rankingsBefore[project.id]) rankingsBefore[project.id] = {};
+
+    const beforeEntry = rankingsBefore[project.id][cleaned];
+    const before = beforeEntry?.ranking || "—";
+
+    const after = await checkSerpRanking(cleaned, project.domain);
+    const timestamp = new Date().toISOString();
+    rankingsBefore[project.id][cleaned] = { ranking: after, lastChecked: timestamp };
+
+    rows.push({
+      projectName: project.name || project.domain,
+      domain: project.domain,
+      keyword: cleaned,
+      before,
+      after,
+      change: buildChangeLabel(before, after),
+    });
+
+    weeklyReportProgress.keywordsDone += 1;
   }
 
   // Persist the freshly-checked rankings as the new "latest" (this becomes
@@ -1767,6 +1800,15 @@ async function runWeeklyRankingReport(force: boolean = false): Promise<any> {
 // cron-job.org) at this URL, every Sunday, with the secret attached, e.g.:
 //   GET https://your-app.onrender.com/api/rankings/weekly-report?secret=YOUR_CRON_SECRET
 // Supports GET (so a plain browser/cron-job.org GET job works) and POST.
+//
+// IMPORTANT: this does NOT wait for the job to finish before responding.
+// Checking every keyword's live SERP ranking can take several minutes, which
+// is longer than Render's proxy, cron-job.org's default timeout, or a plain
+// browser tab will wait - so waiting here is what caused the old
+// "site can't be reached" error on force=true. Instead we kick the job off
+// in the background and reply right away with { started: true }. Poll
+// GET /api/rankings/weekly-report/status to watch progress and see the
+// final result (rows checked, email sent/not sent, etc.) once it's done.
 async function handleWeeklyReportTrigger(req: express.Request, res: express.Response) {
   const configuredSecret = (process.env.CRON_SECRET || "").trim();
   const providedSecret = String(req.query.secret || req.headers["x-cron-secret"] || "").trim();
@@ -1779,17 +1821,60 @@ async function handleWeeklyReportTrigger(req: express.Request, res: express.Resp
     console.warn("CRON_SECRET is not set — weekly-report endpoint is currently UNPROTECTED. Set CRON_SECRET in your environment.");
   }
 
-  try {
-    const force = String(req.query.force || "") === "true";
-    const result = await runWeeklyRankingReport(force);
-    res.json(result);
-  } catch (err: any) {
-    console.error("Error running weekly ranking report:", err);
-    res.status(500).json({ error: err.message });
+  const force = String(req.query.force || "") === "true";
+
+  if (weeklyReportProgress.running) {
+    // Already going (e.g. the in-process Sunday cron and an external ping
+    // landed close together) - don't start a second overlapping run.
+    return res.status(202).json({
+      started: false,
+      alreadyRunning: true,
+      progress: weeklyReportProgress,
+    });
   }
+
+  const weekId = getIsoWeekId(new Date());
+  weeklyReportProgress = {
+    running: true,
+    weekId,
+    startedAt: new Date().toISOString(),
+    finishedAt: null,
+    keywordsDone: 0,
+    keywordsTotal: 0,
+    lastResult: null,
+    lastError: null,
+  };
+
+  // Fire and forget - do NOT await this. Respond to the HTTP caller
+  // immediately so the connection can't time out mid-job.
+  runWeeklyRankingReport(force)
+    .then((result) => {
+      weeklyReportProgress.lastResult = result;
+    })
+    .catch((err: any) => {
+      console.error("Error running weekly ranking report:", err);
+      weeklyReportProgress.lastError = err?.message || "Unknown error.";
+    })
+    .finally(() => {
+      weeklyReportProgress.running = false;
+      weeklyReportProgress.finishedAt = new Date().toISOString();
+    });
+
+  res.status(202).json({
+    started: true,
+    weekId,
+    force,
+    message: "Weekly ranking report started in the background. Poll /api/rankings/weekly-report/status for progress.",
+  });
 }
 app.get("/api/rankings/weekly-report", handleWeeklyReportTrigger);
 app.post("/api/rankings/weekly-report", handleWeeklyReportTrigger);
+
+// GET current/last-run progress of the weekly job - poll this after
+// triggering, instead of waiting on the trigger request itself.
+app.get("/api/rankings/weekly-report/status", (req, res) => {
+  res.json(weeklyReportProgress);
+});
 
 // GET the last N archived weekly reports (for building a "history" view later)
 app.get("/api/rankings/weekly-report/history", async (req, res) => {
