@@ -32,7 +32,7 @@ export async function checkSupabaseTablesStatus(): Promise<{ configured: boolean
     return { configured: false, ok: false, error: "Supabase not configured in settings variables.", missingTables: [] };
   }
 
-  const tables = ["projects", "submissions", "alerts", "activities", "rankings", "manual_rankings", "task_assignments", "lineup_engine"];
+  const tables = ["projects", "submissions", "alerts", "activities", "rankings", "manual_rankings", "task_assignments", "lineup_engine", "ranking_history", "report_state"];
   const missing: string[] = [];
 
   for (const table of tables) {
@@ -186,6 +186,26 @@ CREATE TABLE IF NOT EXISTS lineup_engine (
   updated_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now())
 );
 
+-- 10. Ranking History Table — one archived snapshot per ISO week (e.g.
+-- "2026-W34"), so the Sunday auto-report has a permanent before/after
+-- trail you can look back on across the whole year, not just the latest run.
+CREATE TABLE IF NOT EXISTS ranking_history (
+  id TEXT PRIMARY KEY, -- ISO week id, e.g. "2026-W34"
+  data JSONB DEFAULT '{}'::jsonb, -- { generatedAt, rows: [{projectName, domain, keyword, before, after, change}, ...] }
+  created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now())
+);
+
+-- 11. Report State Table (single row) — tracks the last ISO week the
+-- weekly ranking-report job actually ran, so it never double-sends the
+-- same week's email even if both the external cron ping and the
+-- in-process Sunday scheduler happen to fire close together.
+CREATE TABLE IF NOT EXISTS report_state (
+  id TEXT PRIMARY KEY, -- always "weekly_ranking_report"
+  last_run_week TEXT,
+  last_run_at TIMESTAMPTZ,
+  updated_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now())
+);
+
 -- Row Level Security (RLS) Setup
 -- Disable RLS to allow direct database sync from the web client safely:
 ALTER TABLE projects DISABLE ROW LEVEL SECURITY;
@@ -197,6 +217,8 @@ ALTER TABLE manual_rankings DISABLE ROW LEVEL SECURITY;
 ALTER TABLE app_users DISABLE ROW LEVEL SECURITY;
 ALTER TABLE task_assignments DISABLE ROW LEVEL SECURITY;
 ALTER TABLE lineup_engine DISABLE ROW LEVEL SECURITY;
+ALTER TABLE ranking_history DISABLE ROW LEVEL SECURITY;
+ALTER TABLE report_state DISABLE ROW LEVEL SECURITY;
 
 -- If you prefer keeping RLS enabled on your database, run the following commands to allow full public access instead:
 -- CREATE POLICY "Allow public read-write for projects" ON projects FOR ALL USING (true) WITH CHECK (true);
@@ -1034,6 +1056,117 @@ export async function clearRankingsDb(): Promise<boolean> {
       return true;
     } catch (err) {
       console.error("Supabase clear rankings exception:", err);
+    }
+  }
+  return false;
+}
+
+// =========================================================================
+// RANKING HISTORY (weekly auto-report archive) DB INTERACTION
+// =========================================================================
+
+// Saves one week's full before/after report snapshot, keyed by ISO week
+// (e.g. "2026-W34"). Safe to call more than once for the same week - it
+// just overwrites that week's row instead of duplicating it.
+export async function saveRankingHistoryDb(weekId: string, data: any): Promise<boolean> {
+  const sb = getSupabase();
+  if (sb) {
+    try {
+      const row = {
+        id: weekId,
+        data,
+        created_at: new Date().toISOString()
+      };
+      const { error } = await sb
+        .from("ranking_history")
+        .upsert(row, { onConflict: "id" });
+
+      if (error) {
+        console.warn("Supabase upsert ranking_history failed:", error.message);
+        return false;
+      }
+      return true;
+    } catch (err) {
+      console.error("Supabase ranking_history upsert exception:", err);
+    }
+  }
+  return false;
+}
+
+// Returns the most recent N archived weekly reports, newest first.
+export async function getRankingHistoryDb(limit: number = 12): Promise<any[]> {
+  const sb = getSupabase();
+  if (sb) {
+    try {
+      const { data, error } = await sb
+        .from("ranking_history")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(limit);
+
+      if (error) {
+        console.warn("Supabase get ranking_history failed:", error.message);
+        return [];
+      }
+      return data || [];
+    } catch (err) {
+      console.error("Supabase ranking_history fetch exception:", err);
+    }
+  }
+  return [];
+}
+
+// =========================================================================
+// REPORT STATE (dedupe guard for the weekly ranking-report job)
+// =========================================================================
+
+const REPORT_STATE_ID = "weekly_ranking_report";
+
+export async function getReportStateDb(): Promise<{ last_run_week?: string; last_run_at?: string } | null> {
+  const sb = getSupabase();
+  if (sb) {
+    try {
+      const { data, error } = await sb
+        .from("report_state")
+        .select("*")
+        .eq("id", REPORT_STATE_ID)
+        .single();
+
+      if (error) {
+        if (error.code !== "PGRST116") {
+          console.warn("Supabase get report_state failed:", error.message);
+        }
+        return null;
+      }
+      return data || null;
+    } catch (err) {
+      console.error("Supabase report_state fetch exception:", err);
+    }
+  }
+  return null;
+}
+
+export async function setReportStateDb(weekId: string): Promise<boolean> {
+  const sb = getSupabase();
+  if (sb) {
+    try {
+      const row = {
+        id: REPORT_STATE_ID,
+        last_run_week: weekId,
+        last_run_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+      const { error } = await sb
+        .from("report_state")
+        .upsert(row, { onConflict: "id" });
+
+      if (error) {
+        console.warn("Supabase upsert report_state failed:", error.message);
+        return false;
+      }
+      return true;
+    } catch (err) {
+      console.error("Supabase report_state upsert exception:", err);
     }
   }
   return false;
