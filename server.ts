@@ -2,6 +2,8 @@ import express from "express";
 import path from "path";
 import dotenv from "dotenv";
 import { JWT } from "google-auth-library";
+import nodemailer from "nodemailer";
+import cron from "node-cron";
 import {
   isSupabaseConfigured,
   checkSupabaseTablesStatus,
@@ -28,6 +30,10 @@ import {
   clearRankingsDb,
   getManualRankingsDb,
   saveManualRankingsDb,
+  saveRankingHistoryDb,
+  getRankingHistoryDb,
+  getReportStateDb,
+  setReportStateDb,
   getUsersDb,
   saveUserDb,
   deleteUserDb,
@@ -1520,6 +1526,290 @@ async function checkSerpRanking(keyword: string, domain: string): Promise<string
     return "NA";
   }
 }
+
+// =========================================================================
+// WEEKLY AUTO RANKING CHECK + EMAIL REPORT (every Sunday, fully automatic)
+// =========================================================================
+// How this is triggered (two belt-and-braces paths, either is enough):
+//
+// 1. EXTERNAL FREE CRON PING (the reliable path for a free Render web
+//    service, which sleeps after ~15 min of no traffic): a free scheduler
+//    like cron-job.org hits POST/GET /api/rankings/weekly-report every
+//    Sunday. The incoming request itself wakes a sleeping Render instance,
+//    so this works forever without needing to pay for an "always on" plan.
+//
+// 2. IN-PROCESS SUNDAY SCHEDULER (node-cron below): fires automatically
+//    whenever the server happens to already be awake at the scheduled
+//    time (e.g. if it's on a paid/always-on plan, or kept awake by an
+//    uptime pinger). This is a bonus, not the primary mechanism.
+//
+// Both paths call the exact same runWeeklyRankingReport() function, which
+// checks a "did we already run this ISO week" guard (report_state table)
+// before doing any SERP API calls, so triggering both never double-runs
+// or double-emails the same week.
+// =========================================================================
+
+// ISO week id like "2026-W34" - stable, sortable, one id per calendar week.
+function getIsoWeekId(d: Date): string {
+  const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const dayNum = date.getUTCDay() || 7;
+  date.setUTCDate(date.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+  const weekNo = Math.ceil((((date.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+  return `${date.getUTCFullYear()}-W${String(weekNo).padStart(2, "0")}`;
+}
+
+// Same "project keywords + any extra keywords workers have logged against
+// this project in their Work Log submissions" merge used by the manual
+// bulk-check endpoint below, pulled out here so the weekly job can reuse it
+// without duplicating the SERP calls twice a request apart.
+function mergeProjectKeywords(project: any, submissions: any[]): string[] {
+  let keywords: string[] = Array.isArray(project?.keywords) ? [...project.keywords] : [];
+  if (Array.isArray(submissions)) {
+    for (const sub of submissions) {
+      if (sub && Array.isArray(sub.works)) {
+        for (const work of sub.works) {
+          if (work && work.projectId === project.id && Array.isArray(work.selectedKeywords)) {
+            for (const kw of work.selectedKeywords) {
+              if (kw && typeof kw === "string" && kw.trim()) {
+                const cleaned = kw.trim();
+                if (!keywords.map(k => k.toLowerCase()).includes(cleaned.toLowerCase())) {
+                  keywords.push(cleaned);
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  return keywords;
+}
+
+interface WeeklyReportRow {
+  projectName: string;
+  domain: string;
+  keyword: string;
+  before: string; // rank last week, or "—" if never checked before
+  after: string;  // rank this week (or "NA")
+  change: string; // e.g. "+3", "-2", "New", "Lost", "Same"
+}
+
+function buildChangeLabel(before: string, after: string): string {
+  const beforeNum = /^\d+$/.test(before) ? parseInt(before, 10) : null;
+  const afterNum = /^\d+$/.test(after) ? parseInt(after, 10) : null;
+  if (beforeNum === null && afterNum !== null) return "New";
+  if (beforeNum !== null && afterNum === null) return "Lost";
+  if (beforeNum === null && afterNum === null) return "—";
+  const diff = beforeNum! - afterNum!; // positive = moved UP (lower rank number is better)
+  if (diff > 0) return `Up ${diff}`;
+  if (diff < 0) return `Down ${Math.abs(diff)}`;
+  return "Same";
+}
+
+function renderWeeklyReportHtml(rows: WeeklyReportRow[], weekId: string): string {
+  const byProject = new Map<string, WeeklyReportRow[]>();
+  for (const row of rows) {
+    const key = `${row.projectName} (${row.domain})`;
+    if (!byProject.has(key)) byProject.set(key, []);
+    byProject.get(key)!.push(row);
+  }
+
+  const changeColor = (change: string): string => {
+    if (change.startsWith("Up") || change === "New") return "#15803d";
+    if (change.startsWith("Down") || change === "Lost") return "#b91c1c";
+    return "#6b7280";
+  };
+
+  let sections = "";
+  for (const [projectLabel, projectRows] of byProject.entries()) {
+    const tableRows = projectRows.map(r => `
+      <tr>
+        <td style="padding:8px 10px;border:1px solid #e5e7eb;">${r.keyword}</td>
+        <td style="padding:8px 10px;border:1px solid #e5e7eb;text-align:center;">${r.before}</td>
+        <td style="padding:8px 10px;border:1px solid #e5e7eb;text-align:center;">${r.after}</td>
+        <td style="padding:8px 10px;border:1px solid #e5e7eb;text-align:center;color:${changeColor(r.change)};font-weight:600;">${r.change}</td>
+      </tr>`).join("");
+
+    sections += `
+      <h3 style="margin:24px 0 8px;font-family:Arial,sans-serif;color:#111827;">${projectLabel}</h3>
+      <table style="border-collapse:collapse;width:100%;font-family:Arial,sans-serif;font-size:13px;">
+        <thead>
+          <tr style="background:#f3f4f6;">
+            <th style="padding:8px 10px;border:1px solid #e5e7eb;text-align:left;">Keyword</th>
+            <th style="padding:8px 10px;border:1px solid #e5e7eb;">Last Week</th>
+            <th style="padding:8px 10px;border:1px solid #e5e7eb;">This Week</th>
+            <th style="padding:8px 10px;border:1px solid #e5e7eb;">Change</th>
+          </tr>
+        </thead>
+        <tbody>${tableRows}</tbody>
+      </table>`;
+  }
+
+  return `
+    <div style="font-family:Arial,sans-serif;color:#111827;">
+      <h2 style="margin:0 0 4px;">Weekly SEO Ranking Report</h2>
+      <p style="margin:0 0 16px;color:#6b7280;">Week ${weekId} · Generated ${new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })} (IST)</p>
+      ${sections || "<p>No keywords were found to check this week.</p>"}
+    </div>`;
+}
+
+let cachedTransporter: any = null;
+function getMailTransporter(): any {
+  if (cachedTransporter) return cachedTransporter;
+  const user = process.env.SMTP_USER;
+  const pass = process.env.SMTP_APP_PASSWORD;
+  if (!user || !pass) return null;
+  cachedTransporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: { user, pass },
+  });
+  return cachedTransporter;
+}
+
+async function sendWeeklyReportEmail(rows: WeeklyReportRow[], weekId: string): Promise<{ sent: boolean; reason?: string }> {
+  const to = (process.env.REPORT_TO_EMAIL || "").trim();
+  if (!to) return { sent: false, reason: "REPORT_TO_EMAIL is not set." };
+
+  const transporter = getMailTransporter();
+  if (!transporter) return { sent: false, reason: "SMTP_USER / SMTP_APP_PASSWORD is not set." };
+
+  try {
+    await transporter.sendMail({
+      from: `"SEO Ranking Report" <${process.env.SMTP_USER}>`,
+      to,
+      subject: `Weekly SEO Ranking Report — Week ${weekId}`,
+      html: renderWeeklyReportHtml(rows, weekId),
+    });
+    return { sent: true };
+  } catch (err: any) {
+    console.error("Failed to send weekly ranking report email:", err);
+    return { sent: false, reason: err?.message || "Unknown email error." };
+  }
+}
+
+// The main job. force=true skips the "already ran this week" guard (useful
+// for testing from the browser/Postman without waiting for Sunday).
+async function runWeeklyRankingReport(force: boolean = false): Promise<any> {
+  const weekId = getIsoWeekId(new Date());
+
+  if (!force) {
+    const state = await getReportStateDb();
+    if (state?.last_run_week === weekId) {
+      console.log(`Weekly ranking report for ${weekId} already ran at ${state.last_run_at}; skipping.`);
+      return { skipped: true, weekId, reason: "already ran this week" };
+    }
+  }
+
+  console.log(`Starting weekly ranking report for ${weekId}...`);
+
+  const [projects, submissions, rankingsBefore] = await Promise.all([
+    getProjectsDb(),
+    getSubmissionsDb(),
+    readRankings(),
+  ]);
+
+  const rows: WeeklyReportRow[] = [];
+
+  for (const project of projects) {
+    if (!project?.domain) continue;
+    const keywords = mergeProjectKeywords(project, submissions);
+    if (keywords.length === 0) continue;
+
+    if (!rankingsBefore[project.id]) rankingsBefore[project.id] = {};
+
+    for (const kw of keywords) {
+      const cleaned = kw.trim();
+      if (!cleaned) continue;
+
+      const beforeEntry = rankingsBefore[project.id][cleaned];
+      const before = beforeEntry?.ranking || "—";
+
+      const after = await checkSerpRanking(cleaned, project.domain);
+      const timestamp = new Date().toISOString();
+      rankingsBefore[project.id][cleaned] = { ranking: after, lastChecked: timestamp };
+
+      rows.push({
+        projectName: project.name || project.domain,
+        domain: project.domain,
+        keyword: cleaned,
+        before,
+        after,
+        change: buildChangeLabel(before, after),
+      });
+    }
+  }
+
+  // Persist the freshly-checked rankings as the new "latest" (this becomes
+  // next Sunday's "before" automatically) and archive this week's full
+  // before/after report for the long-term (1 year+) trend history.
+  await writeRankings(rankingsBefore);
+  await saveRankingHistoryDb(weekId, { generatedAt: new Date().toISOString(), rows });
+  await setReportStateDb(weekId);
+
+  const emailResult = await sendWeeklyReportEmail(rows, weekId);
+  if (!emailResult.sent) {
+    console.warn(`Weekly ranking report ${weekId}: rankings were checked and saved, but email was NOT sent — ${emailResult.reason}`);
+  } else {
+    console.log(`Weekly ranking report ${weekId}: email sent to ${process.env.REPORT_TO_EMAIL}.`);
+  }
+
+  await logActivityLocally(
+    "system",
+    "Weekly Ranking Report",
+    `Checked ${rows.length} keyword(s) across ${projects.length} project(s) for week ${weekId}. Email ${emailResult.sent ? "sent" : "NOT sent (" + emailResult.reason + ")"}.`
+  );
+
+  return { skipped: false, weekId, keywordsChecked: rows.length, projectsCovered: new Set(rows.map(r => r.projectName)).size, email: emailResult };
+}
+
+// Protected trigger endpoint - point a free external scheduler (e.g.
+// cron-job.org) at this URL, every Sunday, with the secret attached, e.g.:
+//   GET https://your-app.onrender.com/api/rankings/weekly-report?secret=YOUR_CRON_SECRET
+// Supports GET (so a plain browser/cron-job.org GET job works) and POST.
+async function handleWeeklyReportTrigger(req: express.Request, res: express.Response) {
+  const configuredSecret = (process.env.CRON_SECRET || "").trim();
+  const providedSecret = String(req.query.secret || req.headers["x-cron-secret"] || "").trim();
+
+  if (configuredSecret && providedSecret !== configuredSecret) {
+    console.warn("Blocked weekly-report trigger with missing/incorrect secret.");
+    return res.status(401).json({ error: "Invalid or missing secret." });
+  }
+  if (!configuredSecret) {
+    console.warn("CRON_SECRET is not set — weekly-report endpoint is currently UNPROTECTED. Set CRON_SECRET in your environment.");
+  }
+
+  try {
+    const force = String(req.query.force || "") === "true";
+    const result = await runWeeklyRankingReport(force);
+    res.json(result);
+  } catch (err: any) {
+    console.error("Error running weekly ranking report:", err);
+    res.status(500).json({ error: err.message });
+  }
+}
+app.get("/api/rankings/weekly-report", handleWeeklyReportTrigger);
+app.post("/api/rankings/weekly-report", handleWeeklyReportTrigger);
+
+// GET the last N archived weekly reports (for building a "history" view later)
+app.get("/api/rankings/weekly-report/history", async (req, res) => {
+  try {
+    const limit = parseInt(String(req.query.limit || "12"), 10);
+    const history = await getRankingHistoryDb(limit);
+    res.json(history);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Bonus in-process scheduler: fires every Sunday 08:30 IST (03:00 UTC) IF
+// the server happens to be awake at that moment. runWeeklyRankingReport()'s
+// own "already ran this week" guard means this can never double-send even
+// if the external cron ping above also fires around the same time.
+cron.schedule("0 3 * * 0", () => {
+  console.log("In-process Sunday scheduler firing weekly ranking report...");
+  runWeeklyRankingReport(false).catch(err => console.error("Scheduled weekly ranking report failed:", err));
+}, { timezone: "UTC" });
 
 // GET rankings
 app.get("/api/rankings", async (req, res) => {
