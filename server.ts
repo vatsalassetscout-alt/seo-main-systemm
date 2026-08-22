@@ -1820,38 +1820,80 @@ async function runWeeklyRankingReport(force: boolean = false, testLimit?: number
   return { skipped: false, weekId, test: isTest, checkOnly: !sendEmail, keywordsChecked: rows.length, projectsCovered: new Set(rows.map(r => r.projectName)).size, email: emailResult };
 }
 
-// Sends the LAST SAVED weekly report (whatever is currently sitting in the
-// ranking_history table - most recently produced by either the Sunday auto
-// job or the manual "Check All" button) without re-checking any rankings.
-// Same exact email format/recipient as the auto system
-// (renderWeeklyReportHtml + sendWeeklyReportEmail) - this is purely a
-// "resend/send now" action for whatever was last computed.
-async function sendLatestSavedReport(): Promise<any> {
-  const history = await getRankingHistoryDb(1);
-  if (!history || history.length === 0) {
-    return { sent: false, reason: "No saved ranking report found yet - run Check All first." };
+// Sends a report of WHATEVER ranking data is currently present right now
+// (in the same "rankings" table that the Ranking tab's existing "Check All" /
+// per-project "Check" buttons already save to via /api/rankings/check) -
+// however many keywords that happens to be, no re-checking involved. Same
+// exact email format/recipient as the automatic Sunday system
+// (renderWeeklyReportHtml + sendWeeklyReportEmail). "Before" column is
+// filled in from the last archived report if one exists, purely for context;
+// nothing is required to have run first except at least one keyword having
+// been checked at some point (via the Ranking tab).
+async function sendCurrentRankingsReport(): Promise<any> {
+  const [projects, submissions, rankings, priorHistory] = await Promise.all([
+    getProjectsDb(),
+    getSubmissionsDb(),
+    readRankings(),
+    getRankingHistoryDb(1),
+  ]);
+
+  // domain::keyword -> previous "after" value, so the email can still show a
+  // "Last Week" column when we have something to compare against.
+  const priorLookup = new Map<string, string>();
+  const priorRows: WeeklyReportRow[] = priorHistory?.[0]?.data?.rows || [];
+  for (const r of priorRows) {
+    priorLookup.set(`${r.domain}::${r.keyword.toLowerCase()}`, r.after);
   }
-  const latest = history[0];
-  const weekId: string = latest.id;
-  const rows: WeeklyReportRow[] = Array.isArray(latest.data?.rows) ? latest.data.rows : [];
+
+  const rows: WeeklyReportRow[] = [];
+  for (const project of projects) {
+    if (!project?.domain) continue;
+    const projectRankings = rankings[project.id];
+    if (!projectRankings) continue; // nothing checked for this project yet - skip it
+
+    const keywords = mergeProjectKeywords(project, submissions);
+    for (const kw of keywords) {
+      const cleaned = kw.trim();
+      if (!cleaned) continue;
+      const entry = projectRankings[cleaned];
+      if (!entry || !entry.ranking) continue; // this specific keyword hasn't been checked - skip it
+
+      const after = entry.ranking;
+      const before = priorLookup.get(`${project.domain}::${cleaned.toLowerCase()}`) || "—";
+
+      rows.push({
+        projectName: project.name || project.domain,
+        domain: project.domain,
+        keyword: cleaned,
+        before,
+        after,
+        change: buildChangeLabel(before, after),
+      });
+    }
+  }
 
   if (rows.length === 0) {
-    return { sent: false, reason: `Saved report for ${weekId} has no keyword rows.`, weekId };
+    return { sent: false, reason: "No ranking data found yet - check some keywords first from the Ranking tab, then try Send Report again." };
   }
 
+  const weekId = getIsoWeekId(new Date());
   const emailResult = await sendWeeklyReportEmail(rows, weekId);
+
   if (emailResult.sent) {
+    // Archive this as the latest snapshot so the NEXT manual send (or the
+    // Sunday auto job) has a proper "before" to compare against.
+    await saveRankingHistoryDb(weekId, { generatedAt: new Date().toISOString(), rows });
     await logActivityLocally(
       "system",
       "Manual Send Report",
-      `Manually sent the saved ranking report for week ${weekId} (${rows.length} keyword(s)).`
+      `Manually sent a ranking report for week ${weekId} (${rows.length} keyword(s), based on currently available data).`
     );
-    console.log(`Manual Send Report: emailed saved report for ${weekId} to ${process.env.REPORT_TO_EMAIL}.`);
+    console.log(`Manual Send Report: emailed ${rows.length} keyword(s) to ${process.env.REPORT_TO_EMAIL}.`);
   } else {
-    console.warn(`Manual Send Report: failed to send saved report for ${weekId} — ${emailResult.reason}`);
+    console.warn(`Manual Send Report: failed to send — ${emailResult.reason}`);
   }
 
-  return { weekId, keywordsInReport: rows.length, generatedAt: latest.data?.generatedAt || latest.created_at, email: emailResult };
+  return { weekId, keywordsInReport: rows.length, email: emailResult };
 }
 
 // Protected trigger endpoint - point a free external scheduler (e.g.
@@ -1955,79 +1997,19 @@ app.get("/api/rankings/weekly-report/history", async (req, res) => {
 });
 
 // =========================================================================
-// MANUAL ADMIN CONTROLS - "Check All" and "Send Report" buttons
+// MANUAL ADMIN CONTROL - "Send Report" button
 // =========================================================================
-// These split the automatic Sunday flow into two independent manual actions
-// for the admin panel:
-//   - Check All  -> runs the exact same SERP check across every project's
-//                   keywords and saves it (latest rankings + history), but
-//                   does NOT email anyone. Same background job/progress
-//                   pattern as the Sunday trigger, so it can take a while
-//                   for large keyword counts - poll the same /status route.
-//   - Send Report -> does NOT check anything. It just takes whatever report
-//                    was most recently saved (by Check All OR the Sunday
-//                    auto job) and emails it, in the exact same HTML format,
-//                    to the exact same REPORT_TO_EMAIL address the automatic
-//                    system uses. Fast (no SERP calls), so it responds
-//                    synchronously.
-// =========================================================================
-
-// POST /api/rankings/check-all - admin only. Checks + saves rankings for
-// every project's keywords right now, without emailing. Runs in the
-// background (fire-and-forget) exactly like the Sunday trigger, so poll
-// GET /api/rankings/weekly-report/status for progress ("keywordsDone /
-// keywordsTotal") and the final result once finished.
-app.post("/api/rankings/check-all", requireAdmin, async (req, res) => {
-  if (weeklyReportProgress.running) {
-    return res.status(202).json({
-      started: false,
-      alreadyRunning: true,
-      progress: weeklyReportProgress,
-    });
-  }
-
-  const weekId = getIsoWeekId(new Date());
-  weeklyReportProgress = {
-    running: true,
-    weekId,
-    startedAt: new Date().toISOString(),
-    finishedAt: null,
-    keywordsDone: 0,
-    keywordsTotal: 0,
-    lastResult: null,
-    lastError: null,
-  };
-
-  // force=true here because a manual "Check All" click should always run,
-  // even if the automatic Sunday job (or an earlier manual check) already
-  // ran this same ISO week - the admin is explicitly asking for a refresh.
-  runWeeklyRankingReport(true, undefined, false)
-    .then((result) => {
-      weeklyReportProgress.lastResult = result;
-    })
-    .catch((err: any) => {
-      console.error("Error running manual Check All:", err);
-      weeklyReportProgress.lastError = err?.message || "Unknown error.";
-    })
-    .finally(() => {
-      weeklyReportProgress.running = false;
-      weeklyReportProgress.finishedAt = new Date().toISOString();
-    });
-
-  res.status(202).json({
-    started: true,
-    weekId,
-    message: "Check All started in the background - rankings will be checked and saved, no email will be sent. Poll /api/rankings/weekly-report/status for progress.",
-  });
-});
-
-// POST /api/rankings/send-report - admin only. Emails whatever report was
-// most recently saved (by Check All or the Sunday auto job), in the exact
-// same format/recipient as the automatic system. Does not check anything,
-// so it responds immediately.
+// The Ranking tab already has its own "Check All" / per-project "Check"
+// buttons (see DSRDashboard.tsx -> /api/rankings/check) that check live
+// SERP rankings and save them into the same "rankings" table this reads
+// from. This button does NOT check anything - it just takes whatever
+// ranking data is currently present (however many keywords that is) and
+// emails it, in the exact same HTML format and to the exact same
+// REPORT_TO_EMAIL address the automatic Sunday system uses. Fast (no SERP
+// calls), so it responds synchronously.
 app.post("/api/rankings/send-report", requireAdmin, async (req, res) => {
   try {
-    const result = await sendLatestSavedReport();
+    const result = await sendCurrentRankingsReport();
     res.json(result);
   } catch (err: any) {
     console.error("Error sending manual report:", err);
