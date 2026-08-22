@@ -1658,12 +1658,24 @@ let cachedTransporter: any = null;
 function getMailTransporter(): any {
   if (cachedTransporter) return cachedTransporter;
   const user = process.env.SMTP_USER;
-  const pass = process.env.SMTP_APP_PASSWORD;
+  // Gmail App Passwords are shown with spaces (e.g. "abcd efgh ijkl mnop")
+  // for readability but must be used without them - strip any whitespace
+  // in case it was pasted in that display format.
+  const pass = (process.env.SMTP_APP_PASSWORD || "").replace(/\s+/g, "");
   if (!user || !pass) return null;
   cachedTransporter = nodemailer.createTransport({
-    service: "gmail",
+    // Explicit host/port instead of the "service: gmail" shortcut, with
+    // family: 4 forcing IPv4. Render's outbound network has broken/blocked
+    // IPv6 routing to Google's mail servers, which surfaces as
+    // "connect ENETUNREACH 2607:f8b0:..." when nodemailer's DNS lookup
+    // picks an IPv6 address for smtp.gmail.com - forcing IPv4 avoids that
+    // entirely since IPv4 routing on Render works fine.
+    host: "smtp.gmail.com",
+    port: 465,
+    secure: true,
+    family: 4,
     auth: { user, pass },
-  });
+  } as any);
   return cachedTransporter;
 }
 
