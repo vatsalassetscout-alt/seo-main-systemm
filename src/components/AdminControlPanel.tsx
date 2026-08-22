@@ -15,7 +15,6 @@ import {
   Tag,
   Search,
   FolderPlus,
-  RefreshCw,
   Send,
   BarChart3,
 } from 'lucide-react';
@@ -72,11 +71,8 @@ export default function AdminControlPanel({
   const [projectSearch, setProjectSearch] = useState('');
   const [busy, setBusy] = useState(false);
 
-  // ---- Ranking Report: Check All / Send Report ----
-  const [rankingChecking, setRankingChecking] = useState(false);
-  const [rankingProgress, setRankingProgress] = useState<{ done: number; total: number } | null>(null);
+  // ---- Ranking Report: Send Report ----
   const [sendingReport, setSendingReport] = useState(false);
-  const rankingPollRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
 
   const authHeaders = useMemo(
     () => ({
@@ -201,53 +197,13 @@ export default function AdminControlPanel({
   };
 
   // ---------------------------------------------------------------------
-  // RANKING REPORT ACTIONS (manual "Check All" / "Send Report" buttons)
+  // RANKING REPORT ACTION (manual "Send Report" button)
   // ---------------------------------------------------------------------
-  // Check All: kicks off the same background SERP check the Sunday job
-  // runs (no email sent), then polls /weekly-report/status every few
-  // seconds to show live "X / Y keywords" progress until it's done.
-  const handleCheckAll = async () => {
-    setRankingChecking(true);
-    setRankingProgress(null);
-    try {
-      const res = await fetch('/api/rankings/check-all', { method: 'POST', headers: authHeaders });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to start check.');
-      if (data.alreadyRunning) {
-        triggerAlert('error', 'A ranking check is already running - waiting for it to finish.');
-      }
-
-      if (rankingPollRef.current) clearInterval(rankingPollRef.current);
-      rankingPollRef.current = setInterval(async () => {
-        try {
-          const statusRes = await fetch('/api/rankings/weekly-report/status', { headers: authHeaders });
-          const status = await statusRes.json();
-          setRankingProgress({ done: status.keywordsDone || 0, total: status.keywordsTotal || 0 });
-          if (!status.running) {
-            if (rankingPollRef.current) clearInterval(rankingPollRef.current);
-            rankingPollRef.current = null;
-            setRankingChecking(false);
-            const checked = status.lastResult?.keywordsChecked;
-            if (status.lastResult?.skipped) {
-              triggerAlert('error', status.lastResult.reason || 'Check skipped.');
-            } else if (typeof checked === 'number') {
-              triggerAlert('success', `Check All done - ${checked} keyword(s) checked and saved. Click "Send Report" to email it.`);
-            } else if (status.lastError) {
-              triggerAlert('error', status.lastError);
-            }
-          }
-        } catch {
-          // transient poll failure (e.g. Render briefly asleep) - just try again next tick
-        }
-      }, 5000);
-    } catch (err: any) {
-      setRankingChecking(false);
-      triggerAlert('error', err.message || 'Something went wrong starting the check.');
-    }
-  };
-
-  // Send Report: emails whatever was last saved by Check All (or the
-  // Sunday auto job) - same format, same recipient, no re-checking.
+  // The Ranking tab already has its own "Check All" / per-project "Check"
+  // buttons that check live SERP rankings. This just emails whatever
+  // ranking data is currently present (however many keywords that is) -
+  // same format, same recipient as the automatic Sunday system. No
+  // re-checking happens here.
   const handleSendReport = async () => {
     setSendingReport(true);
     try {
@@ -255,7 +211,7 @@ export default function AdminControlPanel({
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to send report.');
       if (data.email?.sent) {
-        triggerAlert('success', `Report sent for week ${data.weekId} (${data.keywordsInReport} keyword(s)).`);
+        triggerAlert('success', `Report sent (${data.keywordsInReport} keyword(s)).`);
       } else {
         triggerAlert('error', data.email?.reason || data.reason || 'Report was not sent.');
       }
@@ -265,12 +221,6 @@ export default function AdminControlPanel({
       setSendingReport(false);
     }
   };
-
-  React.useEffect(() => {
-    return () => {
-      if (rankingPollRef.current) clearInterval(rankingPollRef.current);
-    };
-  }, []);
 
   return (
     <div className="space-y-8 animate-fade-in text-left">
@@ -289,7 +239,7 @@ export default function AdminControlPanel({
         </motion.div>
       )}
 
-      {/* ================= RANKING REPORT (manual controls) ================= */}
+      {/* ================= RANKING REPORT (manual send) ================= */}
       <div className="space-y-4">
         <div className="flex items-center justify-between border-b border-gray-100 pb-4">
           <div>
@@ -297,39 +247,15 @@ export default function AdminControlPanel({
               <BarChart3 size={16} className="text-indigo-600" />
               Ranking Report
             </h4>
-            <p className="text-xs text-gray-400">
-              Automatic report still runs every Sunday. Use these to check or send it manually anytime.
-            </p>
+            <p className="text-xs text-gray-400">Automatic report still runs every Sunday.</p>
           </div>
         </div>
 
         <div className="border border-gray-150 rounded-2xl bg-white p-5 flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
           <div className="flex-1 space-y-1">
-            <p className="text-xs font-bold text-gray-800">1. Check All</p>
+            <p className="text-xs font-bold text-gray-800">Send Report</p>
             <p className="text-[11px] text-gray-400">
-              Re-checks every project's keyword rankings right now and saves the result. Does not send any email.
-            </p>
-            {rankingChecking && (
-              <p className="text-[11px] font-semibold text-indigo-600">
-                Checking… {rankingProgress ? `${rankingProgress.done} / ${rankingProgress.total} keywords` : 'starting…'}
-              </p>
-            )}
-          </div>
-          <button
-            onClick={handleCheckAll}
-            disabled={rankingChecking}
-            className="flex items-center justify-center gap-1.5 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-xl text-xs transition shadow-xs cursor-pointer whitespace-nowrap"
-          >
-            <RefreshCw size={14} className={rankingChecking ? 'animate-spin' : ''} />
-            {rankingChecking ? 'Checking…' : 'Check All'}
-          </button>
-        </div>
-
-        <div className="border border-gray-150 rounded-2xl bg-white p-5 flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
-          <div className="flex-1 space-y-1">
-            <p className="text-xs font-bold text-gray-800">2. Send Report</p>
-            <p className="text-[11px] text-gray-400">
-              Emails the most recently saved report (from Check All or the automatic Sunday run) — same format, same recipient. Does not re-check anything.
+              Emails whatever ranking data is currently checked (from the Ranking tab) — any number of keywords, same format and recipient as the automatic report. Doesn't check anything itself.
             </p>
           </div>
           <button
