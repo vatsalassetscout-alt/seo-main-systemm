@@ -1683,8 +1683,14 @@ async function getMailTransporter(): Promise<any> {
 
   cachedTransporter = nodemailer.createTransport({
     host: ipv4Host,
-    port: 465,
-    secure: true,
+    // Port 465 (implicit TLS) is blocked/unreachable on Render's outbound
+    // network (confirmed: hangs until connectionTimeout). Port 587 with
+    // STARTTLS is the standard fallback and is not blocked - the
+    // connection starts as plain text and upgrades to TLS via the
+    // STARTTLS command, so secure must be false and requireTLS true.
+    port: 587,
+    secure: false,
+    requireTLS: true,
     auth: { user, pass },
     tls: {
       servername: "smtp.gmail.com", // required for TLS cert validation since host above is now a bare IP
