@@ -2,9 +2,7 @@ import express from "express";
 import path from "path";
 import dotenv from "dotenv";
 import { JWT } from "google-auth-library";
-import nodemailer from "nodemailer";
 import cron from "node-cron";
-import dns from "dns";
 import {
   isSupabaseConfigured,
   checkSupabaseTablesStatus,
@@ -1655,72 +1653,58 @@ function renderWeeklyReportHtml(rows: WeeklyReportRow[], weekId: string): string
     </div>`;
 }
 
-let cachedTransporter: any = null;
-async function getMailTransporter(): Promise<any> {
-  if (cachedTransporter) return cachedTransporter;
-  const user = process.env.SMTP_USER;
-  // Gmail App Passwords are shown with spaces (e.g. "abcd efgh ijkl mnop")
-  // for readability but must be used without them - strip any whitespace
-  // in case it was pasted in that display format.
-  const pass = (process.env.SMTP_APP_PASSWORD || "").replace(/\s+/g, "");
-  if (!user || !pass) return null;
-
-  // Render's outbound network has broken/blocked IPv6 routing to Google's
-  // mail servers. Passing family: 4 to nodemailer does NOT reliably force
-  // IPv4 (confirmed in production: it still picked an IPv6 address and
-  // failed with "connect ENETUNREACH 2607:f8b0:..."). The fix that
-  // actually works is to resolve smtp.gmail.com to a real IPv4 address
-  // ourselves and connect to that IP directly - then separately tell TLS
-  // the original hostname via `servername` so the certificate check
-  // (which expects "smtp.gmail.com", not a bare IP) still passes.
-  let ipv4Host = "smtp.gmail.com";
-  try {
-    const { address } = await dns.promises.lookup("smtp.gmail.com", { family: 4 });
-    ipv4Host = address;
-  } catch (err) {
-    console.error("Failed to resolve smtp.gmail.com to IPv4, falling back to hostname:", err);
-  }
-
-  cachedTransporter = nodemailer.createTransport({
-    host: ipv4Host,
-    // Port 465 (implicit TLS) is blocked/unreachable on Render's outbound
-    // network (confirmed: hangs until connectionTimeout). Port 587 with
-    // STARTTLS is the standard fallback and is not blocked - the
-    // connection starts as plain text and upgrades to TLS via the
-    // STARTTLS command, so secure must be false and requireTLS true.
-    port: 587,
-    secure: false,
-    requireTLS: true,
-    auth: { user, pass },
-    tls: {
-      servername: "smtp.gmail.com", // required for TLS cert validation since host above is now a bare IP
-    },
-    // Without these, a flaky/blocked connection on Render's network can
-    // hang forever (no error, no timeout) - the weekly job would then
-    // never reach finishedAt and would look "stuck" indefinitely instead
-    // of failing with a clear reason. These bound every phase of the SMTP
-    // handshake so a bad connection fails fast instead of hanging.
-    connectionTimeout: 20000, // time to establish the TCP connection
-    greetingTimeout: 20000,   // time to receive the SMTP server greeting
-    socketTimeout: 30000,     // time of inactivity before killing the socket
-  } as any);
-  return cachedTransporter;
-}
-
+// --- Weekly report email delivery ---
+// SMTP is NOT used here. Render's free web services block ALL outbound
+// SMTP traffic (ports 25, 465, and 587) as of Sept 2025 - this is a
+// platform-level firewall rule, not a code or credentials problem, and it
+// cannot be worked around from inside the app (confirmed: both port 465
+// and port 587 hang until connectionTimeout with no useful error).
+// Resend is used instead because it's a plain HTTPS API call - HTTPS
+// traffic is not blocked, so this works on Render's free plan.
+// Setup: sign up free at https://resend.com, grab an API key, set it as
+// RESEND_API_KEY in Render's Environment tab. Without a verified sending
+// domain, Resend's shared "onboarding@resend.dev" sender only delivers to
+// the email address on the Resend account itself - that's fine for
+// REPORT_TO_EMAIL pointing at your own inbox. To send to other addresses
+// later, verify a domain in the Resend dashboard and use an address on
+// that domain as the "from".
 async function sendWeeklyReportEmail(rows: WeeklyReportRow[], weekId: string): Promise<{ sent: boolean; reason?: string }> {
   const to = (process.env.REPORT_TO_EMAIL || "").trim();
   if (!to) return { sent: false, reason: "REPORT_TO_EMAIL is not set." };
 
-  const transporter = await getMailTransporter();
-  if (!transporter) return { sent: false, reason: "SMTP_USER / SMTP_APP_PASSWORD is not set." };
+  const apiKey = (process.env.RESEND_API_KEY || "").trim();
+  if (!apiKey) return { sent: false, reason: "RESEND_API_KEY is not set." };
+
+  const from = (process.env.REPORT_FROM_EMAIL || "").trim() || "SEO Ranking Report <onboarding@resend.dev>";
 
   try {
-    await transporter.sendMail({
-      from: `"SEO Ranking Report" <${process.env.SMTP_USER}>`,
-      to,
-      subject: `Weekly SEO Ranking Report — Week ${weekId}`,
-      html: renderWeeklyReportHtml(rows, weekId),
-    });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 20000);
+    let res: Response;
+    try {
+      res = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          from,
+          to: [to],
+          subject: `Weekly SEO Ranking Report — Week ${weekId}`,
+          html: renderWeeklyReportHtml(rows, weekId),
+        }),
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timeout);
+    }
+
+    if (!res.ok) {
+      const bodyText = await res.text().catch(() => "");
+      console.error(`Resend API error (${res.status}):`, bodyText);
+      return { sent: false, reason: `Resend API error (${res.status}): ${bodyText.slice(0, 300)}` };
+    }
     return { sent: true };
   } catch (err: any) {
     console.error("Failed to send weekly ranking report email:", err);
