@@ -1675,6 +1675,14 @@ function getMailTransporter(): any {
     secure: true,
     family: 4,
     auth: { user, pass },
+    // Without these, a flaky/blocked connection on Render's network can
+    // hang forever (no error, no timeout) - the weekly job would then
+    // never reach finishedAt and would look "stuck" indefinitely instead
+    // of failing with a clear reason. These bound every phase of the SMTP
+    // handshake so a bad connection fails fast instead of hanging.
+    connectionTimeout: 20000, // time to establish the TCP connection
+    greetingTimeout: 20000,   // time to receive the SMTP server greeting
+    socketTimeout: 30000,     // time of inactivity before killing the socket
   } as any);
   return cachedTransporter;
 }
