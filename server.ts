@@ -1669,8 +1669,13 @@ function renderWeeklyReportHtml(rows: WeeklyReportRow[], weekId: string): string
 // later, verify a domain in the Resend dashboard and use an address on
 // that domain as the "from".
 async function sendWeeklyReportEmail(rows: WeeklyReportRow[], weekId: string): Promise<{ sent: boolean; reason?: string }> {
-  const to = (process.env.REPORT_TO_EMAIL || "").trim();
-  if (!to) return { sent: false, reason: "REPORT_TO_EMAIL is not set." };
+  // REPORT_TO_EMAIL can hold one address or several, comma-separated,
+  // e.g. "you@example.com, teammate@example.com, manager@example.com"
+  const to = (process.env.REPORT_TO_EMAIL || "")
+    .split(",")
+    .map(e => e.trim())
+    .filter(Boolean);
+  if (to.length === 0) return { sent: false, reason: "REPORT_TO_EMAIL is not set." };
 
   const apiKey = (process.env.RESEND_API_KEY || "").trim();
   if (!apiKey) return { sent: false, reason: "RESEND_API_KEY is not set." };
@@ -1690,7 +1695,7 @@ async function sendWeeklyReportEmail(rows: WeeklyReportRow[], weekId: string): P
         },
         body: JSON.stringify({
           from,
-          to: [to],
+          to,
           subject: `Weekly SEO Ranking Report — Week ${weekId}`,
           html: renderWeeklyReportHtml(rows, weekId),
         }),
