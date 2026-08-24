@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import { JWT } from "google-auth-library";
 import nodemailer from "nodemailer";
 import cron from "node-cron";
+import dns from "dns";
 import {
   isSupabaseConfigured,
   checkSupabaseTablesStatus,
@@ -1655,7 +1656,7 @@ function renderWeeklyReportHtml(rows: WeeklyReportRow[], weekId: string): string
 }
 
 let cachedTransporter: any = null;
-function getMailTransporter(): any {
+async function getMailTransporter(): Promise<any> {
   if (cachedTransporter) return cachedTransporter;
   const user = process.env.SMTP_USER;
   // Gmail App Passwords are shown with spaces (e.g. "abcd efgh ijkl mnop")
@@ -1663,18 +1664,31 @@ function getMailTransporter(): any {
   // in case it was pasted in that display format.
   const pass = (process.env.SMTP_APP_PASSWORD || "").replace(/\s+/g, "");
   if (!user || !pass) return null;
+
+  // Render's outbound network has broken/blocked IPv6 routing to Google's
+  // mail servers. Passing family: 4 to nodemailer does NOT reliably force
+  // IPv4 (confirmed in production: it still picked an IPv6 address and
+  // failed with "connect ENETUNREACH 2607:f8b0:..."). The fix that
+  // actually works is to resolve smtp.gmail.com to a real IPv4 address
+  // ourselves and connect to that IP directly - then separately tell TLS
+  // the original hostname via `servername` so the certificate check
+  // (which expects "smtp.gmail.com", not a bare IP) still passes.
+  let ipv4Host = "smtp.gmail.com";
+  try {
+    const { address } = await dns.promises.lookup("smtp.gmail.com", { family: 4 });
+    ipv4Host = address;
+  } catch (err) {
+    console.error("Failed to resolve smtp.gmail.com to IPv4, falling back to hostname:", err);
+  }
+
   cachedTransporter = nodemailer.createTransport({
-    // Explicit host/port instead of the "service: gmail" shortcut, with
-    // family: 4 forcing IPv4. Render's outbound network has broken/blocked
-    // IPv6 routing to Google's mail servers, which surfaces as
-    // "connect ENETUNREACH 2607:f8b0:..." when nodemailer's DNS lookup
-    // picks an IPv6 address for smtp.gmail.com - forcing IPv4 avoids that
-    // entirely since IPv4 routing on Render works fine.
-    host: "smtp.gmail.com",
+    host: ipv4Host,
     port: 465,
     secure: true,
-    family: 4,
     auth: { user, pass },
+    tls: {
+      servername: "smtp.gmail.com", // required for TLS cert validation since host above is now a bare IP
+    },
     // Without these, a flaky/blocked connection on Render's network can
     // hang forever (no error, no timeout) - the weekly job would then
     // never reach finishedAt and would look "stuck" indefinitely instead
@@ -1691,7 +1705,7 @@ async function sendWeeklyReportEmail(rows: WeeklyReportRow[], weekId: string): P
   const to = (process.env.REPORT_TO_EMAIL || "").trim();
   if (!to) return { sent: false, reason: "REPORT_TO_EMAIL is not set." };
 
-  const transporter = getMailTransporter();
+  const transporter = await getMailTransporter();
   if (!transporter) return { sent: false, reason: "SMTP_USER / SMTP_APP_PASSWORD is not set." };
 
   try {
