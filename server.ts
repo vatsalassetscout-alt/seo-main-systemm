@@ -3,6 +3,7 @@ import path from "path";
 import dotenv from "dotenv";
 import { JWT } from "google-auth-library";
 import cron from "node-cron";
+import PDFDocument from "pdfkit";
 import {
   isSupabaseConfigured,
   checkSupabaseTablesStatus,
@@ -1653,6 +1654,86 @@ function renderWeeklyReportHtml(rows: WeeklyReportRow[], weekId: string): string
     </div>`;
 }
 
+// Builds the same report as renderWeeklyReportHtml, but as a PDF buffer
+// (via pdfkit - pure JS, no headless browser, so it works fine on Render's
+// free tier). Used as the email attachment.
+function renderWeeklyReportPdf(rows: WeeklyReportRow[], weekId: string): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    const doc = new PDFDocument({ margin: 40, size: "A4" });
+    const chunks: Buffer[] = [];
+    doc.on("data", (chunk) => chunks.push(chunk));
+    doc.on("end", () => resolve(Buffer.concat(chunks)));
+    doc.on("error", reject);
+
+    doc.fontSize(18).fillColor("#111827").text("Weekly SEO Ranking Report");
+    doc.fontSize(10).fillColor("#6b7280").text(
+      `Week ${weekId}  ·  Generated ${new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })} (IST)`
+    );
+    doc.moveDown(1);
+
+    const byProject = new Map<string, WeeklyReportRow[]>();
+    for (const row of rows) {
+      const key = `${row.projectName} (${row.domain})`;
+      if (!byProject.has(key)) byProject.set(key, []);
+      byProject.get(key)!.push(row);
+    }
+
+    if (byProject.size === 0) {
+      doc.fontSize(12).fillColor("#111827").text("No keywords were found to check this week.");
+      doc.end();
+      return;
+    }
+
+    const col = { keyword: 40, before: 300, after: 380, change: 460 };
+    const pageBottom = 780;
+
+    const changeColor = (change: string): string => {
+      if (change.startsWith("Up") || change === "New") return "#15803d";
+      if (change.startsWith("Down") || change === "Lost") return "#b91c1c";
+      return "#6b7280";
+    };
+
+    for (const [projectLabel, projectRows] of byProject.entries()) {
+      if (doc.y > pageBottom - 60) doc.addPage();
+
+      doc.moveDown(0.6);
+      doc.fontSize(13).fillColor("#111827").text(projectLabel);
+      doc.moveDown(0.3);
+
+      let y = doc.y;
+      doc.fontSize(9).fillColor("#374151");
+      doc.text("Keyword", col.keyword, y, { width: 250 });
+      doc.text("Last Week", col.before, y, { width: 70 });
+      doc.text("This Week", col.after, y, { width: 70 });
+      doc.text("Change", col.change, y, { width: 80 });
+      doc.moveTo(40, y + 14).lineTo(555, y + 14).strokeColor("#e5e7eb").stroke();
+      doc.moveDown(1);
+
+      for (const r of projectRows) {
+        if (doc.y > pageBottom) {
+          doc.addPage();
+          y = doc.y;
+          doc.fontSize(9).fillColor("#374151");
+          doc.text("Keyword", col.keyword, y, { width: 250 });
+          doc.text("Last Week", col.before, y, { width: 70 });
+          doc.text("This Week", col.after, y, { width: 70 });
+          doc.text("Change", col.change, y, { width: 80 });
+          doc.moveTo(40, y + 14).lineTo(555, y + 14).strokeColor("#e5e7eb").stroke();
+          doc.moveDown(1);
+        }
+        y = doc.y;
+        doc.fontSize(9).fillColor("#111827").text(r.keyword, col.keyword, y, { width: 250 });
+        doc.fillColor("#111827").text(r.before, col.before, y, { width: 70 });
+        doc.fillColor("#111827").text(r.after, col.after, y, { width: 70 });
+        doc.fillColor(changeColor(r.change)).text(r.change, col.change, y, { width: 80 });
+        doc.moveDown(0.9);
+      }
+    }
+
+    doc.end();
+  });
+}
+
 // --- Weekly report email delivery ---
 // SMTP is NOT used here. Render's free web services block ALL outbound
 // SMTP traffic (ports 25, 465, and 587) as of Sept 2025 - this is a
@@ -1682,6 +1763,26 @@ async function sendWeeklyReportEmail(rows: WeeklyReportRow[], weekId: string): P
 
   const from = (process.env.REPORT_FROM_EMAIL || "").trim() || "SEO Ranking Report <onboarding@resend.dev>";
 
+  // Build the PDF attachment. Resend wants attachment "content" as base64
+  // (or a base64 data string), not a raw Buffer, since this goes over JSON.
+  let pdfBase64: string;
+  try {
+    const pdfBuffer = await renderWeeklyReportPdf(rows, weekId);
+    pdfBase64 = pdfBuffer.toString("base64");
+  } catch (err: any) {
+    console.error("Failed to generate weekly report PDF:", err);
+    return { sent: false, reason: `PDF generation failed: ${err?.message || "Unknown error."}` };
+  }
+
+  // Short HTML body pointing at the attachment - the actual per-keyword
+  // table now lives in the PDF, not inline in the email.
+  const summaryHtml = `
+    <div style="font-family:Arial,sans-serif;color:#111827;">
+      <h2 style="margin:0 0 4px;">Weekly SEO Ranking Report</h2>
+      <p style="margin:0 0 8px;color:#6b7280;">Week ${weekId} · Generated ${new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })} (IST)</p>
+      <p style="margin:0;">Full keyword-by-keyword rankings (${rows.length} keyword(s)) are attached as a PDF.</p>
+    </div>`;
+
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 20000);
@@ -1697,7 +1798,13 @@ async function sendWeeklyReportEmail(rows: WeeklyReportRow[], weekId: string): P
           from,
           to,
           subject: `Weekly SEO Ranking Report — Week ${weekId}`,
-          html: renderWeeklyReportHtml(rows, weekId),
+          html: summaryHtml,
+          attachments: [
+            {
+              filename: `SEO-Ranking-Report-${weekId}.pdf`,
+              content: pdfBase64,
+            },
+          ],
         }),
         signal: controller.signal,
       });
