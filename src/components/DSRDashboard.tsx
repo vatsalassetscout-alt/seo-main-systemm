@@ -182,6 +182,25 @@ export default function DSRDashboard({
     return () => observer.disconnect();
   }, []);
 
+  // Dynamic scroll-area height for every project/table "block" (Project Table,
+  // Backlinks distribution, Idle Projects, Ranking, Manual Ranking). Instead of a
+  // fixed max-h-[560px] that leaves a gap on tall screens or gets too cramped on
+  // short ones, size the scroll area to whatever room is actually left below the
+  // sticky filters/tab bar on the current device, with a small bottom breathing
+  // gap (not flush) and a sane floor so it never collapses too small.
+  const [dynamicTableMaxHeight, setDynamicTableMaxHeight] = useState(560);
+
+  useEffect(() => {
+    const computeHeight = () => {
+      const bottomGap = 16;
+      const available = window.innerHeight - tableHeaderTop - bottomGap;
+      setDynamicTableMaxHeight(Math.max(320, available));
+    };
+    computeHeight();
+    window.addEventListener('resize', computeHeight);
+    return () => window.removeEventListener('resize', computeHeight);
+  }, [tableHeaderTop]);
+
   const monthNames = [
     'January', 'February', 'March', 'April', 'May', 'June',
     'July', 'August', 'September', 'October', 'November', 'December'
@@ -1538,18 +1557,6 @@ export default function DSRDashboard({
 
       {/* Workspace Filters panel - ON TOP OF PAGE */}
       <div className="bg-white p-3 rounded-2xl border border-gray-150 shadow-2xs space-y-2.5">
-        <div className="flex items-center justify-between">
-          <div />
-          {(selectedProjectIds.length > 0 || selectedUsers.length > 0 || regionFilter !== 'All' || selectedLocations.length > 0 || selectedPriorities.length > 0 || dateFilterType !== 'all' || commonSearchTerm !== '') && (
-            <button
-              onClick={handleResetFilters}
-              className="text-[10px] font-bold text-indigo-600 hover:text-indigo-850 flex items-center gap-1 bg-indigo-50 hover:bg-indigo-100 px-2 py-1 rounded-lg transition-all"
-            >
-              <X size={11} className="shrink-0" />
-              Reset Filters
-            </button>
-          )}
-        </div>
 
         {/* Search bar + Filters — single line, search bar fills remaining width */}
         <div className="flex flex-wrap items-center gap-2.5 pt-1">
@@ -2120,7 +2127,7 @@ export default function DSRDashboard({
               </div>
             </div>
 
-            <div className="overflow-x-auto max-h-[560px] overflow-y-auto">
+            <div className="overflow-x-auto overflow-y-auto" style={{ maxHeight: dynamicTableMaxHeight }}>
               <table className="w-full text-left text-xs min-w-[700px]">
                 <thead className="bg-slate-50 text-slate-500 font-extrabold text-[10px] uppercase border-b border-gray-150 sticky top-0 z-10">
                   <tr>
@@ -3004,7 +3011,7 @@ export default function DSRDashboard({
                     </h4>
                   </div>
 
-                  <div className="overflow-x-auto max-h-[560px] overflow-y-auto border border-gray-150 rounded-2xl shadow-3xs bg-white">
+                  <div className="overflow-x-auto overflow-y-auto border border-gray-150 rounded-2xl shadow-3xs bg-white" style={{ maxHeight: dynamicTableMaxHeight }}>
                     <table className="w-full text-left text-xs min-w-[700px]">
                       <thead className="bg-slate-50 border-b border-gray-150 text-[10px] text-gray-400 uppercase font-black tracking-wider sticky top-0 z-10">
                         <tr>
@@ -3095,7 +3102,7 @@ export default function DSRDashboard({
                 <p>No projects found.</p>
               </div>
             ) : (
-              <div className="overflow-x-auto max-h-[560px] overflow-y-auto">
+              <div className="overflow-x-auto overflow-y-auto" style={{ maxHeight: dynamicTableMaxHeight }}>
                 <table className="w-full text-left text-xs min-w-[820px] border-collapse">
                   <thead className="bg-slate-50 text-slate-500 font-extrabold text-[10px] uppercase border-b border-gray-150 sticky top-0 z-10">
                     <tr>
@@ -3342,7 +3349,7 @@ export default function DSRDashboard({
                 <p>No projects found matching the search criteria.</p>
               </div>
             ) : (
-              <div className="overflow-x-auto max-h-[560px] overflow-y-auto">
+              <div className="overflow-x-auto overflow-y-auto" style={{ maxHeight: dynamicTableMaxHeight }}>
                 <table className="w-full text-left text-xs min-w-[700px] border-collapse">
                   <thead className="bg-slate-50 text-slate-500 font-extrabold text-[10px] uppercase border-b border-gray-150 sticky top-0 z-10">
                     <tr>
@@ -3629,6 +3636,7 @@ export default function DSRDashboard({
             setGrid={setManualRankingGrid}
             isLoading={manualRankingLoading}
             stickyOffset={tableHeaderTop}
+            viewportHeight={dynamicTableMaxHeight}
             globalSearchTerm={commonSearchTerm}
             locationFilter={selectedLocations}
             projectNameFilter={selectedProjectNames}
