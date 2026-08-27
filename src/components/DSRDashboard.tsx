@@ -1561,7 +1561,7 @@ export default function DSRDashboard({
             value={commonSearchTerm}
             onChange={(e) => setCommonSearchTerm(e.target.value)}
             placeholder="Search across project name, code, domain, location, users, task summaries..."
-            className="w-full pl-9 pr-4 py-1.5 bg-slate-50 border border-slate-250 rounded-xl text-xs font-semibold placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 hover:bg-slate-100/50 transition cursor-text text-gray-950"
+            className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-250 rounded-xl text-[13px] font-semibold placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 hover:bg-slate-100/50 transition cursor-text text-gray-950"
           />
           {commonSearchTerm && (
             <button
@@ -1575,18 +1575,18 @@ export default function DSRDashboard({
         </div>
 
         {/* Filters Row - single-line pill bar (matches search bar style above) */}
-        <div className="flex flex-wrap items-center gap-2 pt-0.5">
+        <div className="flex flex-wrap items-center gap-2.5 pt-1">
 
           {/* Block 1: Date Filter — pill style */}
           <div className="relative">
             <div
-              className={`relative flex items-center gap-1.5 pl-3.5 pr-2.5 py-2 rounded-xl border text-xs font-semibold whitespace-nowrap transition ${
+              className={`relative flex items-center gap-1.5 pl-4 pr-3 py-2.5 rounded-xl border text-[13px] font-semibold whitespace-nowrap transition ${
                 dateFilterType !== 'all'
                   ? 'border-indigo-200 bg-indigo-50 text-indigo-700'
                   : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
               }`}
             >
-              <Calendar size={13} className={dateFilterType !== 'all' ? 'text-indigo-500' : 'text-gray-400'} />
+              <Calendar size={14} className={dateFilterType !== 'all' ? 'text-indigo-500' : 'text-gray-400'} />
               <span>Date:</span>
               <span className="max-w-[8rem] truncate">
                 {dateFilterType === 'all' && 'All Time'}
@@ -1595,7 +1595,7 @@ export default function DSRDashboard({
                 {dateFilterType === 'last_7_days' && 'Last 7 Days'}
                 {dateFilterType === 'custom' && 'Custom Range'}
               </span>
-              <ChevronDown size={13} className={dateFilterType !== 'all' ? 'text-indigo-400' : 'text-gray-400'} />
+              <ChevronDown size={14} className={dateFilterType !== 'all' ? 'text-indigo-400' : 'text-gray-400'} />
               <select
                 value={dateFilterType}
                 onChange={(e) => setDateFilterType(e.target.value as any)}
@@ -1630,13 +1630,13 @@ export default function DSRDashboard({
             )}
           </div>
 
-          {/* Block 2: Region Control — kept exactly as-is */}
-          <div className="flex flex-col gap-1 bg-slate-50/40 p-2 rounded-xl border border-gray-100">
+          {/* Block 2: Region Control — widened, less cramped */}
+          <div className="flex flex-col gap-1.5 bg-slate-50/40 p-2.5 rounded-xl border border-gray-100 min-w-[260px]">
             <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-1 leading-none">
-              <TrendingUp size={11} className="text-gray-400" />
+              <TrendingUp size={12} className="text-gray-400" />
               Region Control
             </span>
-            <div className="flex bg-gray-100 p-1 rounded-xl border border-gray-200 select-none h-[34px] items-center gap-1">
+            <div className="flex bg-gray-100 p-1.5 rounded-xl border border-gray-200 select-none h-[40px] items-center gap-1.5">
               {[
                 { label: 'WEST', value: 'West' },
                 { label: 'ALL', value: 'All' },
@@ -1646,7 +1646,7 @@ export default function DSRDashboard({
                   key={r.value}
                   type="button"
                   onClick={() => setRegionFilter(r.value)}
-                  className={`flex-1 text-center py-1.5 text-[10px] tracking-wider font-extrabold transition-all duration-200 rounded-lg cursor-pointer ${
+                  className={`flex-1 text-center py-2 px-3 text-[11px] tracking-wider font-extrabold transition-all duration-200 rounded-lg cursor-pointer ${
                     regionFilter === r.value
                       ? 'bg-indigo-600 text-white shadow-xs font-black'
                       : 'text-gray-500 hover:text-gray-800 hover:bg-gray-200/50'
@@ -1668,18 +1668,18 @@ export default function DSRDashboard({
                 setIsLocationDropdownOpen(false);
                 setIsPriorityDropdownOpen(false);
               }}
-              className={`flex items-center gap-1.5 pl-3.5 pr-2.5 py-2 rounded-xl border text-xs font-semibold whitespace-nowrap transition cursor-pointer ${
+              className={`flex items-center gap-1.5 pl-4 pr-3 py-2.5 rounded-xl border text-[13px] font-semibold whitespace-nowrap transition cursor-pointer ${
                 selectedProjectIds.length > 0
                   ? 'border-indigo-200 bg-indigo-50 text-indigo-700'
                   : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
               }`}
             >
-              <Tag size={13} className={selectedProjectIds.length > 0 ? 'text-indigo-500' : 'text-gray-400'} />
+              <Tag size={14} className={selectedProjectIds.length > 0 ? 'text-indigo-500' : 'text-gray-400'} />
               <span>Project:</span>
               <span className="max-w-[8rem] truncate">
                 {selectedProjectIds.length === 0 ? 'All' : `${selectedProjectIds.length} selected`}
               </span>
-              <ChevronDown size={13} className={`transition-transform shrink-0 ${selectedProjectIds.length > 0 ? 'text-indigo-400' : 'text-gray-400'} ${isProjectDropdownOpen ? 'rotate-180' : ''}`} />
+              <ChevronDown size={14} className={`transition-transform shrink-0 ${selectedProjectIds.length > 0 ? 'text-indigo-400' : 'text-gray-400'} ${isProjectDropdownOpen ? 'rotate-180' : ''}`} />
             </button>
 
             {isProjectDropdownOpen && (
@@ -1762,18 +1762,18 @@ export default function DSRDashboard({
                 setIsUserDropdownOpen(false);
                 setIsPriorityDropdownOpen(false);
               }}
-              className={`flex items-center gap-1.5 pl-3.5 pr-2.5 py-2 rounded-xl border text-xs font-semibold whitespace-nowrap transition cursor-pointer ${
+              className={`flex items-center gap-1.5 pl-4 pr-3 py-2.5 rounded-xl border text-[13px] font-semibold whitespace-nowrap transition cursor-pointer ${
                 selectedLocations.length > 0
                   ? 'border-indigo-200 bg-indigo-50 text-indigo-700'
                   : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
               }`}
             >
-              <MapPin size={13} className={selectedLocations.length > 0 ? 'text-indigo-500' : 'text-gray-400'} />
+              <MapPin size={14} className={selectedLocations.length > 0 ? 'text-indigo-500' : 'text-gray-400'} />
               <span>Location:</span>
               <span className="max-w-[8rem] truncate">
                 {selectedLocations.length === 0 ? 'All' : `${selectedLocations.length} selected`}
               </span>
-              <ChevronDown size={13} className={`transition-transform shrink-0 ${selectedLocations.length > 0 ? 'text-indigo-400' : 'text-gray-400'} ${isLocationDropdownOpen ? 'rotate-180' : ''}`} />
+              <ChevronDown size={14} className={`transition-transform shrink-0 ${selectedLocations.length > 0 ? 'text-indigo-400' : 'text-gray-400'} ${isLocationDropdownOpen ? 'rotate-180' : ''}`} />
             </button>
 
             {isLocationDropdownOpen && (
@@ -1856,18 +1856,18 @@ export default function DSRDashboard({
                 setIsLocationDropdownOpen(false);
                 setIsUserDropdownOpen(false);
               }}
-              className={`flex items-center gap-1.5 pl-3.5 pr-2.5 py-2 rounded-xl border text-xs font-semibold whitespace-nowrap transition cursor-pointer ${
+              className={`flex items-center gap-1.5 pl-4 pr-3 py-2.5 rounded-xl border text-[13px] font-semibold whitespace-nowrap transition cursor-pointer ${
                 selectedPriorities.length > 0
                   ? 'border-indigo-200 bg-indigo-50 text-indigo-700'
                   : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
               }`}
             >
-              <Tag size={13} className={selectedPriorities.length > 0 ? 'text-indigo-500' : 'text-gray-400'} />
+              <Tag size={14} className={selectedPriorities.length > 0 ? 'text-indigo-500' : 'text-gray-400'} />
               <span>Priority:</span>
               <span className="max-w-[8rem] truncate">
                 {selectedPriorities.length === 0 ? 'All' : `${selectedPriorities.length} selected`}
               </span>
-              <ChevronDown size={13} className={`transition-transform shrink-0 ${selectedPriorities.length > 0 ? 'text-indigo-400' : 'text-gray-400'} ${isPriorityDropdownOpen ? 'rotate-180' : ''}`} />
+              <ChevronDown size={14} className={`transition-transform shrink-0 ${selectedPriorities.length > 0 ? 'text-indigo-400' : 'text-gray-400'} ${isPriorityDropdownOpen ? 'rotate-180' : ''}`} />
             </button>
 
             {isPriorityDropdownOpen && (
@@ -1938,18 +1938,18 @@ export default function DSRDashboard({
                   setIsLocationDropdownOpen(false);
                   setIsPriorityDropdownOpen(false);
                 }}
-                className={`flex items-center gap-1.5 pl-3.5 pr-2.5 py-2 rounded-xl border text-xs font-semibold whitespace-nowrap transition cursor-pointer ${
+                className={`flex items-center gap-1.5 pl-4 pr-3 py-2.5 rounded-xl border text-[13px] font-semibold whitespace-nowrap transition cursor-pointer ${
                   selectedUsers.length > 0
                     ? 'border-indigo-200 bg-indigo-50 text-indigo-700'
                     : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
                 }`}
               >
-                <Users size={13} className={selectedUsers.length > 0 ? 'text-indigo-500' : 'text-gray-400'} />
+                <Users size={14} className={selectedUsers.length > 0 ? 'text-indigo-500' : 'text-gray-400'} />
                 <span>User:</span>
                 <span className="max-w-[8rem] truncate">
                   {selectedUsers.length === 0 ? 'All' : `${selectedUsers.length} selected`}
                 </span>
-                <ChevronDown size={13} className={`transition-transform shrink-0 ${selectedUsers.length > 0 ? 'text-indigo-400' : 'text-gray-400'} ${isUserDropdownOpen ? 'rotate-180' : ''}`} />
+                <ChevronDown size={14} className={`transition-transform shrink-0 ${selectedUsers.length > 0 ? 'text-indigo-400' : 'text-gray-400'} ${isUserDropdownOpen ? 'rotate-180' : ''}`} />
               </button>
 
               {isUserDropdownOpen && (
