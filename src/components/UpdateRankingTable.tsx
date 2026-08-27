@@ -146,6 +146,10 @@ interface UpdateRankingTableProps {
   /** Height (px) of the sticky filters+tab-bar block above this table, so the
       table header can stick right below it instead of hiding under it. */
   stickyOffset?: number;
+  /** Available scroll-area height (px) for the sheet, computed by the parent
+      from the current viewport so the grid fills the leftover screen space
+      on every device instead of a fixed 560px. Falls back to 560 if unset. */
+  viewportHeight?: number;
 
   /** Admin-only: single-select "which user's sheet am I viewing" picker.
       Deliberately separate from the multi-select Users filter in the main
@@ -248,6 +252,7 @@ export default function UpdateRankingTable({
   setGrid,
   isLoading,
   stickyOffset = 0,
+  viewportHeight = 560,
   usersList = [],
   selectedUserEmail = '',
   onSelectedUserChange,
@@ -331,7 +336,7 @@ export default function UpdateRankingTable({
   // in this section. Only the rows actually scrolled into view (plus a
   // small overscan buffer) are mounted; the rest are represented by two
   // lightweight spacer rows so the scrollbar height stays correct.
-  const VIEWPORT_HEIGHT = 560; // matches the max-h-[560px] scroll container below
+  const VIEWPORT_HEIGHT = viewportHeight; // matches the dynamic scroll container height below
   const ROW_OVERSCAN = 10;
   const [rowHeight, setRowHeight] = useState(37);
   const [scrollTop, setScrollTop] = useState(0);
@@ -1360,7 +1365,8 @@ export default function UpdateRankingTable({
       ) : (
         <div
           ref={sheetContainerRef}
-          className="overflow-x-auto overflow-y-auto rounded-b-2xl mt-1 max-h-[560px] outline-hidden"
+          className="overflow-x-auto overflow-y-auto rounded-b-2xl mt-1 outline-hidden"
+          style={{ maxHeight: viewportHeight }}
           onScroll={handleGridScroll}
           onMouseDown={handleSheetMouseDown}
           onKeyDown={handleSheetKeyDown}
