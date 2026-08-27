@@ -1551,31 +1551,31 @@ export default function DSRDashboard({
           )}
         </div>
 
-        {/* Dynamic Common Search Bar */}
-        <div className="relative">
-          <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
-            <Search size={14} />
-          </span>
-          <input
-            type="text"
-            value={commonSearchTerm}
-            onChange={(e) => setCommonSearchTerm(e.target.value)}
-            placeholder="Search across project name, code, domain, location, users, task summaries..."
-            className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-250 rounded-xl text-[13px] font-semibold placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 hover:bg-slate-100/50 transition cursor-text text-gray-950"
-          />
-          {commonSearchTerm && (
-            <button
-              type="button"
-              onClick={() => setCommonSearchTerm('')}
-              className="absolute inset-y-0 right-0 pr-3 flex items-center text-[10px] font-black text-indigo-600 hover:text-indigo-850"
-            >
-              Clear
-            </button>
-          )}
-        </div>
-
-        {/* Filters Row - single-line pill bar (matches search bar style above) */}
+        {/* Search bar + Filters — single line, search bar fills remaining width */}
         <div className="flex flex-wrap items-center gap-2.5 pt-1">
+
+          {/* Dynamic Common Search Bar — grows to fill the line */}
+          <div className="relative flex-1 min-w-[220px]">
+            <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
+              <Search size={14} />
+            </span>
+            <input
+              type="text"
+              value={commonSearchTerm}
+              onChange={(e) => setCommonSearchTerm(e.target.value)}
+              placeholder="Search across project name, code, domain, location, users, task summaries..."
+              className="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-250 rounded-xl text-[13px] font-semibold placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 hover:bg-slate-100/50 transition cursor-text text-gray-950"
+            />
+            {commonSearchTerm && (
+              <button
+                type="button"
+                onClick={() => setCommonSearchTerm('')}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-[10px] font-black text-indigo-600 hover:text-indigo-850"
+              >
+                Clear
+              </button>
+            )}
+          </div>
 
           {/* Block 1: Date Filter — pill style */}
           <div className="relative">
@@ -1630,12 +1630,8 @@ export default function DSRDashboard({
             )}
           </div>
 
-          {/* Block 2: Region Control — widened, less cramped */}
-          <div className="flex flex-col gap-1.5 bg-slate-50/40 p-2.5 rounded-xl border border-gray-100 min-w-[260px]">
-            <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-1 leading-none">
-              <TrendingUp size={12} className="text-gray-400" />
-              Region Control
-            </span>
+          {/* Block 2: Region Control — label removed, just the segmented control */}
+          <div className="bg-slate-50/40 p-1.5 rounded-xl border border-gray-100">
             <div className="flex bg-gray-100 p-1.5 rounded-xl border border-gray-200 select-none h-[40px] items-center gap-1.5">
               {[
                 { label: 'WEST', value: 'West' },
