@@ -1657,6 +1657,12 @@ function renderWeeklyReportHtml(rows: WeeklyReportRow[], weekId: string): string
 // Builds the same report as renderWeeklyReportHtml, but as a PDF buffer
 // (via pdfkit - pure JS, no headless browser, so it works fine on Render's
 // free tier). Used as the email attachment.
+//
+// Dark-themed layout: title bar, 4 KPI cards (Tracked / Improved / Declined /
+// New entries), then one table per project/domain with the "Last week" and
+// "This week" column headers replaced by the actual dates, and the Change
+// column rendered as a colored pill (green = Up, red = Down/Lost, blue = New,
+// gray = Steady/unchanged) — mirrors the in-app report card design.
 function renderWeeklyReportPdf(rows: WeeklyReportRow[], weekId: string): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({ margin: 40, size: "A4" });
@@ -1665,11 +1671,87 @@ function renderWeeklyReportPdf(rows: WeeklyReportRow[], weekId: string): Promise
     doc.on("end", () => resolve(Buffer.concat(chunks)));
     doc.on("error", reject);
 
-    doc.fontSize(18).fillColor("#111827").text("Weekly SEO Ranking Report");
-    doc.fontSize(10).fillColor("#6b7280").text(
-      `Week ${weekId}  ·  Generated ${new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })} (IST)`
-    );
-    doc.moveDown(1);
+    // ---- theme ----
+    const COLOR = {
+      bg: "#131316",
+      panel: "#1c1c20",
+      textPrimary: "#f5f5f5",
+      textMuted: "#9ca3af",
+      rowAlt: "#1a1a1e",
+      headerText: "#8b8b93",
+      divider: "#2a2a2f",
+      green: "#4ade80",
+      greenBg: "#0d2818",
+      red: "#f87171",
+      redBg: "#3a1212",
+      blue: "#60a5fa",
+      blueBg: "#0e2340",
+      gray: "#d1d5db",
+      grayBg: "#28282e",
+    };
+
+    const pageW = doc.page.width;
+    const pageH = doc.page.height;
+    const left = 40;
+    const right = pageW - 40;
+    const contentWidth = right - left;
+    const pageBottom = pageH - 60;
+
+    // Fill the full page dark on the current page, and on every new page
+    // pdfkit creates when content overflows.
+    const paintBackground = () => {
+      doc.save();
+      doc.rect(0, 0, pageW, pageH).fill(COLOR.bg);
+      doc.restore();
+    };
+    paintBackground();
+    doc.on("pageAdded", paintBackground);
+
+    // ---- header ----
+    doc.fillColor(COLOR.textPrimary).fontSize(20).font("Helvetica-Bold")
+      .text("Weekly SEO ranking report", left, 40);
+
+    const now = new Date();
+    const generatedStr = now.toLocaleString("en-IN", {
+      timeZone: "Asia/Kolkata", day: "2-digit", month: "short", year: "numeric",
+      hour: "numeric", minute: "2-digit", hour12: true,
+    });
+    doc.fillColor(COLOR.textMuted).fontSize(10).font("Helvetica")
+      .text(`Week ${weekId} · Generated ${generatedStr} IST`, left, 66);
+
+    doc.moveTo(left, 92).lineTo(right, 92).strokeColor(COLOR.divider).lineWidth(1).stroke();
+
+    // ---- KPI cards: Tracked / Improved / Declined / New entries ----
+    const tracked = rows.length;
+    const improved = rows.filter(r => r.change.startsWith("Up")).length;
+    const declined = rows.filter(r => r.change.startsWith("Down")).length;
+    const newEntries = rows.filter(r => r.change === "New").length;
+
+    const stats = [
+      { label: "Tracked", value: String(tracked), color: COLOR.textPrimary },
+      { label: "Improved", value: String(improved), color: COLOR.green },
+      { label: "Declined", value: String(declined), color: COLOR.red },
+      { label: "New entries", value: String(newEntries), color: COLOR.textPrimary },
+    ];
+
+    const cardGap = 12;
+    const cardW = (contentWidth - cardGap * 3) / 4;
+    const cardH = 62;
+    const cardY = 110;
+
+    stats.forEach((s, i) => {
+      const x = left + i * (cardW + cardGap);
+      doc.roundedRect(x, cardY, cardW, cardH, 8).fill(COLOR.panel);
+      doc.fillColor(COLOR.textMuted).fontSize(9).font("Helvetica").text(s.label, x + 12, cardY + 10);
+      doc.fillColor(s.color).fontSize(20).font("Helvetica-Bold").text(s.value, x + 12, cardY + 26);
+    });
+
+    let cursorY = cardY + cardH + 28;
+
+    // ---- actual dates for the "Last week" / "This week" column headers ----
+    const thisWeekDate = now.toLocaleDateString("en-GB", { day: "2-digit", month: "short", timeZone: "Asia/Kolkata" });
+    const lastWeekDateObj = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const lastWeekDate = lastWeekDateObj.toLocaleDateString("en-GB", { day: "2-digit", month: "short", timeZone: "Asia/Kolkata" });
 
     const byProject = new Map<string, WeeklyReportRow[]>();
     for (const row of rows) {
@@ -1679,55 +1761,82 @@ function renderWeeklyReportPdf(rows: WeeklyReportRow[], weekId: string): Promise
     }
 
     if (byProject.size === 0) {
-      doc.fontSize(12).fillColor("#111827").text("No keywords were found to check this week.");
+      doc.fillColor(COLOR.textPrimary).fontSize(12).font("Helvetica")
+        .text("No keywords were found to check this week.", left, cursorY);
       doc.end();
       return;
     }
 
-    const col = { keyword: 40, before: 300, after: 380, change: 460 };
-    const pageBottom = 780;
+    const col = {
+      keyword: left,
+      keywordW: contentWidth * 0.42,
+      before: left + contentWidth * 0.42,
+      beforeW: contentWidth * 0.18,
+      after: left + contentWidth * 0.60,
+      afterW: contentWidth * 0.18,
+      change: left + contentWidth * 0.78,
+      changeW: contentWidth * 0.22,
+    };
 
-    const changeColor = (change: string): string => {
-      if (change.startsWith("Up") || change === "New") return "#15803d";
-      if (change.startsWith("Down") || change === "Lost") return "#b91c1c";
-      return "#6b7280";
+    const pillColors = (change: string): { bg: string; text: string } => {
+      if (change === "New") return { bg: COLOR.blueBg, text: COLOR.blue };
+      if (change.startsWith("Up")) return { bg: COLOR.greenBg, text: COLOR.green };
+      if (change.startsWith("Down") || change === "Lost") return { bg: COLOR.redBg, text: COLOR.red };
+      return { bg: COLOR.grayBg, text: COLOR.gray }; // Same/— -> "Steady"
+    };
+    const pillLabel = (change: string): string => (change === "Same" ? "Steady" : change);
+
+    const drawTableHeader = (y: number): number => {
+      doc.fillColor(COLOR.headerText).fontSize(9).font("Helvetica");
+      doc.text("Keyword", col.keyword, y, { width: col.keywordW });
+      doc.text(lastWeekDate, col.before, y, { width: col.beforeW });
+      doc.text(thisWeekDate, col.after, y, { width: col.afterW });
+      doc.text("Change", col.change, y, { width: col.changeW });
+      doc.moveTo(left, y + 16).lineTo(right, y + 16).strokeColor(COLOR.divider).lineWidth(1).stroke();
+      return y + 26;
+    };
+
+    const drawPill = (text: string, x: number, y: number, scheme: { bg: string; text: string }) => {
+      doc.fontSize(9).font("Helvetica-Bold");
+      const textW = doc.widthOfString(text);
+      const padX = 8;
+      const pillW = textW + padX * 2;
+      const pillH = 16;
+      doc.roundedRect(x, y - 3, pillW, pillH, 8).fill(scheme.bg);
+      doc.fillColor(scheme.text).text(text, x + padX, y, { width: textW, lineBreak: false });
     };
 
     for (const [projectLabel, projectRows] of byProject.entries()) {
-      if (doc.y > pageBottom - 60) doc.addPage();
-
-      doc.moveDown(0.6);
-      doc.fontSize(13).fillColor("#111827").text(projectLabel);
-      doc.moveDown(0.3);
-
-      let y = doc.y;
-      doc.fontSize(9).fillColor("#374151");
-      doc.text("Keyword", col.keyword, y, { width: 250 });
-      doc.text("Last Week", col.before, y, { width: 70 });
-      doc.text("This Week", col.after, y, { width: 70 });
-      doc.text("Change", col.change, y, { width: 80 });
-      doc.moveTo(40, y + 14).lineTo(555, y + 14).strokeColor("#e5e7eb").stroke();
-      doc.moveDown(1);
-
-      for (const r of projectRows) {
-        if (doc.y > pageBottom) {
-          doc.addPage();
-          y = doc.y;
-          doc.fontSize(9).fillColor("#374151");
-          doc.text("Keyword", col.keyword, y, { width: 250 });
-          doc.text("Last Week", col.before, y, { width: 70 });
-          doc.text("This Week", col.after, y, { width: 70 });
-          doc.text("Change", col.change, y, { width: 80 });
-          doc.moveTo(40, y + 14).lineTo(555, y + 14).strokeColor("#e5e7eb").stroke();
-          doc.moveDown(1);
-        }
-        y = doc.y;
-        doc.fontSize(9).fillColor("#111827").text(r.keyword, col.keyword, y, { width: 250 });
-        doc.fillColor("#111827").text(r.before, col.before, y, { width: 70 });
-        doc.fillColor("#111827").text(r.after, col.after, y, { width: 70 });
-        doc.fillColor(changeColor(r.change)).text(r.change, col.change, y, { width: 80 });
-        doc.moveDown(0.9);
+      if (cursorY > pageBottom - 90) {
+        doc.addPage();
+        cursorY = 40;
       }
+
+      cursorY += 6;
+      doc.fillColor(COLOR.textPrimary).fontSize(13).font("Helvetica-Bold").text(projectLabel, left, cursorY);
+      cursorY += 22;
+
+      cursorY = drawTableHeader(cursorY);
+
+      projectRows.forEach((r, idx) => {
+        if (cursorY > pageBottom) {
+          doc.addPage();
+          cursorY = 40;
+          cursorY = drawTableHeader(cursorY);
+        }
+        const rowH = 24;
+        if (idx % 2 === 1) {
+          doc.rect(left, cursorY - 5, contentWidth, rowH).fill(COLOR.rowAlt);
+        }
+        doc.fillColor(COLOR.textPrimary).fontSize(9.5).font("Helvetica")
+          .text(r.keyword, col.keyword, cursorY, { width: col.keywordW - 8 });
+        doc.fillColor(COLOR.textPrimary).text(r.before, col.before, cursorY, { width: col.beforeW });
+        doc.fillColor(COLOR.textPrimary).text(r.after, col.after, cursorY, { width: col.afterW });
+        drawPill(pillLabel(r.change), col.change, cursorY, pillColors(r.change));
+        cursorY += rowH;
+      });
+
+      cursorY += 12;
     }
 
     doc.end();
@@ -2345,14 +2454,10 @@ async function startServer() {
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`Express Local DB Server running on port ${PORT}`);
     // Auto-sync on boot removed for both projects and submissions —
-    // Supabase is the sole source of truth. Use the manual sync endpoints
     // (POST /api/projects/sync-from-sheet) when you want fresh Sheet data.
   });
 
-  // Task Lineup engine heartbeat: once an admin has started the cycle, this
-  // makes sure a new day's lineup gets generated on its own, without anyone
-  // having to open the app or click Start Cycle again. Also checked
-  // opportunistically on every GET /api/task-lineup call — this interval is
+  
   // just the belt-and-braces path for when nobody's actively using the app.
   ensureTodayLineupIfEngineActive();
   setInterval(() => {
