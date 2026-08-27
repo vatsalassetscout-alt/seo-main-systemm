@@ -1008,7 +1008,7 @@ export default function App() {
 
       {/* Main header block */}
       <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-gray-150">
-        <div className="max-w-[1536px] mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="w-full px-3 sm:px-5 lg:px-8 xl:px-10">
           <div className="flex justify-between items-center h-16">
             
             {/* Left side: branding */}
@@ -1281,7 +1281,7 @@ export default function App() {
       </header>
 
       {/* Main app grid frame */}
-      <main className="max-w-[1536px] mx-auto px-4 sm:px-6 lg:px-5 py-3">
+      <main className="w-full px-3 sm:px-5 lg:px-8 xl:px-10 py-3">
         
         {/* Constant & Stable Project Assignment Alerts Banner */}
         {activeAssignmentAlerts.length > 0 && (
