@@ -1574,50 +1574,63 @@ export default function DSRDashboard({
           )}
         </div>
 
-        {/* Filters Grid */}
-        <div className={`grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 ${isAdmin ? 'lg:grid-cols-6' : 'lg:grid-cols-5'} gap-2.5 pt-0.5`}>
-          
-          {/* Block 1: Date Filter */}
-          <div className="flex flex-col gap-1 bg-slate-50/40 p-2 rounded-xl border border-gray-100">
-            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1 leading-none">
-              <Calendar size={11} className="text-gray-400" />
-              Date Filter
-            </span>
-            <div className="space-y-1.5">
+        {/* Filters Row - single-line pill bar (matches search bar style above) */}
+        <div className="flex flex-wrap items-center gap-2 pt-0.5">
+
+          {/* Block 1: Date Filter — pill style */}
+          <div className="relative">
+            <div
+              className={`relative flex items-center gap-1.5 pl-3.5 pr-2.5 py-2 rounded-xl border text-xs font-semibold whitespace-nowrap transition ${
+                dateFilterType !== 'all'
+                  ? 'border-indigo-200 bg-indigo-50 text-indigo-700'
+                  : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
+              }`}
+            >
+              <Calendar size={13} className={dateFilterType !== 'all' ? 'text-indigo-500' : 'text-gray-400'} />
+              <span>Date:</span>
+              <span className="max-w-[8rem] truncate">
+                {dateFilterType === 'all' && 'All Time'}
+                {dateFilterType === 'today' && 'Today'}
+                {dateFilterType === 'yesterday' && 'Yesterday'}
+                {dateFilterType === 'last_7_days' && 'Last 7 Days'}
+                {dateFilterType === 'custom' && 'Custom Range'}
+              </span>
+              <ChevronDown size={13} className={dateFilterType !== 'all' ? 'text-indigo-400' : 'text-gray-400'} />
               <select
                 value={dateFilterType}
                 onChange={(e) => setDateFilterType(e.target.value as any)}
-                className="w-full px-2.5 py-1.5 bg-white border border-gray-200 rounded-lg text-xs text-gray-950 font-bold focus:outline-none focus:ring-1 focus:ring-indigo-500 transition cursor-pointer h-[30px]"
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                aria-label="Date Filter"
               >
-                <option value="all">Every Date (All Time)</option>
+                <option value="all">All Time</option>
                 <option value="today">Today Only</option>
                 <option value="yesterday">Yesterday Only</option>
                 <option value="last_7_days">Last 7 Days</option>
                 <option value="custom">Custom Range...</option>
               </select>
-
-              {dateFilterType === 'custom' && (
-                <div className="flex flex-col gap-1 mt-1 bg-white p-1.5 border border-indigo-100 rounded-lg">
-                  <input
-                    type="date"
-                    value={customStartDate}
-                    onChange={(e) => setCustomStartDate(e.target.value)}
-                    className="w-full px-1.5 py-1 bg-gray-50 border border-gray-200 rounded text-[10px] font-bold text-gray-900 cursor-pointer"
-                    title="Start Date"
-                  />
-                  <input
-                    type="date"
-                    value={customEndDate}
-                    onChange={(e) => setCustomEndDate(e.target.value)}
-                    className="w-full px-1.5 py-1 bg-gray-50 border border-gray-200 rounded text-[10px] font-bold text-gray-900 cursor-pointer"
-                    title="End Date"
-                  />
-                </div>
-              )}
             </div>
+
+            {dateFilterType === 'custom' && (
+              <div className="absolute left-0 mt-1.5 z-50 flex flex-col gap-1 bg-white p-2 border border-indigo-100 rounded-xl shadow-lg w-48">
+                <input
+                  type="date"
+                  value={customStartDate}
+                  onChange={(e) => setCustomStartDate(e.target.value)}
+                  className="w-full px-1.5 py-1 bg-gray-50 border border-gray-200 rounded text-[10px] font-bold text-gray-900 cursor-pointer"
+                  title="Start Date"
+                />
+                <input
+                  type="date"
+                  value={customEndDate}
+                  onChange={(e) => setCustomEndDate(e.target.value)}
+                  className="w-full px-1.5 py-1 bg-gray-50 border border-gray-200 rounded text-[10px] font-bold text-gray-900 cursor-pointer"
+                  title="End Date"
+                />
+              </div>
+            )}
           </div>
 
-          {/* Block 2: Region Control */}
+          {/* Block 2: Region Control — kept exactly as-is */}
           <div className="flex flex-col gap-1 bg-slate-50/40 p-2 rounded-xl border border-gray-100">
             <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-1 leading-none">
               <TrendingUp size={11} className="text-gray-400" />
@@ -1645,38 +1658,37 @@ export default function DSRDashboard({
             </div>
           </div>
 
-          {/* Block 3: Project with multi-select list and local search */}
-          <div className="flex flex-col gap-1 bg-slate-50/40 p-2 rounded-xl border border-gray-100">
-            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1 leading-none">
-              <Tag size={11} className="text-gray-400" />
-              Project
-            </span>
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => {
-                  setIsProjectDropdownOpen(!isProjectDropdownOpen);
-                  setIsUserDropdownOpen(false);
-                  setIsLocationDropdownOpen(false);
-                  setIsPriorityDropdownOpen(false);
-                }}
-                className="w-full flex items-center justify-between px-2.5 py-1.5 bg-white border border-gray-200 rounded-lg text-xs text-gray-950 font-bold focus:outline-none transition hover:bg-gray-50 h-[30px]"
-              >
-                <span className="truncate pr-1">
-                  {selectedProjectIds.length === 0 
-                    ? 'All Projects' 
-                    : `${selectedProjectIds.length} selected`}
-                </span>
-                <ChevronDown size={12} className={`text-gray-400 transition-transform shrink-0 ${isProjectDropdownOpen ? 'rotate-180' : ''}`} />
-              </button>
+          {/* Block 3: Project — pill style, multi-select list with local search */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => {
+                setIsProjectDropdownOpen(!isProjectDropdownOpen);
+                setIsUserDropdownOpen(false);
+                setIsLocationDropdownOpen(false);
+                setIsPriorityDropdownOpen(false);
+              }}
+              className={`flex items-center gap-1.5 pl-3.5 pr-2.5 py-2 rounded-xl border text-xs font-semibold whitespace-nowrap transition cursor-pointer ${
+                selectedProjectIds.length > 0
+                  ? 'border-indigo-200 bg-indigo-50 text-indigo-700'
+                  : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
+              }`}
+            >
+              <Tag size={13} className={selectedProjectIds.length > 0 ? 'text-indigo-500' : 'text-gray-400'} />
+              <span>Project:</span>
+              <span className="max-w-[8rem] truncate">
+                {selectedProjectIds.length === 0 ? 'All' : `${selectedProjectIds.length} selected`}
+              </span>
+              <ChevronDown size={13} className={`transition-transform shrink-0 ${selectedProjectIds.length > 0 ? 'text-indigo-400' : 'text-gray-400'} ${isProjectDropdownOpen ? 'rotate-180' : ''}`} />
+            </button>
 
-              {isProjectDropdownOpen && (
-                <>
-                  <div 
-                    className="fixed inset-0 z-40" 
-                    onClick={() => setIsProjectDropdownOpen(false)} 
-                  />
-                  <div className="absolute right-0 left-0 mt-1.5 bg-white border border-gray-200 rounded-xl shadow-lg z-50 p-2.5 space-y-2 max-h-56 overflow-y-auto">
+            {isProjectDropdownOpen && (
+              <>
+                <div 
+                  className="fixed inset-0 z-40" 
+                  onClick={() => setIsProjectDropdownOpen(false)} 
+                />
+                <div className="absolute left-0 mt-1.5 w-64 bg-white border border-gray-200 rounded-xl shadow-lg z-50 p-2.5 space-y-2 max-h-56 overflow-y-auto">
                     <div className="flex items-center justify-between text-[9px] pb-1 border-b border-gray-100 font-bold text-gray-400">
                       <span>PROJECTS</span>
                       <div className="flex gap-2">
@@ -1735,44 +1747,42 @@ export default function DSRDashboard({
                           );
                         })}
                     </div>
-                  </div>
-                </>
-              )}
-            </div>
+                </div>
+              </>
+            )}
           </div>
 
-          {/* Block 4: Dynamic Location drop down filter based on the particular user's projects */}
-          <div className="flex flex-col gap-1 bg-slate-50/40 p-2 rounded-xl border border-gray-100">
-            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1 leading-none">
-              <MapPin size={11} className="text-gray-400" />
-              Location
-            </span>
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => {
-                  setIsLocationDropdownOpen(!isLocationDropdownOpen);
-                  setIsProjectDropdownOpen(false);
-                  setIsUserDropdownOpen(false);
-                  setIsPriorityDropdownOpen(false);
-                }}
-                className="w-full flex items-center justify-between px-2.5 py-1.5 bg-white border border-gray-200 rounded-lg text-xs text-gray-950 font-bold focus:outline-none transition hover:bg-gray-50 h-[30px]"
-              >
-                <span className="truncate pr-1">
-                  {selectedLocations.length === 0 
-                    ? 'All Locations' 
-                    : `${selectedLocations.length} selected`}
-                </span>
-                <ChevronDown size={12} className={`text-gray-400 transition-transform shrink-0 ${isLocationDropdownOpen ? 'rotate-180' : ''}`} />
-              </button>
+          {/* Block 4: Location — pill style, dynamic list based on the particular user's projects */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => {
+                setIsLocationDropdownOpen(!isLocationDropdownOpen);
+                setIsProjectDropdownOpen(false);
+                setIsUserDropdownOpen(false);
+                setIsPriorityDropdownOpen(false);
+              }}
+              className={`flex items-center gap-1.5 pl-3.5 pr-2.5 py-2 rounded-xl border text-xs font-semibold whitespace-nowrap transition cursor-pointer ${
+                selectedLocations.length > 0
+                  ? 'border-indigo-200 bg-indigo-50 text-indigo-700'
+                  : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
+              }`}
+            >
+              <MapPin size={13} className={selectedLocations.length > 0 ? 'text-indigo-500' : 'text-gray-400'} />
+              <span>Location:</span>
+              <span className="max-w-[8rem] truncate">
+                {selectedLocations.length === 0 ? 'All' : `${selectedLocations.length} selected`}
+              </span>
+              <ChevronDown size={13} className={`transition-transform shrink-0 ${selectedLocations.length > 0 ? 'text-indigo-400' : 'text-gray-400'} ${isLocationDropdownOpen ? 'rotate-180' : ''}`} />
+            </button>
 
-              {isLocationDropdownOpen && (
-                <>
-                  <div 
-                    className="fixed inset-0 z-40" 
-                    onClick={() => setIsLocationDropdownOpen(false)} 
-                  />
-                  <div className="absolute right-0 left-0 mt-1.5 bg-white border border-gray-200 rounded-xl shadow-lg z-50 p-2.5 space-y-2 max-h-56 overflow-y-auto font-sans">
+            {isLocationDropdownOpen && (
+              <>
+                <div 
+                  className="fixed inset-0 z-40" 
+                  onClick={() => setIsLocationDropdownOpen(false)} 
+                />
+                <div className="absolute left-0 mt-1.5 w-64 bg-white border border-gray-200 rounded-xl shadow-lg z-50 p-2.5 space-y-2 max-h-56 overflow-y-auto font-sans">
                     <div className="flex items-center justify-between text-[9px] pb-1 border-b border-gray-100 font-bold text-gray-400">
                       <span>LOCATIONS</span>
                       <div className="flex gap-2">
@@ -1831,44 +1841,42 @@ export default function DSRDashboard({
                           );
                         })}
                     </div>
-                  </div>
-                </>
-              )}
-            </div>
+                </div>
+              </>
+            )}
           </div>
 
-          {/* Block: Priority checklist filter (multi-select, applies across all sections) */}
-          <div className="flex flex-col gap-1 bg-slate-50/40 p-2 rounded-xl border border-gray-100">
-            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1 leading-none">
-              <Tag size={11} className="text-gray-400" />
-              Priority
-            </span>
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => {
-                  setIsPriorityDropdownOpen(!isPriorityDropdownOpen);
-                  setIsProjectDropdownOpen(false);
-                  setIsLocationDropdownOpen(false);
-                  setIsUserDropdownOpen(false);
-                }}
-                className="w-full flex items-center justify-between px-2.5 py-1.5 bg-white border border-gray-200 rounded-lg text-xs text-gray-950 font-bold focus:outline-none transition hover:bg-gray-50 h-[30px]"
-              >
-                <span className="truncate pr-1">
-                  {selectedPriorities.length === 0
-                    ? 'All Priorities'
-                    : `${selectedPriorities.length} selected`}
-                </span>
-                <ChevronDown size={12} className={`text-gray-400 transition-transform shrink-0 ${isPriorityDropdownOpen ? 'rotate-180' : ''}`} />
-              </button>
+          {/* Block: Priority — pill style, multi-select filter (applies across all sections) */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => {
+                setIsPriorityDropdownOpen(!isPriorityDropdownOpen);
+                setIsProjectDropdownOpen(false);
+                setIsLocationDropdownOpen(false);
+                setIsUserDropdownOpen(false);
+              }}
+              className={`flex items-center gap-1.5 pl-3.5 pr-2.5 py-2 rounded-xl border text-xs font-semibold whitespace-nowrap transition cursor-pointer ${
+                selectedPriorities.length > 0
+                  ? 'border-indigo-200 bg-indigo-50 text-indigo-700'
+                  : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
+              }`}
+            >
+              <Tag size={13} className={selectedPriorities.length > 0 ? 'text-indigo-500' : 'text-gray-400'} />
+              <span>Priority:</span>
+              <span className="max-w-[8rem] truncate">
+                {selectedPriorities.length === 0 ? 'All' : `${selectedPriorities.length} selected`}
+              </span>
+              <ChevronDown size={13} className={`transition-transform shrink-0 ${selectedPriorities.length > 0 ? 'text-indigo-400' : 'text-gray-400'} ${isPriorityDropdownOpen ? 'rotate-180' : ''}`} />
+            </button>
 
-              {isPriorityDropdownOpen && (
-                <>
-                  <div
-                    className="fixed inset-0 z-40"
-                    onClick={() => setIsPriorityDropdownOpen(false)}
-                  />
-                  <div className="absolute right-0 left-0 mt-1.5 bg-white border border-gray-200 rounded-xl shadow-lg z-50 p-2.5 space-y-2 max-h-56 overflow-y-auto">
+            {isPriorityDropdownOpen && (
+              <>
+                <div
+                  className="fixed inset-0 z-40"
+                  onClick={() => setIsPriorityDropdownOpen(false)}
+                />
+                <div className="absolute left-0 mt-1.5 w-64 bg-white border border-gray-200 rounded-xl shadow-lg z-50 p-2.5 space-y-2 max-h-56 overflow-y-auto">
                     <div className="flex items-center justify-between text-[9px] pb-1 border-b border-gray-100 font-bold text-gray-400">
                       <span>PRIORITY</span>
                       <div className="flex gap-2">
@@ -1914,45 +1922,43 @@ export default function DSRDashboard({
                         );
                       })}
                     </div>
-                  </div>
-                </>
-              )}
-            </div>
+                </div>
+              </>
+            )}
           </div>
 
-          {/* Block 5: Filter by User/Users (Admin Only) */}
+          {/* Block 5: Filter by User/Users (Admin Only) — pill style */}
           {isAdmin && (
-            <div className="flex flex-col gap-1 bg-slate-50/40 p-2 rounded-xl border border-gray-100">
-              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1 leading-none">
-                <Users size={11} className="text-gray-400" />
-                Users
-              </span>
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsUserDropdownOpen(!isUserDropdownOpen);
-                    setIsProjectDropdownOpen(false);
-                    setIsLocationDropdownOpen(false);
-                    setIsPriorityDropdownOpen(false);
-                  }}
-                  className="w-full flex items-center justify-between px-2.5 py-1.5 bg-white border border-gray-200 rounded-lg text-xs text-gray-950 font-bold focus:outline-none transition hover:bg-gray-50 h-[30px]"
-                >
-                  <span className="truncate pr-1">
-                    {selectedUsers.length === 0 
-                      ? 'All Users' 
-                      : `${selectedUsers.length} selected`}
-                  </span>
-                  <ChevronDown size={12} className={`text-gray-400 transition-transform shrink-0 ${isUserDropdownOpen ? 'rotate-180' : ''}`} />
-                </button>
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsUserDropdownOpen(!isUserDropdownOpen);
+                  setIsProjectDropdownOpen(false);
+                  setIsLocationDropdownOpen(false);
+                  setIsPriorityDropdownOpen(false);
+                }}
+                className={`flex items-center gap-1.5 pl-3.5 pr-2.5 py-2 rounded-xl border text-xs font-semibold whitespace-nowrap transition cursor-pointer ${
+                  selectedUsers.length > 0
+                    ? 'border-indigo-200 bg-indigo-50 text-indigo-700'
+                    : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                <Users size={13} className={selectedUsers.length > 0 ? 'text-indigo-500' : 'text-gray-400'} />
+                <span>User:</span>
+                <span className="max-w-[8rem] truncate">
+                  {selectedUsers.length === 0 ? 'All' : `${selectedUsers.length} selected`}
+                </span>
+                <ChevronDown size={13} className={`transition-transform shrink-0 ${selectedUsers.length > 0 ? 'text-indigo-400' : 'text-gray-400'} ${isUserDropdownOpen ? 'rotate-180' : ''}`} />
+              </button>
 
-                {isUserDropdownOpen && (
-                  <>
-                    <div 
-                      className="fixed inset-0 z-40" 
-                      onClick={() => setIsUserDropdownOpen(false)} 
-                    />
-                    <div className="absolute right-0 left-0 mt-1.5 bg-white border border-gray-200 rounded-xl shadow-lg z-50 p-2.5 space-y-2 max-h-56 overflow-y-auto">
+              {isUserDropdownOpen && (
+                <>
+                  <div 
+                    className="fixed inset-0 z-40" 
+                    onClick={() => setIsUserDropdownOpen(false)} 
+                  />
+                  <div className="absolute left-0 mt-1.5 w-64 bg-white border border-gray-200 rounded-xl shadow-lg z-50 p-2.5 space-y-2 max-h-56 overflow-y-auto">
                       <div className="flex items-center justify-between text-[9px] pb-1 border-b border-gray-105 font-bold text-gray-400 font-sans">
                         <span>USERS</span>
                         <div className="flex gap-2">
@@ -2020,10 +2026,9 @@ export default function DSRDashboard({
                             );
                           })}
                       </div>
-                    </div>
-                  </>
-                )}
-              </div>
+                  </div>
+                </>
+              )}
             </div>
           )}
 
