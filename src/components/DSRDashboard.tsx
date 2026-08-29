@@ -2147,14 +2147,14 @@ export default function DSRDashboard({
               <table className="w-full text-left text-xs min-w-[700px]">
                 <thead className="bg-slate-50 text-slate-500 font-extrabold text-[10px] uppercase border-b border-gray-150 sticky top-0 z-10">
                   <tr>
-                    <th className="px-4 py-3 w-14 bg-slate-50">Sr No.</th>
-                    <th className="px-4 py-3 bg-slate-50">Project Name</th>
-                    <th className="px-4 py-3 bg-slate-50">Domain</th>
-                    <th className="px-4 py-3 w-28 bg-slate-50">Priority</th>
-                    <th className="px-4 py-3 w-40 bg-slate-50">Worked / Pending</th>
-                    <th className="px-4 py-3 w-44 bg-slate-50">Last Worked</th>
-                    <th className="px-4 py-3 bg-slate-50">User</th>
-                    {isAdmin && <th className="px-4 py-3 w-44 bg-slate-50">Admin Actions</th>}
+                    <th className="px-4 py-3.5 w-14 bg-slate-50">Sr No.</th>
+                    <th className="px-4 py-3.5 bg-slate-50">Project Name</th>
+                    <th className="px-4 py-3.5 bg-slate-50">Domain</th>
+                    <th className="px-4 py-3.5 w-28 bg-slate-50">Priority</th>
+                    <th className="px-4 py-3.5 w-32 text-center bg-slate-50">Times Worked / Not Worked</th>
+                    <th className="px-4 py-3.5 w-44 bg-slate-50">Last Worked</th>
+                    <th className="px-4 py-3.5 bg-slate-50">User</th>
+                    {isAdmin && <th className="px-4 py-3.5 w-44 bg-slate-50">Admin Actions</th>}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-150">
@@ -2164,13 +2164,13 @@ export default function DSRDashboard({
                         key={item.id}
                         className="hover:bg-slate-50/60 transition-colors"
                       >
-                        <td className="px-4 py-3 font-mono font-bold text-gray-400">{item.srNo}</td>
-                        <td className="px-4 py-3">
+                        <td className="px-4 py-3.5 font-mono font-bold text-gray-400">{item.srNo}</td>
+                        <td className="px-4 py-3.5">
                           <div className="flex items-center gap-2">
                             <span className="font-bold text-gray-900">{item.name}</span>
                           </div>
                         </td>
-                        <td className="px-4 py-3 font-mono text-gray-600">
+                        <td className="px-4 py-3.5 font-mono text-gray-600">
                           {item.domain ? (
                             <a 
                               href={domainHref(item.domain)} 
@@ -2184,7 +2184,7 @@ export default function DSRDashboard({
                             <span className="text-gray-400 italic">—</span>
                           )}
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="px-4 py-3.5">
                           {item.priority === 'X1' && (
                             <span className="inline-flex items-center gap-1 bg-red-50 text-red-700 text-[10px] font-black px-2 py-0.5 rounded border border-red-100 uppercase tracking-wider">
                                X1
@@ -2216,29 +2216,12 @@ export default function DSRDashboard({
                             </span>
                           )}
                         </td>
-                        <td className="px-4 py-3">
-                          {(() => {
-                            const total = item.timesWorked + item.timesNotWorked;
-                            const pct = total > 0 ? Math.round((item.timesWorked / total) * 100) : 0;
-                            const barColor = pct === 0 ? 'bg-gray-200' : pct === 100 ? 'bg-emerald-500' : 'bg-amber-500';
-                            return (
-                              <div className="flex flex-col gap-1.5 min-w-[110px]">
-                                <span className="font-mono font-bold text-[11px]">
-                                  <span className="text-emerald-700">{item.timesWorked}</span>
-                                  <span className="text-gray-400"> / </span>
-                                  <span className="text-red-500">{item.timesNotWorked}</span>
-                                </span>
-                                <div className="flex items-center gap-2">
-                                  <div className="w-16 h-1.5 bg-gray-150 rounded-full overflow-hidden shrink-0">
-                                    <div className={`h-full rounded-full ${barColor}`} style={{ width: `${pct}%` }} />
-                                  </div>
-                                  <span className="text-[10px] font-bold text-gray-400">{pct}%</span>
-                                </div>
-                              </div>
-                            );
-                          })()}
+                        <td className="px-4 py-3.5 text-center font-mono font-bold text-gray-700">
+                          <span className="text-emerald-700">{item.timesWorked}</span>
+                          <span className="text-gray-400"> / </span>
+                          <span className="text-red-600">{item.timesNotWorked}</span>
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="px-4 py-3.5">
                           {(() => {
                             if (item.lastWorked === 'Never' || !item.lastWorkedAt) {
                               return <span className="text-[11px] font-semibold text-gray-400 italic">Never</span>;
@@ -2256,14 +2239,14 @@ export default function DSRDashboard({
                             const dateLabel = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
                             const timeLabel = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
                             return (
-                              <div className="flex flex-col gap-0.5">
-                                <span className="text-[11px] font-black text-gray-800">{relLabel}</span>
-                                <span className="text-[10px] font-semibold text-gray-400">{dateLabel} &middot; {timeLabel}</span>
+                              <div className="flex flex-col gap-1">
+                                <span className="text-[11px] font-black text-gray-800 leading-none">{relLabel}</span>
+                                <span className="text-[10px] font-semibold text-gray-400 leading-none">{dateLabel} &middot; {timeLabel}</span>
                               </div>
                             );
                           })()}
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="px-4 py-3.5">
                           {(() => {
                             const names = getAssignedUsersForProject(item.id).split(',').map(n => n.trim()).filter(Boolean);
                             if (names.length === 0) {
@@ -2271,16 +2254,16 @@ export default function DSRDashboard({
                             }
                             const avatarColors = ['bg-violet-600', 'bg-blue-500', 'bg-emerald-500', 'bg-amber-500', 'bg-rose-500', 'bg-indigo-500'];
                             return (
-                              <div className="flex flex-wrap items-center gap-3">
+                              <div className="flex flex-wrap items-center gap-2.5">
                                 {names.map((uname, idx) => {
                                   const initials = uname.split(' ').filter(Boolean).map(p => p[0]).slice(0, 2).join('').toUpperCase();
                                   const color = avatarColors[uname.charCodeAt(0) % avatarColors.length];
                                   return (
                                     <div key={idx} className="flex items-center gap-1.5">
-                                      <span className={`w-6 h-6 rounded-full ${color} text-white text-[9px] font-black flex items-center justify-center shrink-0`}>
+                                      <span className={`w-6 h-6 rounded-full ${color} text-white text-[9px] font-black flex items-center justify-center shrink-0 leading-none`}>
                                         {initials}
                                       </span>
-                                      <span className="text-gray-900 text-[11px] font-bold whitespace-nowrap">{uname}</span>
+                                      <span className="text-gray-900 text-[11px] font-bold whitespace-nowrap leading-none">{uname}</span>
                                     </div>
                                   );
                                 })}
@@ -2289,7 +2272,7 @@ export default function DSRDashboard({
                           })()}
                         </td>
                         {isAdmin && (
-                          <td className="px-4 py-3">
+                          <td className="px-4 py-3.5">
                             <div className="flex items-center gap-1.5">
                               <select
                                 value={
