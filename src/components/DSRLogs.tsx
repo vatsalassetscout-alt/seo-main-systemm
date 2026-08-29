@@ -22,7 +22,6 @@ import {
   ChevronDown,
   ChevronUp,
   X,
-  User,
   Users,
   Activity,
   RefreshCw,
@@ -947,8 +946,7 @@ export default function DSRLogs({
                           bit (pl-3) since it no longer has an icon/name/
                           separator in front of it to space it out. */}
                       {isAdmin ? (
-                        <div className="grid grid-cols-[auto_1fr_auto_auto] items-center gap-2 min-w-0 overflow-hidden">
-                          <User size={15} className="text-indigo-500 shrink-0" />
+                        <div className="grid grid-cols-[1fr_auto_auto] items-center gap-2 min-w-0 overflow-hidden">
                           <strong className="text-[15px] text-indigo-700 font-black whitespace-nowrap truncate text-center min-w-0">
                             {activeUserDisplayName}
                           </strong>
