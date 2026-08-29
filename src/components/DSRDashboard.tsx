@@ -1094,7 +1094,11 @@ export default function DSRDashboard({
         const tB = b.lastWorkedAt || b.lastWorkedRaw || '';
         cmp = tA.localeCompare(tB);
       }
-      return projectTableSortDir === 'asc' ? cmp : -cmp;
+      // "High to Low" means: Priority X1 first, Best Ranking #1 (lowest number) first,
+      // and for Last Worked the most days-ago (oldest/most overdue) first - in every
+      // case that's ascending raw order (cmp as computed above, unchanged). "Low to
+      // High" is simply the reverse of that.
+      return projectTableSortDir === 'desc' ? cmp : -cmp;
     });
 
     return list.map((item, idx) => ({ ...item, srNo: idx + 1 }));
@@ -2249,7 +2253,7 @@ export default function DSRDashboard({
                               href={domainHref(item.domain)} 
                               target="_blank" 
                               rel="noreferrer" 
-                              className="text-[12px] text-indigo-600 hover:underline font-bold"
+                              className="text-[13px] text-indigo-700 hover:underline font-extrabold"
                             >
                               {cleanDomain(item.domain)}
                             </a>
@@ -2340,21 +2344,22 @@ export default function DSRDashboard({
                             if (names.length === 0) {
                               return <span className="text-gray-400 italic text-[11px]">Unassigned</span>;
                             }
+                            // Show just the primary assigned user in a fixed, consistent avatar+name
+                            // shape - looping over every assigned user made rows wrap unevenly.
+                            const uname = names[0];
+                            const extraCount = names.length - 1;
                             const avatarColors = ['bg-violet-600', 'bg-blue-500', 'bg-emerald-500', 'bg-amber-500', 'bg-rose-500', 'bg-indigo-500'];
+                            const initials = uname.split(' ').filter(Boolean).map(p => p[0]).slice(0, 2).join('').toUpperCase();
+                            const color = avatarColors[uname.charCodeAt(0) % avatarColors.length];
                             return (
-                              <div className="flex flex-wrap items-center gap-2.5">
-                                {names.map((uname, idx) => {
-                                  const initials = uname.split(' ').filter(Boolean).map(p => p[0]).slice(0, 2).join('').toUpperCase();
-                                  const color = avatarColors[uname.charCodeAt(0) % avatarColors.length];
-                                  return (
-                                    <div key={idx} className="flex items-center gap-1.5">
-                                      <span className={`w-6 h-6 rounded-full ${color} text-white text-[9px] font-black flex items-center justify-center shrink-0 leading-none`}>
-                                        {initials}
-                                      </span>
-                                      <span className="text-gray-900 text-[11px] font-bold whitespace-nowrap leading-none">{uname}</span>
-                                    </div>
-                                  );
-                                })}
+                              <div className="flex items-center gap-2">
+                                <span className={`w-7 h-7 rounded-full ${color} text-white text-[10px] font-black flex items-center justify-center shrink-0 leading-none`}>
+                                  {initials}
+                                </span>
+                                <span className="text-gray-900 text-[12px] font-bold truncate max-w-[140px]">{uname}</span>
+                                {extraCount > 0 && (
+                                  <span className="text-[9px] font-black text-gray-400 bg-gray-100 rounded-full px-1.5 py-0.5 shrink-0">+{extraCount}</span>
+                                )}
                               </div>
                             );
                           })()}
