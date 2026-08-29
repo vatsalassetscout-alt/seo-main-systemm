@@ -194,38 +194,11 @@ export default function DSRLogs({
     return Array.from(uniqueMap.values()).sort((a, b) => a.name.localeCompare(b.name));
   }, [allowedUsers, entries]);
 
-  // Width of the "User" column on each log card's main bar — sized off
-  // whoever's display name is the longest across the whole system, so the
-  // block is exactly as wide as it needs to be (no wasted space when every
-  // name is short, no truncation on the one row with a long name).
-  const userColWidthPx = useMemo(() => {
-    const names = allUsersList.map(u => u.name).filter(Boolean);
-    if (names.length === 0) return 220;
-
-    let maxNameWidth = 0;
-    try {
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        ctx.font = '900 15px sans-serif'; // matches the name span's font-black text-[15px]
-        names.forEach((n) => {
-          const w = ctx.measureText(n).width;
-          if (w > maxNameWidth) maxNameWidth = w;
-        });
-      } else {
-        throw new Error('no canvas context');
-      }
-    } catch {
-      // Canvas unavailable — fall back to a rough per-character estimate.
-      maxNameWidth = Math.max(...names.map(n => n.length)) * 9;
-    }
-
-    // Fixed overhead for everything else that shares this block: the user
-    // icon, its gap to the name, the "|" separator, and the
-    // "Submitted Time : HH:MM AM" text, plus a little breathing room.
-    const FIXED_OVERHEAD = 190;
-    return Math.round(FIXED_OVERHEAD + maxNameWidth);
-  }, [allUsersList]);
+  // Fixed width of the "User" column on each log card's main bar (admin view
+  // only) — a flat constant rather than something computed off name length,
+  // so it's always exactly this size regardless of how short/long any given
+  // name is. Content inside gets center-aligned to suit a fixed box.
+  const userColWidthPx = 260;
 
   const employeeNamesMap = useMemo(() => {
     const map: Record<string, string> = {};
@@ -924,10 +897,9 @@ export default function DSRLogs({
                       Status has no forced width; it's sized to exactly what it needs
                       (max-content). Submission has a generous fixed max-width sized to
                       fit the worst case (every submission type + Total Backlinks).
-                      The User column's width isn't a hardcoded guess — it's computed
-                      from the single longest display name across every user
-                      (userColWidthPx), so it's never bigger or smaller than it needs
-                      to be, on any row. */}
+                      The User column (admin view) is a flat fixed width
+                      (userColWidthPx) — not computed off name length — with its
+                      content center-aligned inside that box. */}
                   <div
                     onClick={() => toggleExpand(item.uniqueId)}
                     className="px-4 py-3.5 sm:px-5 sm:py-4 hover:bg-slate-50/45 cursor-pointer select-none transition-colors overflow-x-auto"
@@ -961,17 +933,20 @@ export default function DSRLogs({
 
                       <span className="text-slate-300 select-none text-center">|</span>
 
-                      {/* Admin: user icon + name (sized off userColWidthPx, the single
-                          longest display name across every user — a fixed, stable
-                          width, not recomputed per row) followed by Submitted Time.
-                          Non-admin: the user is looking at their own logs, so the
-                          name/icon is pointless — this column shows Submitted Time
-                          directly after Date, nudged right a bit (pl-3) since it no
-                          longer has an icon/name/separator in front of it to space it
-                          out. Either way the Submitted Time text itself gets a touch
-                          of extra left margin (ml-1.5) so it doesn't sit flush against
-                          whatever's immediately before it. */}
-                      <div className={`flex items-center gap-2 min-w-0 overflow-hidden ${isAdmin ? '' : 'pl-3'}`}>
+                      {/* Admin: user icon + name in a flat FIXED-width column
+                          (userColWidthPx — a constant, not computed off name
+                          length), with the content center-aligned inside that
+                          box so it sits nicely regardless of name length,
+                          followed by Submitted Time. Non-admin: the user is
+                          looking at their own logs, so the name/icon is
+                          pointless — this column shows Submitted Time directly
+                          after Date, nudged right a bit (pl-3) since it no
+                          longer has an icon/name/separator in front of it to
+                          space it out. Either way the Submitted Time text
+                          itself gets a touch of extra left margin (ml-1.5) so
+                          it doesn't sit flush against whatever's immediately
+                          before it. */}
+                      <div className={`flex items-center gap-2 min-w-0 overflow-hidden ${isAdmin ? 'justify-center' : 'pl-3'}`}>
                         {isAdmin && (
                           <>
                             <User size={15} className="text-indigo-500 shrink-0" />
