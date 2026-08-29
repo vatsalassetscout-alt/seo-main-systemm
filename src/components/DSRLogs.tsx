@@ -832,13 +832,19 @@ export default function DSRLogs({
                   });
 
               const parsedSubDate = item.submittedAt ? new Date(item.submittedAt) : null;
-              const formattedSubmittedString = parsedSubDate && !isNaN(parsedSubDate.getTime())
-                ? `${parsedSubDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} at ${parsedSubDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`
-                : 'Realtime Device Local Sync';
 
               const submittedTimeStr = parsedSubDate && !isNaN(parsedSubDate.getTime())
                 ? parsedSubDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
                 : 'Sync';
+
+              // If the report was actually synced/submitted on a different calendar day
+              // than the day it was FILLED FOR (e.g. filled for Aug 26 but only synced
+              // the next morning), surface that submitted date next to the time so it
+              // doesn't look like a same-day submission when it wasn't.
+              const submittedDateOnlyStr = parsedSubDate && !isNaN(parsedSubDate.getTime())
+                ? parsedSubDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                : null;
+              const submittedOnDifferentDate = !!submittedDateOnlyStr && submittedDateOnlyStr !== formattedFilledDate;
 
               const isExpanded = !!expandedEntries[item.uniqueId];
               const activeUserDisplayName = employeeNamesMap[item.userEmail?.toLowerCase()] || item.userEmail;
@@ -898,7 +904,10 @@ export default function DSRLogs({
                   >
                     <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.15fr)_auto_minmax(0,1.5fr)_auto] items-center gap-3 lg:gap-5">
 
-                      {/* Date + user meta */}
+                      {/* Date + user meta — just the filled-for date, its submitted time
+                          (plus the submitted date only if it lands on a different day
+                          than the filled-for date), and the user's name. No "Report
+                          Synced" line anymore. */}
                       <div className="flex items-center gap-3 min-w-0">
                         <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-indigo-50 to-slate-50 border border-slate-150 flex items-center justify-center text-indigo-650 shrink-0">
                           <Calendar size={15} />
@@ -910,39 +919,40 @@ export default function DSRLogs({
                             </span>
                             <span className="text-[11px] text-slate-450 font-semibold flex items-center gap-1 whitespace-nowrap">
                               <Clock size={10} className="text-slate-400" />
-                              {submittedTimeStr}
+                              Submitted: {submittedTimeStr}
+                              {submittedOnDifferentDate && (
+                                <span className="text-slate-400"> on {submittedDateOnlyStr}</span>
+                              )}
                             </span>
                           </div>
                           <div className="text-[12px] text-slate-500 font-medium leading-normal truncate">
-                            Synced <strong className="text-slate-700 font-semibold">{formattedSubmittedString}</strong>
-                            <span className="text-slate-300 mx-1">•</span>
-                            <strong className="text-indigo-700 font-semibold">{activeUserDisplayName}</strong>
+                            User: <strong className="text-indigo-700 font-semibold">{activeUserDisplayName}</strong>
                           </div>
                         </div>
                       </div>
 
-                      {/* W / NW / Total Projects — compact stat columns, sit right after the
-                          date block instead of being pushed all the way to the far right */}
+                      {/* Worked / Not Worked / Total Project — boxed stat pills, each with
+                          its own colored border (green/red/blue), matching the reference UI. */}
                       {totalProjectCount > 0 && (
-                        <div className="flex items-center gap-4 lg:pl-1 lg:border-l lg:border-slate-100">
-                          <div className="flex flex-col items-start leading-tight">
-                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">W</span>
-                            <span className="text-[15px] font-black text-emerald-600">{workedProjectCount}</span>
+                        <div className="flex items-center gap-2">
+                          <div className="flex flex-col items-center justify-center px-3.5 py-1.5 rounded-xl border border-emerald-150 bg-emerald-50/50 min-w-[64px] leading-tight">
+                            <span className="text-[9.5px] font-bold text-emerald-600 uppercase tracking-wider">Worked</span>
+                            <span className="text-[16px] font-black text-emerald-600">{workedProjectCount}</span>
                           </div>
-                          <div className="flex flex-col items-start leading-tight">
-                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">NW</span>
-                            <span className="text-[15px] font-black text-amber-600">{notWorkedProjectCount}</span>
+                          <div className="flex flex-col items-center justify-center px-3.5 py-1.5 rounded-xl border border-rose-150 bg-rose-50/50 min-w-[76px] leading-tight">
+                            <span className="text-[9.5px] font-bold text-rose-600 uppercase tracking-wider whitespace-nowrap">Not Worked</span>
+                            <span className="text-[16px] font-black text-rose-600">{notWorkedProjectCount}</span>
                           </div>
-                          <div className="flex flex-col items-start leading-tight">
-                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Projects</span>
-                            <span className="text-[15px] font-black text-indigo-650">{totalProjectCount}</span>
+                          <div className="flex flex-col items-center justify-center px-3.5 py-1.5 rounded-xl border border-indigo-150 bg-indigo-50/50 min-w-[86px] leading-tight">
+                            <span className="text-[9.5px] font-bold text-indigo-600 uppercase tracking-wider whitespace-nowrap">Total Project</span>
+                            <span className="text-[16px] font-black text-indigo-650">{totalProjectCount}</span>
                           </div>
                         </div>
                       )}
 
-                      {/* Category breakdown — occupies the actual middle of the row so the
-                          horizontal space between the date block and the status/chevron is
-                          used, rather than left empty. Truncates gracefully on smaller widths. */}
+                      {/* Submission distribution — same List/Blog/PDF/Image/etc. breakdown
+                          as before, now boxed in its own bordered panel so it reads as a
+                          clean, self-contained block instead of loose inline text. */}
                       {(() => {
                         const countEntries: { label: string; value: number }[] = [
                           { label: 'List', value: totalListings },
@@ -962,8 +972,8 @@ export default function DSRLogs({
                         const grandTotal = countEntries.reduce((sum, entry) => sum + entry.value, 0);
 
                         return (
-                          <div className="min-w-0 flex items-center gap-3 lg:pl-1 lg:border-l lg:border-slate-100">
-                            <div className="min-w-0 flex-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12.5px] text-slate-600 font-medium">
+                          <div className="min-w-0 flex items-center gap-3">
+                            <div className="min-w-0 flex-1 flex flex-wrap items-center gap-x-2 gap-y-1 px-3.5 py-2 rounded-xl border border-slate-150 bg-slate-50/40 text-[12.5px] text-slate-600 font-medium">
                               {countEntries.length > 0 ? (
                                 countEntries.map((entry, idx) => (
                                   <React.Fragment key={entry.label}>
