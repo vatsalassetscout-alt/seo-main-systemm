@@ -194,6 +194,39 @@ export default function DSRLogs({
     return Array.from(uniqueMap.values()).sort((a, b) => a.name.localeCompare(b.name));
   }, [allowedUsers, entries]);
 
+  // Width of the "User" column on each log card's main bar — sized off
+  // whoever's display name is the longest across the whole system, so the
+  // block is exactly as wide as it needs to be (no wasted space when every
+  // name is short, no truncation on the one row with a long name).
+  const userColWidthPx = useMemo(() => {
+    const names = allUsersList.map(u => u.name).filter(Boolean);
+    if (names.length === 0) return 220;
+
+    let maxNameWidth = 0;
+    try {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.font = '900 15px sans-serif'; // matches the name span's font-black text-[15px]
+        names.forEach((n) => {
+          const w = ctx.measureText(n).width;
+          if (w > maxNameWidth) maxNameWidth = w;
+        });
+      } else {
+        throw new Error('no canvas context');
+      }
+    } catch {
+      // Canvas unavailable — fall back to a rough per-character estimate.
+      maxNameWidth = Math.max(...names.map(n => n.length)) * 9;
+    }
+
+    // Fixed overhead for everything else that shares this block: the user
+    // icon, its gap to the name, the "|" separator, and the
+    // "Submitted Time : HH:MM AM" text, plus a little breathing room.
+    const FIXED_OVERHEAD = 190;
+    return Math.round(FIXED_OVERHEAD + maxNameWidth);
+  }, [allUsersList]);
+
   const employeeNamesMap = useMemo(() => {
     const map: Record<string, string> = {};
     
@@ -890,12 +923,22 @@ export default function DSRLogs({
                       row — regardless of how long the date/user name happens to be.
                       Status has no forced width; it's sized to exactly what it needs
                       (max-content). Submission has a generous fixed max-width sized to
-                      fit the worst case (every submission type + Total Backlinks). */}
+                      fit the worst case (every submission type + Total Backlinks).
+                      The User column's width isn't a hardcoded guess — it's computed
+                      from the single longest display name across every user
+                      (userColWidthPx), so it's never bigger or smaller than it needs
+                      to be, on any row. */}
                   <div
                     onClick={() => toggleExpand(item.uniqueId)}
                     className="px-4 py-3.5 sm:px-5 sm:py-4 hover:bg-slate-50/45 cursor-pointer select-none transition-colors overflow-x-auto"
                   >
-                    <div className="grid grid-cols-[150px_12px_400px_minmax(20px,1fr)_12px_340px_12px_560px_12px_max-content] items-center gap-x-2 min-w-[1350px] w-full">
+                    <div
+                      className="grid items-center gap-x-2 w-full"
+                      style={{
+                        gridTemplateColumns: `150px 12px ${userColWidthPx}px minmax(20px,1fr) 12px 340px 12px 560px 12px max-content`,
+                        minWidth: `${950 + userColWidthPx}px`,
+                      }}
+                    >
 
                       {/* Date — big, with a small "on [actual submitted date]" line
                           underneath ONLY when this was filled for a past date (i.e. the
@@ -919,15 +962,15 @@ export default function DSRLogs({
                       <span className="text-slate-300 select-none text-center">|</span>
 
                       {/* User — sits right beside the date, bumped up in size/weight to
-                          read as a clear identity marker. No border/box around it — just
-                          plain bold text. "Submitted Time" is stuck directly to this same
-                          block, right after the username. Fixed-width column (sized to
-                          the max expected length of this whole block) so it renders at
-                          the exact same width on every row — the name truncates if it's
-                          ever unusually long, keeping the row perfectly even. */}
+                          read as a clear identity marker. No border/box around it, and
+                          no separate "User" text label either — just the icon plus the
+                          name. "Submitted Time" is stuck directly to this same block,
+                          right after the username. Column width is computed
+                          (userColWidthPx) off the single longest display name across
+                          every user, so it renders at the exact same width on every
+                          row without ever truncating anyone's name. */}
                       <div className="flex items-center gap-2 min-w-0 overflow-hidden">
                         <User size={15} className="text-indigo-500 shrink-0" />
-                        <span className="text-[12px] text-slate-500 font-bold uppercase tracking-wide whitespace-nowrap shrink-0">User</span>
                         <strong className="text-[15px] text-indigo-700 font-black whitespace-nowrap truncate min-w-0">
                           {activeUserDisplayName}
                         </strong>
