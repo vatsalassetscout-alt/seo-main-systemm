@@ -3284,89 +3284,89 @@ export default function DSRDashboard({
               </div>
             ) : (
               <div className="overflow-x-auto overflow-y-auto" style={{ maxHeight: dynamicTableMaxHeight }}>
-                <table className="w-full text-left text-xs min-w-[820px] border-collapse">
-                  <thead className="bg-slate-50 text-slate-500 font-extrabold text-[10px] uppercase border-b border-gray-150 sticky top-0 z-10">
+                <table className="w-auto min-w-full text-left text-[15px] table-auto">
+                  <thead className="bg-slate-50 text-slate-500 font-bold text-[12px] uppercase tracking-normal border-b border-gray-150 sticky top-0 z-10">
                     <tr>
-                      <th className="px-3 py-3 w-14 text-center bg-slate-50">Sr No.</th>
-                      <th className="pl-3 pr-1 py-3 w-52 bg-slate-50">Project Name</th>
-                      <th className="pl-1 pr-1 py-3 w-52 bg-slate-50">Domain</th>
-                      <th className="pl-1 pr-3 py-3 w-24 text-center bg-slate-50">Priority</th>
-                      <th className="pl-6 pr-3 py-3 w-48 bg-slate-50">Last Worked</th>
-                      <th className="pl-6 pr-3 py-3 w-28 text-center bg-slate-50">Best Ranking</th>
-                      <th className="px-3 py-3 w-40 text-center bg-slate-50">Last Rank Checked</th>
-                      {isAdmin && <th className="pl-3 pr-0 py-3 w-36 bg-slate-50">User</th>}
-                      {isAdmin && <th className="pl-0 pr-3 py-3 w-24 text-center bg-slate-50">Action</th>}
+                      <th className="px-5 py-4 text-center whitespace-nowrap bg-slate-50">Sr No.</th>
+                      <th className="px-5 py-4 whitespace-nowrap bg-slate-50">Project Name</th>
+                      <th className="px-5 py-4 whitespace-nowrap bg-slate-50">Domain</th>
+                      <th className="px-5 py-4 text-center whitespace-nowrap bg-slate-50">Priority</th>
+                      <th className="px-5 py-4 whitespace-nowrap bg-slate-50">Last Worked</th>
+                      <th className="px-5 py-4 text-center whitespace-nowrap bg-slate-50">Best Ranking</th>
+                      <th className="px-5 py-4 text-center whitespace-nowrap bg-slate-50">Last Rank Checked</th>
+                      {isAdmin && <th className="px-5 py-4 whitespace-nowrap bg-slate-50">User</th>}
+                      {isAdmin && <th className="px-5 py-4 text-center whitespace-nowrap bg-slate-50">Action</th>}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-150">
                     {unworkedProjects.map((proj) => (
                       <tr key={proj.id} className="hover:bg-slate-50/40">
-                        <td className="px-3 py-3.5 font-mono font-black text-gray-400 text-center">{proj.srNo}</td>
+                        <td className="px-5 py-5 whitespace-nowrap font-semibold text-gray-500 text-center">{proj.srNo}</td>
                         
                         {/* Project Name column */}
-                        <td className="pl-3 pr-1 py-3.5 font-bold text-gray-900 text-left">
+                        <td className="px-5 py-5 whitespace-nowrap font-bold text-gray-900 text-left">
                           <div className="flex items-center gap-2">
-                            <span className="text-gray-900 font-black">{proj.name}</span>
+                            <span className="text-[15px] text-gray-900 font-bold">{proj.name}</span>
                           </div>
                         </td>
 
                         {/* Domain column */}
-                        <td className="pl-1 pr-1 py-3.5 text-left">
+                        <td className="px-5 py-5 whitespace-nowrap text-left">
                           {proj.domain ? (
                             <a 
                               href={domainHref(proj.domain)} 
                               target="_blank" 
                               rel="noreferrer" 
-                              className="text-indigo-600 hover:underline font-mono text-xs font-bold inline-flex items-center gap-1 whitespace-nowrap"
+                              className="text-indigo-700 hover:underline text-[14px] font-semibold inline-flex items-center gap-1 whitespace-nowrap"
                             >
                               {cleanDomain(proj.domain)}
                             </a>
                           ) : (
-                            <span className="text-gray-300 italic text-xs font-normal">No Domain Assigned</span>
+                            <span className="text-gray-300 italic text-[13px] font-normal">No Domain Assigned</span>
                           )}
                         </td>
 
                         {/* Priority column */}
-                        <td className="pl-1 pr-3 py-3.5 text-center">
+                        <td className="px-5 py-5 whitespace-nowrap text-center">
                           {proj.priority === 'X1' && (
-                            <span className="inline-flex items-center gap-0.5 bg-red-50 text-red-700 text-[9px] font-black px-1.5 py-0.5 rounded border border-red-100 uppercase tracking-wider whitespace-nowrap">
+                            <span className="inline-flex items-center gap-1 bg-red-50 text-red-700 text-[11px] font-black px-2.5 py-1 rounded border border-red-100 uppercase tracking-wider whitespace-nowrap">
                               X1
                             </span>
                           )}
                           {proj.priority === 'X2' && (
-                            <span className="inline-flex items-center gap-0.5 bg-amber-50 text-amber-700 text-[9px] font-black px-1.5 py-0.5 rounded border border-amber-100 uppercase tracking-wider whitespace-nowrap">
+                            <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-700 text-[11px] font-black px-2.5 py-1 rounded border border-amber-100 uppercase tracking-wider whitespace-nowrap">
                               X2
                             </span>
                           )}
                           {proj.priority === 'X3' && (
-                            <span className="inline-flex items-center gap-0.5 bg-blue-50 text-blue-700 text-[9px] font-black px-1.5 py-0.5 rounded border border-blue-100 uppercase tracking-wider whitespace-nowrap">
+                            <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-700 text-[11px] font-black px-2.5 py-1 rounded border border-blue-100 uppercase tracking-wider whitespace-nowrap">
                               X3
                             </span>
                           )}
                           {proj.priority === 'X4' && (
-                            <span className="inline-flex items-center gap-0.5 bg-purple-50 text-purple-700 text-[9px] font-black px-1.5 py-0.5 rounded border border-purple-100 uppercase tracking-wider whitespace-nowrap">
+                            <span className="inline-flex items-center gap-1 bg-purple-50 text-purple-700 text-[11px] font-black px-2.5 py-1 rounded border border-purple-100 uppercase tracking-wider whitespace-nowrap">
                               X4
                             </span>
                           )}
                           {proj.priority === 'X5' && (
-                            <span className="inline-flex items-center gap-0.5 bg-gray-50 text-gray-700 text-[9px] font-black px-1.5 py-0.5 rounded border border-gray-150 uppercase tracking-wider whitespace-nowrap">
+                            <span className="inline-flex items-center gap-1 bg-gray-50 text-gray-700 text-[11px] font-black px-2.5 py-1 rounded border border-gray-150 uppercase tracking-wider whitespace-nowrap">
                               X5
                             </span>
                           )}
                           {!['X1', 'X2', 'X3', 'X4', 'X5'].includes(proj.priority || '') && (
-                            <span className="text-[10px] font-bold text-gray-300 italic">—</span>
+                            <span className="text-[11px] font-bold text-gray-300 italic">—</span>
                           )}
                         </td>
 
                         {/* Last Worked column (renamed from Duration) - shows the actual
                             last worked date, with days-ago in brackets. Never-worked
                             projects just show "Never". */}
-                        <td className="pl-6 pr-3 py-3.5 w-48 text-left">
+                        <td className="px-5 py-5 whitespace-nowrap text-left">
                           {(() => {
                             const days = proj.daysSinceLastWorked;
                             if (days === Infinity || days === undefined || proj.lastWorkedDate === 'Never') {
                               return (
-                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded bg-rose-50 text-rose-700 border border-rose-100/50 text-[9px] font-black uppercase tracking-wider">
+                                <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded bg-rose-50 text-rose-700 border border-rose-100/50 text-[11px] font-black uppercase tracking-wider">
                                   Never
                                 </span>
                               );
@@ -3392,17 +3392,17 @@ export default function DSRDashboard({
                               : 'text-rose-800';
 
                             return (
-                              <span className={`font-black font-mono text-xs whitespace-nowrap ${colorClass}`}>
-                                {dateLabel} <span className="font-bold text-gray-400">({daysLabel})</span>
+                              <span className={`font-bold text-[14px] whitespace-nowrap ${colorClass}`}>
+                                {dateLabel} <span className="font-semibold text-gray-400">({daysLabel})</span>
                               </span>
                             );
                           })()}
                         </td>
 
                         {/* Ranking column - best keyword ranking across the project */}
-                        <td className="pl-6 pr-3 py-3.5 w-28 text-center">
+                        <td className="px-5 py-5 whitespace-nowrap text-center">
                           {proj.bestRanking !== null && proj.bestRanking !== undefined ? (
-                            <span className={`inline-flex items-center justify-center font-mono font-black text-[10px] px-2 py-0.5 rounded border whitespace-nowrap ${
+                            <span className={`inline-flex items-center justify-center font-bold text-[12px] px-2.5 py-1 rounded border whitespace-nowrap ${
                               proj.bestRanking <= 10
                                 ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
                                 : proj.bestRanking <= 30
@@ -3412,13 +3412,13 @@ export default function DSRDashboard({
                               #{proj.bestRanking}
                             </span>
                           ) : (
-                            <span className="text-[10px] font-bold text-gray-300 italic">—</span>
+                            <span className="text-[11px] font-bold text-gray-300 italic">—</span>
                           )}
                         </td>
 
                         {/* Last Rank Checked column (renamed from Last Worked Date) -
                             shows when the Best Ranking shown above was last checked. */}
-                        <td className="px-3 py-3.5 w-40 text-center">
+                        <td className="px-5 py-5 whitespace-nowrap text-center">
                           {(() => {
                             if (!proj.bestRankingLastChecked) {
                               return <span className="text-gray-400 font-bold">—</span>;
@@ -3427,34 +3427,53 @@ export default function DSRDashboard({
                             try {
                               const d = new Date(proj.bestRankingLastChecked);
                               if (isNaN(d.getTime())) {
-                                return <span className="text-gray-800 font-extrabold font-mono text-xs">{proj.bestRankingLastChecked}</span>;
+                                return <span className="text-gray-800 font-bold text-[13px]">{proj.bestRankingLastChecked}</span>;
                               }
                               return (
-                                <span className="text-gray-800 font-extrabold font-mono text-xs">
+                                <span className="text-gray-800 font-bold text-[13px]">
                                   {d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
                                 </span>
                               );
                             } catch {
-                              return <span className="text-gray-800 font-extrabold font-mono text-xs">{proj.bestRankingLastChecked}</span>;
+                              return <span className="text-gray-800 font-bold text-[13px]">{proj.bestRankingLastChecked}</span>;
                             }
                           })()}
                         </td>
 
-                        {/* Assigned To column (Admin Only) */}
+                        {/* Assigned To column (Admin Only) — avatar + name, matching Project Table's User column look */}
                         {isAdmin && (
-                          <td className="pl-3 pr-0 py-3.5 text-left font-bold text-gray-800">
-                            <span className="text-gray-900 bg-slate-50 border border-slate-200/50 rounded px-2.5 py-1 text-[10px] select-all">
-                              {getAssignedUsersForProject(proj.id)}
-                            </span>
+                          <td className="px-5 py-5 whitespace-nowrap text-left">
+                            {(() => {
+                              const names = getAssignedUsersForProject(proj.id).split(',').map(n => n.trim()).filter(Boolean);
+                              if (names.length === 0) {
+                                return <span className="text-gray-400 italic text-[12px]">Unassigned</span>;
+                              }
+                              const uname = names[0];
+                              const extraCount = names.length - 1;
+                              const avatarColors = ['bg-violet-600', 'bg-blue-500', 'bg-emerald-500', 'bg-amber-500', 'bg-rose-500', 'bg-indigo-500'];
+                              const initials = uname.split(' ').filter(Boolean).map(p => p[0]).slice(0, 2).join('').toUpperCase();
+                              const color = avatarColors[uname.charCodeAt(0) % avatarColors.length];
+                              return (
+                                <div className="flex items-center gap-2">
+                                  <span className={`w-7 h-7 rounded-full ${color} text-white text-[11px] font-black flex items-center justify-center shrink-0 leading-none`}>
+                                    {initials}
+                                  </span>
+                                  <span className="text-gray-900 text-[13px] font-bold truncate max-w-[140px]">{uname}</span>
+                                  {extraCount > 0 && (
+                                    <span className="text-[10px] font-black text-gray-400 bg-gray-100 rounded-full px-1.5 py-0.5 shrink-0">+{extraCount}</span>
+                                  )}
+                                </div>
+                              );
+                            })()}
                           </td>
                         )}
 
                         {/* Actions column (Only for Admin) */}
                         {isAdmin && (
-                          <td className="pl-0 pr-3 py-3.5 text-center">
+                          <td className="px-5 py-5 whitespace-nowrap text-center">
                             <button
                               onClick={() => setSelectedPlanProject(proj)}
-                              className="inline-flex items-center gap-1 bg-indigo-50 text-indigo-750 font-black uppercase text-[10px] px-3 py-1.5 rounded-xl border border-indigo-200 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition shadow-3xs cursor-pointer"
+                              className="inline-flex items-center gap-1 bg-indigo-50 text-indigo-750 font-black uppercase text-[11px] px-3.5 py-1.5 rounded-xl border border-indigo-200 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition shadow-3xs cursor-pointer"
                             >
                                Plan
                             </button>
@@ -3531,15 +3550,15 @@ export default function DSRDashboard({
               </div>
             ) : (
               <div className="overflow-x-auto overflow-y-auto" style={{ maxHeight: dynamicTableMaxHeight }}>
-                <table className="w-full text-left text-xs min-w-[700px] border-collapse">
-                  <thead className="bg-slate-50 text-slate-500 font-extrabold text-[10px] uppercase border-b border-gray-150 sticky top-0 z-10">
+                <table className="w-auto min-w-full text-left text-[15px] table-auto">
+                  <thead className="bg-slate-50 text-slate-500 font-bold text-[12px] uppercase tracking-normal border-b border-gray-150 sticky top-0 z-10">
                     <tr>
-                      <th className="px-4 py-3 w-14 text-center bg-slate-50">Sr No.</th>
-                      <th className="px-4 py-3 bg-slate-50">Project Name</th>
-                      <th className="px-4 py-3 bg-slate-50">Domain</th>
-                      <th className="px-4 py-3 text-center w-36 bg-slate-50">Total Keywords</th>
-                      <th className="px-4 py-3 bg-slate-50">User</th>
-                      <th className="px-4 py-3 w-48 bg-slate-50">Last Check</th>
+                      <th className="px-5 py-4 text-center whitespace-nowrap bg-slate-50">Sr No.</th>
+                      <th className="px-5 py-4 whitespace-nowrap bg-slate-50">Project Name</th>
+                      <th className="px-5 py-4 whitespace-nowrap bg-slate-50">Domain</th>
+                      <th className="px-5 py-4 text-center whitespace-nowrap bg-slate-50">Total Keywords</th>
+                      <th className="px-5 py-4 whitespace-nowrap bg-slate-50">User</th>
+                      <th className="px-5 py-4 whitespace-nowrap bg-slate-50">Last Check</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-150">
@@ -3557,10 +3576,10 @@ export default function DSRDashboard({
                             className="hover:bg-slate-50/60 transition-colors cursor-pointer select-none"
                           >
                             {/* Sr No. */}
-                            <td className="px-4 py-3.5 font-mono font-black text-gray-400 text-center">{proj.srNo}</td>
+                            <td className="px-5 py-5 whitespace-nowrap font-semibold text-gray-500 text-center">{proj.srNo}</td>
                             
                             {/* Project Name */}
-                            <td className="px-4 py-3.5 font-bold text-gray-950">
+                            <td className="px-5 py-5 whitespace-nowrap font-bold text-gray-950">
                               <div className="flex items-center gap-2">
                                 <ChevronDown 
                                   size={14} 
@@ -3568,38 +3587,58 @@ export default function DSRDashboard({
                                     isExpanded ? 'rotate-180 text-indigo-600 font-black' : ''
                                   }`} 
                                 />
-                                <span>{proj.name}</span>
+                                <span className="text-[15px]">{proj.name}</span>
                               </div>
                             </td>
 
                             {/* Domain Column */}
-                            <td className="px-4 py-3.5 font-mono text-gray-650 font-semibold select-all">
-                              {cleanDomain(proj.domain) || <span className="text-gray-300">—</span>}
+                            <td className="px-5 py-5 whitespace-nowrap text-indigo-700 font-semibold text-[14px] select-all">
+                              {cleanDomain(proj.domain) || <span className="text-gray-300 font-normal">—</span>}
                             </td>
 
                             {/* Total Keywords */}
-                            <td className="px-4 py-3.5 text-center font-mono font-bold text-gray-750">
-                              <span className="inline-flex items-center justify-center font-bold px-2.5 py-0.5 rounded-full text-[10px] h-5 min-w-5 bg-amber-50 text-amber-800 border border-amber-200">
+                            <td className="px-5 py-5 whitespace-nowrap text-center">
+                              <span className="inline-flex items-center justify-center gap-1.5 font-bold text-[12px] px-3 py-1.5 rounded-full border bg-indigo-50 text-indigo-700 border-indigo-150 whitespace-nowrap">
+                                <Tag className="w-3 h-3" />
                                 {Array.isArray(proj.keywords) ? proj.keywords.length : 0}
                               </span>
                             </td>
 
-                            {/* User column */}
-                            <td className="px-4 py-3.5" onClick={(e) => e.stopPropagation()}>
-                              <span className="text-gray-950 bg-slate-50 border border-slate-200/50 rounded px-2.5 py-1 text-[10px] select-all font-bold">
-                                {getAssignedUsersForProject(proj.id)}
-                              </span>
+                            {/* User column — avatar + name, matching Project Table's look */}
+                            <td className="px-5 py-5 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                              {(() => {
+                                const names = getAssignedUsersForProject(proj.id).split(',').map(n => n.trim()).filter(Boolean);
+                                if (names.length === 0) {
+                                  return <span className="text-gray-400 italic text-[12px]">Unassigned</span>;
+                                }
+                                const uname = names[0];
+                                const extraCount = names.length - 1;
+                                const avatarColors = ['bg-violet-600', 'bg-blue-500', 'bg-emerald-500', 'bg-amber-500', 'bg-rose-500', 'bg-indigo-500'];
+                                const initials = uname.split(' ').filter(Boolean).map(p => p[0]).slice(0, 2).join('').toUpperCase();
+                                const color = avatarColors[uname.charCodeAt(0) % avatarColors.length];
+                                return (
+                                  <div className="flex items-center gap-2">
+                                    <span className={`w-7 h-7 rounded-full ${color} text-white text-[11px] font-black flex items-center justify-center shrink-0 leading-none`}>
+                                      {initials}
+                                    </span>
+                                    <span className="text-gray-900 text-[13px] font-bold truncate max-w-[140px]">{uname}</span>
+                                    {extraCount > 0 && (
+                                      <span className="text-[10px] font-black text-gray-400 bg-gray-100 rounded-full px-1.5 py-0.5 shrink-0">+{extraCount}</span>
+                                    )}
+                                  </div>
+                                );
+                              })()}
                             </td>
 
                             {/* Last Check — the last time this project's ranking was
                                 actually checked against Google SERP (not the last work
                                 log date). */}
-                            <td className="px-4 py-3.5" onClick={(e) => e.stopPropagation()}>
+                            <td className="px-5 py-5 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                               <div className="flex items-center justify-between gap-3">
-                                <div className="text-gray-800 font-extrabold font-mono text-xs">
+                                <div className="text-gray-800 font-bold text-[14px]">
                                   {(() => {
                                     if (!proj.lastCheckedDate) {
-                                      return <span className="text-gray-400 font-bold font-mono">—</span>;
+                                      return <span className="text-gray-400 font-bold">—</span>;
                                     }
                                     
                                     try {
@@ -3624,7 +3663,7 @@ export default function DSRDashboard({
                                       await checkProjectRanking(proj);
                                     }}
                                     disabled={checkingProjectIds.includes(proj.id)}
-                                    className="inline-flex items-center gap-1 bg-amber-50 hover:bg-amber-100 disabled:opacity-50 disabled:cursor-not-allowed text-amber-800 font-black uppercase text-[10px] px-2 py-1 rounded border border-amber-200 transition shadow-3xs cursor-pointer"
+                                    className="inline-flex items-center gap-1 bg-amber-50 hover:bg-amber-100 disabled:opacity-50 disabled:cursor-not-allowed text-amber-800 font-black uppercase text-[11px] px-2.5 py-1.5 rounded border border-amber-200 transition shadow-3xs cursor-pointer whitespace-nowrap"
                                     title="Check all keywords ranking live on Google SERP"
                                   >
                                     {checkingProjectIds.includes(proj.id) ? (
