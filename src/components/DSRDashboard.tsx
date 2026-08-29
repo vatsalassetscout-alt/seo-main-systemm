@@ -504,6 +504,7 @@ export default function DSRDashboard({
       workSummary: string;
       entryId: string;
       workStatus: string;
+      createdAt: string;
     }[] = [];
     if (!Array.isArray(parsedEntries)) return list;
     parsedEntries.forEach((entry) => {
@@ -564,6 +565,7 @@ export default function DSRDashboard({
           workSummary: w.workSummary || '',
           entryId: entry.id,
           workStatus,
+          createdAt: entry.createdAt || '',
         });
       });
     });
@@ -955,16 +957,29 @@ export default function DSRDashboard({
       const timesNotWorked = pWorks.filter(w => w.workStatus === 'not_worked').length;
 
       let lastWorked = 'Never';
+      let lastWorkedAt = ''; // ISO createdAt timestamp (has time-of-day) when available, for the "2 hours ago / Aug 27, 2026 · 3:42 PM" display
       if (pWorks.length > 0) {
-        const sortedDates = [...pWorks]
-          .map(w => w.date)
-          .filter(Boolean)
-          .sort((a, b) => b.localeCompare(a));
-        if (sortedDates.length > 0) {
-          const parsed = new Date(sortedDates[0]);
-          lastWorked = isNaN(parsed.getTime())
-            ? sortedDates[0]
-            : parsed.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        const withTimestamp = pWorks.filter(w => w.createdAt);
+        if (withTimestamp.length > 0) {
+          const latest = [...withTimestamp].sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
+          const parsed = new Date(latest.createdAt);
+          if (!isNaN(parsed.getTime())) {
+            lastWorkedAt = latest.createdAt;
+            lastWorked = parsed.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+          }
+        }
+        if (!lastWorkedAt) {
+          // Legacy entries with no createdAt saved - fall back to the plain date (no time-of-day available)
+          const sortedDates = [...pWorks]
+            .map(w => w.date)
+            .filter(Boolean)
+            .sort((a, b) => b.localeCompare(a));
+          if (sortedDates.length > 0) {
+            const parsed = new Date(sortedDates[0]);
+            lastWorked = isNaN(parsed.getTime())
+              ? sortedDates[0]
+              : parsed.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+          }
         }
       }
 
@@ -1010,6 +1025,7 @@ export default function DSRDashboard({
         timesWorked,
         timesNotWorked,
         lastWorked,
+        lastWorkedAt,
         lastWorkedRaw,
         priority,
         frequency,
@@ -2135,8 +2151,8 @@ export default function DSRDashboard({
                     <th className="px-4 py-3 bg-slate-50">Project Name</th>
                     <th className="px-4 py-3 bg-slate-50">Domain</th>
                     <th className="px-4 py-3 w-28 bg-slate-50">Priority</th>
-                    <th className="px-4 py-3 w-32 text-center bg-slate-50">Times Worked / Not Worked</th>
-                    <th className="px-4 py-3 w-36 bg-slate-50">Last Worked</th>
+                    <th className="px-4 py-3 w-40 bg-slate-50">Worked / Pending</th>
+                    <th className="px-4 py-3 w-44 bg-slate-50">Last Worked</th>
                     <th className="px-4 py-3 bg-slate-50">User</th>
                     {isAdmin && <th className="px-4 py-3 w-44 bg-slate-50">Admin Actions</th>}
                   </tr>
@@ -2200,20 +2216,77 @@ export default function DSRDashboard({
                             </span>
                           )}
                         </td>
-                        <td className="px-4 py-3 text-center font-mono font-bold text-gray-700">
-                          <span className="text-emerald-700">{item.timesWorked}</span>
-                          <span className="text-gray-400"> / </span>
-                          <span className="text-red-600">{item.timesNotWorked}</span>
+                        <td className="px-4 py-3">
+                          {(() => {
+                            const total = item.timesWorked + item.timesNotWorked;
+                            const pct = total > 0 ? Math.round((item.timesWorked / total) * 100) : 0;
+                            const barColor = pct === 0 ? 'bg-gray-200' : pct === 100 ? 'bg-emerald-500' : 'bg-amber-500';
+                            return (
+                              <div className="flex flex-col gap-1.5 min-w-[110px]">
+                                <span className="font-mono font-bold text-[11px]">
+                                  <span className="text-emerald-700">{item.timesWorked}</span>
+                                  <span className="text-gray-400"> / </span>
+                                  <span className="text-red-500">{item.timesNotWorked}</span>
+                                </span>
+                                <div className="flex items-center gap-2">
+                                  <div className="w-16 h-1.5 bg-gray-150 rounded-full overflow-hidden shrink-0">
+                                    <div className={`h-full rounded-full ${barColor}`} style={{ width: `${pct}%` }} />
+                                  </div>
+                                  <span className="text-[10px] font-bold text-gray-400">{pct}%</span>
+                                </div>
+                              </div>
+                            );
+                          })()}
                         </td>
                         <td className="px-4 py-3">
-                          <span className="text-[11px] font-semibold text-gray-600">
-                            {item.lastWorked}
-                          </span>
+                          {(() => {
+                            if (item.lastWorked === 'Never' || !item.lastWorkedAt) {
+                              return <span className="text-[11px] font-semibold text-gray-400 italic">Never</span>;
+                            }
+                            const d = new Date(item.lastWorkedAt);
+                            const diffHrs = (Date.now() - d.getTime()) / (1000 * 60 * 60);
+                            const diffDays = Math.floor(diffHrs / 24);
+                            let relLabel: string;
+                            if (diffHrs < 1) relLabel = 'Just now';
+                            else if (diffHrs < 24) {
+                              const h = Math.floor(diffHrs);
+                              relLabel = `${h} ${h === 1 ? 'hour' : 'hours'} ago`;
+                            } else if (diffDays === 1) relLabel = 'Yesterday';
+                            else relLabel = `${diffDays} days ago`;
+                            const dateLabel = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                            const timeLabel = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+                            return (
+                              <div className="flex flex-col gap-0.5">
+                                <span className="text-[11px] font-black text-gray-800">{relLabel}</span>
+                                <span className="text-[10px] font-semibold text-gray-400">{dateLabel} &middot; {timeLabel}</span>
+                              </div>
+                            );
+                          })()}
                         </td>
                         <td className="px-4 py-3">
-                          <span className="text-gray-950 bg-slate-50 border border-slate-200/50 rounded px-2.5 py-1 text-[10px] select-all font-bold">
-                            {getAssignedUsersForProject(item.id)}
-                          </span>
+                          {(() => {
+                            const names = getAssignedUsersForProject(item.id).split(',').map(n => n.trim()).filter(Boolean);
+                            if (names.length === 0) {
+                              return <span className="text-gray-400 italic text-[11px]">Unassigned</span>;
+                            }
+                            const avatarColors = ['bg-violet-600', 'bg-blue-500', 'bg-emerald-500', 'bg-amber-500', 'bg-rose-500', 'bg-indigo-500'];
+                            return (
+                              <div className="flex flex-wrap items-center gap-3">
+                                {names.map((uname, idx) => {
+                                  const initials = uname.split(' ').filter(Boolean).map(p => p[0]).slice(0, 2).join('').toUpperCase();
+                                  const color = avatarColors[uname.charCodeAt(0) % avatarColors.length];
+                                  return (
+                                    <div key={idx} className="flex items-center gap-1.5">
+                                      <span className={`w-6 h-6 rounded-full ${color} text-white text-[9px] font-black flex items-center justify-center shrink-0`}>
+                                        {initials}
+                                      </span>
+                                      <span className="text-gray-900 text-[11px] font-bold whitespace-nowrap">{uname}</span>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            );
+                          })()}
                         </td>
                         {isAdmin && (
                           <td className="px-4 py-3">
