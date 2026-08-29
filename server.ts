@@ -736,6 +736,57 @@ app.get("/api/task-lineup", async (req, res) => {
   }
 });
 
+// GET a whole month's per-day submission status in one call, used to paint
+// the History tab's "Daily Assignment Status" calendar as a heatmap without
+// firing one request per visible day. Same scoping rules as GET
+// /api/task-lineup: admins see every user's rows pooled per day, a
+// non-admin only ever sees their own.
+app.get("/api/task-lineup/month-summary", async (req, res) => {
+  try {
+    const year = parseInt(String(req.query.year), 10);
+    const month = parseInt(String(req.query.month), 10); // 1-12
+    if (!year || !month || month < 1 || month > 12) {
+      return res.status(400).json({ error: "year and month (1-12) are required" });
+    }
+    const clientUserEmail = req.headers["x-user-email"];
+    const clientUserRole = req.headers["x-user-role"];
+
+    const dateFrom = `${year}-${String(month).padStart(2, "0")}-01`;
+    const lastDay = new Date(year, month, 0).getDate();
+    const dateTo = `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+
+    let list = await getTaskAssignmentsDb({ dateFrom, dateTo });
+
+    const users = await getUsersDb();
+    const canonicalMap = buildCanonicalEmailMap(users);
+    list = dedupeAssignmentsByCanonicalIdentity(list, canonicalMap);
+
+    const adminEmails = new Set(
+      users.filter((u: any) => (u.role || "user") === "admin").map((u: any) => String(u.email || "").trim().toLowerCase())
+    );
+    list = list.filter((a: any) => !adminEmails.has(a.userEmail));
+
+    if (clientUserRole !== "admin" && typeof clientUserEmail === "string" && clientUserEmail) {
+      const emailLower = resolveCanonicalEmail(clientUserEmail, canonicalMap);
+      list = list.filter((a: any) => a.userEmail === emailLower);
+    }
+
+    const days: Record<string, { total: number; pending: number }> = {};
+    for (const a of list) {
+      const d = a.date;
+      if (!d) continue;
+      if (!days[d]) days[d] = { total: 0, pending: 0 };
+      days[d].total += 1;
+      if (a.status !== "Done") days[d].pending += 1;
+    }
+
+    return res.json({ year, month, days });
+  } catch (err: any) {
+    console.error("GET /api/task-lineup/month-summary error:", err);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
 // POST generate (or, with force:true, regenerate) the lineup for a date.
 // Admin-only — this is the "Start Cycle" button in the Task Lineup tab.
 app.post("/api/task-lineup/generate", requireAdmin, async (req, res) => {
