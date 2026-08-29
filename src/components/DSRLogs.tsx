@@ -883,12 +883,12 @@ export default function DSRLogs({
                       : 'border-slate-150 hover:border-slate-200/90 shadow-2xs hover:shadow-3xs'
                   }`}
                 >
-                  {/* Card Main Bar — single-line flex row (no wrapping): Date → stat pills
-                      (Worked / Not Worked / Total Project) → User → submission breakdown
-                      (flex-1, absorbs all leftover space) → Total Backlinks → Status +
-                      expand toggle. Because the breakdown block grows to fill the row,
-                      everything after it (backlinks, status, chevron) is naturally pinned
-                      to the right edge. */}
+                  {/* Card Main Bar — single-line flex row (no wrapping): Date → User
+                      (left cluster) → stat pills (Worked / Not Worked / Total Project) →
+                      submission breakdown merged with Total Backlinks (flex-1, absorbs
+                      all leftover space) → Status + expand toggle. Because the merged
+                      breakdown/backlinks block grows to fill the row, Status and the
+                      chevron are naturally pinned to the right edge. */}
                   <div
                     onClick={() => toggleExpand(item.uniqueId)}
                     className="px-4 py-3.5 sm:px-5 sm:py-4 hover:bg-slate-50/45 cursor-pointer select-none transition-colors overflow-x-auto"
@@ -916,6 +916,19 @@ export default function DSRLogs({
 
                       <span className="text-slate-300 select-none shrink-0">|</span>
 
+                      {/* User — sits right beside the date (left cluster), bumped up in
+                          size/weight and given its own soft pill so it reads as a clear
+                          identity marker in the row, not a throwaway label. */}
+                      <div className="flex items-center gap-2 shrink-0 pl-2.5 pr-3 py-1.5 rounded-xl bg-indigo-50/40 border border-indigo-100">
+                        <User size={15} className="text-indigo-500 shrink-0" />
+                        <span className="text-[12px] text-slate-500 font-bold uppercase tracking-wide whitespace-nowrap">User</span>
+                        <strong className="text-[15px] text-indigo-700 font-black whitespace-nowrap truncate max-w-[180px]">
+                          {activeUserDisplayName}
+                        </strong>
+                      </div>
+
+                      <span className="text-slate-300 select-none shrink-0">|</span>
+
                       {/* Worked / Not Worked / Total Project — boxed stat pills, each with
                           its own colored border (green/red/blue). */}
                       <div className="flex items-center gap-2 shrink-0">
@@ -935,21 +948,10 @@ export default function DSRLogs({
 
                       <span className="text-slate-300 select-none shrink-0">|</span>
 
-                      {/* User — bumped up in size/weight and given its own soft pill so it
-                          reads as a clear identity marker in the row, not a throwaway label. */}
-                      <div className="flex items-center gap-2 shrink-0 pl-2.5 pr-3 py-1.5 rounded-xl bg-indigo-50/40 border border-indigo-100">
-                        <User size={15} className="text-indigo-500 shrink-0" />
-                        <span className="text-[12px] text-slate-500 font-bold uppercase tracking-wide whitespace-nowrap">User</span>
-                        <strong className="text-[15px] text-indigo-700 font-black whitespace-nowrap truncate max-w-[180px]">
-                          {activeUserDisplayName}
-                        </strong>
-                      </div>
-
-                      <span className="text-slate-300 select-none shrink-0">|</span>
-
-                      {/* Submission distribution — plain flowing text, fills the leftover
-                          width of the row and pushes backlinks/status to the right edge.
-                          Shows a dash when a day has no submission counts. */}
+                      {/* Submission distribution + Total Backlinks — merged into a single
+                          flowing group (backlinks attached right after the breakdown, no
+                          divider between them) that fills the leftover row width and
+                          pushes Status to the right edge. Shows a dash when empty. */}
                       {(() => {
                         const countEntries: { label: string; value: number }[] = [
                           { label: 'List', value: totalListings },
@@ -966,8 +968,13 @@ export default function DSRLogs({
                           }))
                         ].filter((entry) => entry.value > 0);
 
+                        const grandTotal =
+                          totalListings + totalBlogs + totalForums + totalPdfs + totalImages +
+                          totalVideos + totalProfiles + totalLinks +
+                          (customSubmissionTypes || []).reduce((sum, type) => sum + item.works.reduce((s: number, w: any) => s + (Number(w.customValues?.[type.id]) || 0), 0), 0);
+
                         return (
-                          <div className="flex-1 min-w-[120px] flex flex-wrap items-center gap-x-2 gap-y-1 text-[12.5px] text-slate-600 font-medium">
+                          <div className="flex-1 min-w-[160px] flex flex-wrap items-center gap-x-2 gap-y-1 text-[12.5px] text-slate-600 font-medium">
                             {countEntries.length > 0 ? (
                               countEntries.map((entry, idx) => (
                                 <React.Fragment key={entry.label}>
@@ -980,35 +987,21 @@ export default function DSRLogs({
                             ) : (
                               <span className="text-slate-350">—</span>
                             )}
+
+                            {grandTotal > 0 && (
+                              <>
+                                <span className="text-slate-300">•</span>
+                                <span className="flex items-center gap-1.5 whitespace-nowrap">
+                                  <Layers size={13} className="text-indigo-400 shrink-0" />
+                                  <span className="font-bold text-indigo-700">{grandTotal} Total Backlinks</span>
+                                </span>
+                              </>
+                            )}
                           </div>
                         );
                       })()}
 
                       <span className="text-slate-300 select-none shrink-0">|</span>
-
-                      {/* Total Backlinks — sits just left of status; shows a dash when
-                          there's nothing to add up. */}
-                      {(() => {
-                        const grandTotal =
-                          totalListings + totalBlogs + totalForums + totalPdfs + totalImages +
-                          totalVideos + totalProfiles + totalLinks +
-                          (customSubmissionTypes || []).reduce((sum, type) => sum + item.works.reduce((s: number, w: any) => s + (Number(w.customValues?.[type.id]) || 0), 0), 0);
-
-                        return (
-                          <div className="flex items-center gap-1.5 shrink-0">
-                            {grandTotal > 0 ? (
-                              <>
-                                <Layers size={13} className="text-indigo-400 shrink-0" />
-                                <span className="text-[12.5px] font-bold text-indigo-700 whitespace-nowrap truncate">
-                                  {grandTotal} Total Backlinks
-                                </span>
-                              </>
-                            ) : (
-                              <span className="text-slate-350">—</span>
-                            )}
-                          </div>
-                        );
-                      })()}
 
                       {/* Status + expand toggle — stuck to the right edge of the row since
                           the submission-breakdown block above absorbs all leftover space. */}
