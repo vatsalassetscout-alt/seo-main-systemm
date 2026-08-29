@@ -1090,8 +1090,12 @@ export default function DSRDashboard({
         const rB = b.bestRanking === null || b.bestRanking === undefined ? Infinity : b.bestRanking;
         cmp = rA - rB;
       } else if (projectTableSortBy === 'lastWorked') {
-        const tA = a.lastWorkedAt || a.lastWorkedRaw || '';
-        const tB = b.lastWorkedAt || b.lastWorkedRaw || '';
+        // "Never" worked counts as further back than any real date (effectively
+        // infinite days-ago), so it must sort as the earliest/smallest possible
+        // value - normalize it to '' rather than the literal text "Never" (which
+        // would sort after real ISO date strings lexicographically).
+        const tA = a.lastWorkedAt || (a.lastWorkedRaw && a.lastWorkedRaw !== 'Never' ? a.lastWorkedRaw : '');
+        const tB = b.lastWorkedAt || (b.lastWorkedRaw && b.lastWorkedRaw !== 'Never' ? b.lastWorkedRaw : '');
         cmp = tA.localeCompare(tB);
       }
       // "High to Low" means: Priority X1 first, Best Ranking #1 (lowest number) first,
@@ -2219,7 +2223,7 @@ export default function DSRDashboard({
             </div>
 
             <div className="overflow-x-auto overflow-y-auto" style={{ maxHeight: dynamicTableMaxHeight }}>
-              <table className="w-full text-left text-xs min-w-[700px]">
+              <table className="w-full text-left text-[13px] min-w-[700px]">
                 <thead className="bg-slate-50 text-slate-500 font-extrabold text-[10px] uppercase border-b border-gray-150 sticky top-0 z-10">
                   <tr>
                     <th className="px-4 py-3.5 w-14 bg-slate-50">Sr No.</th>
@@ -2229,7 +2233,7 @@ export default function DSRDashboard({
                     <th className="px-4 py-3.5 w-28 text-center bg-slate-50">Best Ranking</th>
                     <th className="px-4 py-3.5 w-32 text-center bg-slate-50">Times Worked / Not Worked</th>
                     <th className="px-4 py-3.5 w-44 bg-slate-50">Last Worked</th>
-                    <th className="px-4 py-3.5 bg-slate-50">User</th>
+                    {isAdmin && <th className="px-4 py-3.5 bg-slate-50">User</th>}
                     {isAdmin && <th className="px-4 py-3.5 w-44 bg-slate-50">Admin Actions</th>}
                     {isAdmin && <th className="px-4 py-3.5 w-24 text-center bg-slate-50">Action</th>}
                   </tr>
@@ -2332,38 +2336,40 @@ export default function DSRDashboard({
                             const timeLabel = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
                             return (
                               <div className="flex flex-col gap-1">
-                                <span className="text-[11px] font-black text-gray-800 leading-none">{relLabel}</span>
-                                <span className="text-[10px] font-semibold text-gray-600 leading-none">{dateLabel} &middot; {timeLabel}</span>
+                                <span className="text-[12px] font-black text-gray-800 leading-none">{relLabel}</span>
+                                <span className="text-[11px] font-semibold text-gray-600 leading-none">{dateLabel} &middot; {timeLabel}</span>
                               </div>
                             );
                           })()}
                         </td>
-                        <td className="px-4 py-3.5">
-                          {(() => {
-                            const names = getAssignedUsersForProject(item.id).split(',').map(n => n.trim()).filter(Boolean);
-                            if (names.length === 0) {
-                              return <span className="text-gray-400 italic text-[11px]">Unassigned</span>;
-                            }
-                            // Show just the primary assigned user in a fixed, consistent avatar+name
-                            // shape - looping over every assigned user made rows wrap unevenly.
-                            const uname = names[0];
-                            const extraCount = names.length - 1;
-                            const avatarColors = ['bg-violet-600', 'bg-blue-500', 'bg-emerald-500', 'bg-amber-500', 'bg-rose-500', 'bg-indigo-500'];
-                            const initials = uname.split(' ').filter(Boolean).map(p => p[0]).slice(0, 2).join('').toUpperCase();
-                            const color = avatarColors[uname.charCodeAt(0) % avatarColors.length];
-                            return (
-                              <div className="flex items-center gap-2">
-                                <span className={`w-7 h-7 rounded-full ${color} text-white text-[10px] font-black flex items-center justify-center shrink-0 leading-none`}>
-                                  {initials}
-                                </span>
-                                <span className="text-gray-900 text-[12px] font-bold truncate max-w-[140px]">{uname}</span>
-                                {extraCount > 0 && (
-                                  <span className="text-[9px] font-black text-gray-400 bg-gray-100 rounded-full px-1.5 py-0.5 shrink-0">+{extraCount}</span>
-                                )}
-                              </div>
-                            );
-                          })()}
-                        </td>
+                        {isAdmin && (
+                          <td className="px-4 py-3.5">
+                            {(() => {
+                              const names = getAssignedUsersForProject(item.id).split(',').map(n => n.trim()).filter(Boolean);
+                              if (names.length === 0) {
+                                return <span className="text-gray-400 italic text-[11px]">Unassigned</span>;
+                              }
+                              // Show just the primary assigned user in a fixed, consistent avatar+name
+                              // shape - looping over every assigned user made rows wrap unevenly.
+                              const uname = names[0];
+                              const extraCount = names.length - 1;
+                              const avatarColors = ['bg-violet-600', 'bg-blue-500', 'bg-emerald-500', 'bg-amber-500', 'bg-rose-500', 'bg-indigo-500'];
+                              const initials = uname.split(' ').filter(Boolean).map(p => p[0]).slice(0, 2).join('').toUpperCase();
+                              const color = avatarColors[uname.charCodeAt(0) % avatarColors.length];
+                              return (
+                                <div className="flex items-center gap-2">
+                                  <span className={`w-7 h-7 rounded-full ${color} text-white text-[10px] font-black flex items-center justify-center shrink-0 leading-none`}>
+                                    {initials}
+                                  </span>
+                                  <span className="text-gray-900 text-[12px] font-bold truncate max-w-[140px]">{uname}</span>
+                                  {extraCount > 0 && (
+                                    <span className="text-[9px] font-black text-gray-400 bg-gray-100 rounded-full px-1.5 py-0.5 shrink-0">+{extraCount}</span>
+                                  )}
+                                </div>
+                              );
+                            })()}
+                          </td>
+                        )}
                         {isAdmin && (
                           <td className="px-4 py-3.5">
                             <div className="flex items-center gap-1.5">
