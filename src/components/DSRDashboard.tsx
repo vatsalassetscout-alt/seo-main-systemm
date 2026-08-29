@@ -157,8 +157,7 @@ export default function DSRDashboard({
   const [heatmapYear, setHeatmapYear] = useState<number>(() => {
     return new Date().getFullYear();
   });
-  const [selectedCalendarDay, setSelectedCalendarDay] = useState<string | null>(() => {
-    const today = new Date();
+  const [selectedCalendarDay, setSelectedCalendarDay] = useState<string | null>(() => {    const today = new Date();
     const y = today.getFullYear();
     const m = String(today.getMonth() + 1).padStart(2, '0');
     const d = String(today.getDate()).padStart(2, '0');
@@ -939,6 +938,12 @@ export default function DSRDashboard({
   }, [projects]);
 
   // Tab 1: Project Table data computing
+  // Project Table: optional sort control shown next to "Total Projects" - lets the
+  // user re-order the table by Priority / Best Ranking / Last Worked instead of the
+  // table's normal default ordering.
+  const [projectTableSortBy, setProjectTableSortBy] = useState<'default' | 'priority' | 'bestRanking' | 'lastWorked'>('default');
+  const [projectTableSortDir, setProjectTableSortDir] = useState<'asc' | 'desc'>('desc');
+
   const projectTableData = useMemo(() => {
     const rawList = filteredProjectsForMetrics.map((p) => {
       const pWorks = filteredWorks.filter(w => w.projectId === p.id);
@@ -1068,6 +1073,32 @@ export default function DSRDashboard({
       srNo: idx + 1
     }));
   }, [filteredProjectsForMetrics, filteredWorks, enrichedWorks, pendingChanges, rankings]);
+
+  // Applies the optional Project Table sort control on top of the table's default
+  // ordering. Left alone (projectTableSortBy === 'default') this is a no-op.
+  const sortedProjectTableData = useMemo(() => {
+    if (projectTableSortBy === 'default') return projectTableData;
+
+    const weights: Record<string, number> = { X1: 1, X2: 2, X3: 3, X4: 4, X5: 5 };
+    const list = [...projectTableData];
+    list.sort((a, b) => {
+      let cmp = 0;
+      if (projectTableSortBy === 'priority') {
+        cmp = (weights[a.priority || ''] || 999) - (weights[b.priority || ''] || 999);
+      } else if (projectTableSortBy === 'bestRanking') {
+        const rA = a.bestRanking === null || a.bestRanking === undefined ? Infinity : a.bestRanking;
+        const rB = b.bestRanking === null || b.bestRanking === undefined ? Infinity : b.bestRanking;
+        cmp = rA - rB;
+      } else if (projectTableSortBy === 'lastWorked') {
+        const tA = a.lastWorkedAt || a.lastWorkedRaw || '';
+        const tB = b.lastWorkedAt || b.lastWorkedRaw || '';
+        cmp = tA.localeCompare(tB);
+      }
+      return projectTableSortDir === 'asc' ? cmp : -cmp;
+    });
+
+    return list.map((item, idx) => ({ ...item, srNo: idx + 1 }));
+  }, [projectTableData, projectTableSortBy, projectTableSortDir]);
 
   // Computation of days in current selection
   const timeSpanDays = useMemo(() => {
@@ -2152,6 +2183,31 @@ export default function DSRDashboard({
                     {isSavingChanges ? "Applying..." : `Apply Changes (${Object.keys(pendingChanges).length})`}
                   </button>
                 )}
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[9px] font-black text-gray-400 uppercase tracking-wider">Sort by:</span>
+                  <select
+                    value={projectTableSortBy}
+                    onChange={(e) => setProjectTableSortBy(e.target.value as any)}
+                    className="px-2 py-1.5 text-[10px] font-bold bg-white border border-gray-200 rounded-lg text-gray-800 cursor-pointer focus:outline-none"
+                    aria-label="Sort Project Table by"
+                  >
+                    <option value="default">Default</option>
+                    <option value="priority">Priority</option>
+                    <option value="bestRanking">Best Ranking</option>
+                    <option value="lastWorked">Last Worked</option>
+                  </select>
+                  {projectTableSortBy !== 'default' && (
+                    <select
+                      value={projectTableSortDir}
+                      onChange={(e) => setProjectTableSortDir(e.target.value as any)}
+                      className="px-2 py-1.5 text-[10px] font-bold bg-white border border-gray-200 rounded-lg text-gray-800 cursor-pointer focus:outline-none"
+                      aria-label="Sort direction"
+                    >
+                      <option value="desc">High to Low</option>
+                      <option value="asc">Low to High</option>
+                    </select>
+                  )}
+                </div>
                 <div className="text-[10px] font-extrabold bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-xl border border-indigo-150 font-mono">
                   Total Projects: {projectTableData.length}
                 </div>
@@ -2175,16 +2231,16 @@ export default function DSRDashboard({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-150">
-                  {projectTableData.map((item) => {
+                  {sortedProjectTableData.map((item) => {
                     return (
                       <tr 
                         key={item.id}
                         className="hover:bg-slate-50/60 transition-colors"
                       >
-                        <td className="px-4 py-3.5 font-mono font-bold text-gray-400">{item.srNo}</td>
+                        <td className="px-4 py-3.5 font-mono font-extrabold text-indigo-600">{item.srNo}</td>
                         <td className="px-4 py-3.5">
                           <div className="flex items-center gap-2">
-                            <span className="font-bold text-gray-900">{item.name}</span>
+                            <span className="text-[13px] font-black text-gray-900">{item.name}</span>
                           </div>
                         </td>
                         <td className="px-4 py-3.5 font-mono text-gray-600">
@@ -2193,7 +2249,7 @@ export default function DSRDashboard({
                               href={domainHref(item.domain)} 
                               target="_blank" 
                               rel="noreferrer" 
-                              className="text-indigo-600 hover:underline font-bold"
+                              className="text-[12px] text-indigo-600 hover:underline font-bold"
                             >
                               {cleanDomain(item.domain)}
                             </a>
@@ -2273,7 +2329,7 @@ export default function DSRDashboard({
                             return (
                               <div className="flex flex-col gap-1">
                                 <span className="text-[11px] font-black text-gray-800 leading-none">{relLabel}</span>
-                                <span className="text-[10px] font-semibold text-gray-400 leading-none">{dateLabel} &middot; {timeLabel}</span>
+                                <span className="text-[10px] font-semibold text-gray-600 leading-none">{dateLabel} &middot; {timeLabel}</span>
                               </div>
                             );
                           })()}
