@@ -95,6 +95,36 @@ export default function DSRLogs({
   // Admin-only status filter (single-select: All / Pending / Approved)
   const [statusFilter, setStatusFilter] = useState<'all' | 'Pending' | 'Approved' | 'Remark'>('all');
 
+  // Pill-style dropdown open/close state for Project, Date & Status filters
+  // (mirrors the compact "Workspace Filters" pill treatment used on Overview Panel)
+  const [isProjectDropdownOpen, setIsProjectDropdownOpen] = useState(false);
+  const [isDateDropdownOpen, setIsDateDropdownOpen] = useState(false);
+  const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
+  const [projectSearchTerm, setProjectSearchTerm] = useState('');
+
+  const closeAllFilterDropdowns = () => {
+    setIsProjectDropdownOpen(false);
+    setIsDateDropdownOpen(false);
+    setIsStatusDropdownOpen(false);
+    setIsUserDropdownOpen(false);
+  };
+
+  const DATE_FILTER_LABELS: Record<string, string> = {
+    all: 'All Dates',
+    today: 'Today',
+    yesterday_today: 'Yesterday & Today',
+    yesterday: 'Yesterday',
+    last_7_days: 'Last 7 Days',
+    custom: 'Custom Range'
+  };
+
+  const STATUS_FILTER_LABELS: Record<string, string> = {
+    all: 'All Status',
+    Pending: 'Pending Only',
+    Approved: 'Approved Only',
+    Remark: 'Remark Only'
+  };
+
   // Sytem activity audit log state triggers
   const [activeLogTab, setActiveLogTab] = useState<'submissions' | 'activities'>('submissions');
   const [activitiesList, setActivitiesList] = useState<any[]>([]);
@@ -472,107 +502,217 @@ export default function DSRLogs({
 
   return (
     <div className="space-y-6">
-      {/* Search & Parameters panel */}
-      <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-xs space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h3 className="text-lg font-bold text-gray-900">Historical Daily Logs</h3>
-          </div>
+      {/* Search & Parameters panel — compact pill-style filters, matching the
+          Overview Panel's "Workspace Filters" treatment: a growing search bar
+          plus inline pill dropdowns, all on one row instead of a boxy grid. */}
+      <div className="bg-white p-4 sm:p-5 rounded-2xl border border-gray-100 shadow-xs space-y-3">
+        <div className="flex items-center justify-between gap-4">
+          <h3 className="text-[15px] font-black text-gray-900">Historical Daily Logs</h3>
           <button
             onClick={handleResetFilters}
-            className="flex items-center gap-1.5 text-[13px] font-bold text-indigo-600 hover:text-indigo-800 focus:outline-none"
+            className="flex items-center gap-1.5 text-[12.5px] font-bold text-indigo-600 hover:text-indigo-800 focus:outline-none"
           >
             Reset Filters
           </button>
         </div>
 
-        <div className={`grid grid-cols-1 sm:grid-cols-2 ${isAdmin ? 'lg:grid-cols-5' : 'lg:grid-cols-3'} gap-3.5`}>
-          {/* Text search */}
-          <div className="relative">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={15} />
+        <div className="flex flex-wrap items-center gap-2.5">
+          {/* Dynamic search bar — grows to fill remaining width */}
+          <div className="relative flex-1 min-w-[220px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
             <input
               type="text"
               placeholder="Search everything (user id, project, blog)..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-[13px] font-medium text-gray-950 focus:outline-none focus:ring-1 focus:ring-indigo-550 transition h-[44px]"
+              className="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-250 rounded-xl text-[13px] font-semibold placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 hover:bg-slate-100/50 transition text-gray-950"
             />
+            {searchTerm && (
+              <button
+                type="button"
+                onClick={() => setSearchTerm('')}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-[10px] font-black text-indigo-600 hover:text-indigo-850"
+              >
+                Clear
+              </button>
+            )}
           </div>
 
-          {/* Project Allocation selection */}
-          <div className="flex items-center gap-2 h-[44px]">
-            <Tag size={13} className="text-gray-400 shrink-0" />
-            <select
-              value={selectedProjectId}
-              onChange={(e) => setSelectedProjectId(e.target.value)}
-              className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-[13px] font-medium text-gray-950 focus:outline-none transition h-[44px]"
+          {/* Date pill */}
+          <div className="relative">
+            <div
+              className={`relative flex items-center gap-1.5 pl-4 pr-3 py-2.5 rounded-xl border text-[13px] font-semibold whitespace-nowrap transition cursor-pointer ${
+                dateFilterType !== 'all'
+                  ? 'border-indigo-200 bg-indigo-50 text-indigo-700'
+                  : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
+              }`}
             >
-              <option value="all">Every Project (All Allocations)</option>
-              {projects.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
+              <Calendar size={14} className={dateFilterType !== 'all' ? 'text-indigo-500' : 'text-gray-400'} />
+              <span>Date:</span>
+              <span className="max-w-[9rem] truncate">{DATE_FILTER_LABELS[dateFilterType]}</span>
+              <ChevronDown size={14} className={dateFilterType !== 'all' ? 'text-indigo-400' : 'text-gray-400'} />
+              <select
+                value={dateFilterType}
+                onChange={(e) => setDateFilterType(e.target.value as any)}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                aria-label="Date Filter"
+              >
+                <option value="all">All Dates</option>
+                <option value="today">Today Only</option>
+                <option value="yesterday_today">Yesterday & Today Combined</option>
+                <option value="yesterday">Yesterday Only</option>
+                <option value="last_7_days">Last 7 Days</option>
+                <option value="custom">Custom Range...</option>
+              </select>
+            </div>
+
+            {dateFilterType === 'custom' && (
+              <div className="absolute left-0 mt-1.5 z-50 flex flex-col gap-1 bg-white p-2 border border-indigo-100 rounded-xl shadow-lg w-48" onClick={(e) => e.stopPropagation()}>
+                <label className="block text-[9px] font-bold text-indigo-900 uppercase tracking-wider px-0.5">Start Date</label>
+                <input
+                  type="date"
+                  value={customStartDate}
+                  onChange={(e) => setCustomStartDate(e.target.value)}
+                  className="w-full px-1.5 py-1 bg-gray-50 border border-gray-200 rounded text-[10px] font-bold text-gray-900 cursor-pointer"
+                  title="Start Date"
+                />
+                <label className="block text-[9px] font-bold text-indigo-900 uppercase tracking-wider px-0.5 mt-0.5">End Date</label>
+                <input
+                  type="date"
+                  value={customEndDate}
+                  onChange={(e) => setCustomEndDate(e.target.value)}
+                  className="w-full px-1.5 py-1 bg-gray-50 border border-gray-200 rounded text-[10px] font-bold text-gray-900 cursor-pointer"
+                  title="End Date"
+                />
+              </div>
+            )}
           </div>
 
-          {/* Date Selector */}
-          <div className="flex items-center gap-2 h-[44px]">
-            <Calendar size={13} className="text-gray-400 shrink-0" />
-            <select
-              value={dateFilterType}
-              onChange={(e) => setDateFilterType(e.target.value as any)}
-              className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-[13px] font-medium text-gray-950 focus:outline-none transition cursor-pointer h-[44px]"
+          {/* Project pill — single-select, dropdown list with local search */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => {
+                setIsProjectDropdownOpen(!isProjectDropdownOpen);
+                setIsDateDropdownOpen(false);
+                setIsUserDropdownOpen(false);
+                setIsStatusDropdownOpen(false);
+              }}
+              className={`flex items-center gap-1.5 pl-4 pr-3 py-2.5 rounded-xl border text-[13px] font-semibold whitespace-nowrap transition cursor-pointer ${
+                selectedProjectId !== 'all'
+                  ? 'border-indigo-200 bg-indigo-50 text-indigo-700'
+                  : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
+              }`}
             >
-              <option value="all">All Dates</option>
-              <option value="today">Today Only</option>
-              <option value="yesterday_today">Yesterday & Today Combined</option>
-              <option value="yesterday">Yesterday Only</option>
-              <option value="last_7_days">Last 7 Days</option>
-              <option value="custom">Custom Range...</option>
-            </select>
+              <Tag size={14} className={selectedProjectId !== 'all' ? 'text-indigo-500' : 'text-gray-400'} />
+              <span>Project:</span>
+              <span className="max-w-[9rem] truncate">
+                {selectedProjectId === 'all' ? 'All' : (projects.find(p => p.id === selectedProjectId)?.name || 'Selected')}
+              </span>
+              <ChevronDown size={14} className={`transition-transform shrink-0 ${selectedProjectId !== 'all' ? 'text-indigo-400' : 'text-gray-400'} ${isProjectDropdownOpen ? 'rotate-180' : ''}`} />
+            </button>
+
+            {isProjectDropdownOpen && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setIsProjectDropdownOpen(false)} />
+                <div className="absolute left-0 mt-1.5 w-64 bg-white border border-gray-200 rounded-xl shadow-lg z-50 p-2.5 space-y-2 max-h-64 overflow-y-auto">
+                  <div className="flex items-center justify-between text-[9px] pb-1 border-b border-gray-100 font-bold text-gray-400">
+                    <span>PROJECT</span>
+                    {selectedProjectId !== 'all' && (
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); setSelectedProjectId('all'); }}
+                        className="text-indigo-600 hover:text-indigo-850"
+                      >
+                        Clear
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="relative" onClick={(e) => e.stopPropagation()}>
+                    <input
+                      type="text"
+                      value={projectSearchTerm}
+                      onChange={(e) => setProjectSearchTerm(e.target.value)}
+                      placeholder="Search project..."
+                      className="w-full px-2 py-1 bg-gray-50 border border-gray-200 rounded text-[10px] font-bold focus:outline-none focus:ring-1 focus:ring-indigo-550 text-gray-950 placeholder-gray-400"
+                    />
+                  </div>
+
+                  <div className="space-y-0.5 max-h-40 overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+                    <div
+                      onClick={() => { setSelectedProjectId('all'); setIsProjectDropdownOpen(false); }}
+                      className={`px-2 py-1.5 rounded cursor-pointer text-[12px] font-bold truncate transition-colors ${
+                        selectedProjectId === 'all' ? 'bg-indigo-50 text-indigo-700' : 'text-gray-800 hover:bg-gray-50'
+                      }`}
+                    >
+                      Every Project (All Allocations)
+                    </div>
+                    {projects
+                      .filter(p => (p.name || '').toLowerCase().includes(projectSearchTerm.toLowerCase()))
+                      .map((p) => (
+                        <div
+                          key={p.id}
+                          onClick={() => { setSelectedProjectId(p.id); setIsProjectDropdownOpen(false); }}
+                          className={`px-2 py-1.5 rounded cursor-pointer text-[12px] font-bold truncate transition-colors ${
+                            selectedProjectId === p.id ? 'bg-indigo-50 text-indigo-700' : 'text-gray-800 hover:bg-gray-50'
+                          }`}
+                        >
+                          {p.name}
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              </>
+            )}
           </div>
 
-          {/* User Checklist drop-down filter (Admin only) */}
+          {/* User Checklist pill (Admin only) */}
           {isAdmin && (
-            <div className="flex items-center gap-2 h-[44px] relative">
-              <Users size={13} className="text-gray-400 shrink-0" />
+            <div className="relative">
               <button
                 type="button"
                 onClick={() => {
                   setIsUserDropdownOpen(!isUserDropdownOpen);
+                  setIsProjectDropdownOpen(false);
+                  setIsDateDropdownOpen(false);
+                  setIsStatusDropdownOpen(false);
                 }}
-                className="w-full flex items-center justify-between px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-[13px] text-gray-950 font-bold focus:outline-none transition hover:bg-gray-100 h-[44px]"
+                className={`flex items-center gap-1.5 pl-4 pr-3 py-2.5 rounded-xl border text-[13px] font-semibold whitespace-nowrap transition cursor-pointer ${
+                  selectedUsers.length > 0
+                    ? 'border-indigo-200 bg-indigo-50 text-indigo-700'
+                    : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
+                }`}
               >
-                <span className="truncate pr-1">
-                  {selectedUsers.length === 0 
-                    ? 'All Users' 
-                    : `${selectedUsers.length} Selected`}
+                <Users size={14} className={selectedUsers.length > 0 ? 'text-indigo-500' : 'text-gray-400'} />
+                <span>User:</span>
+                <span className="max-w-[9rem] truncate">
+                  {selectedUsers.length === 0 ? 'All' : `${selectedUsers.length} selected`}
                 </span>
-                <ChevronDown size={13} className={`text-gray-400 transition-transform shrink-0 ${isUserDropdownOpen ? 'rotate-180' : ''}`} />
+                <ChevronDown size={14} className={`transition-transform shrink-0 ${selectedUsers.length > 0 ? 'text-indigo-400' : 'text-gray-400'} ${isUserDropdownOpen ? 'rotate-180' : ''}`} />
               </button>
 
               {isUserDropdownOpen && (
                 <>
-                  <div 
-                    className="fixed inset-0 z-40" 
-                    onClick={() => setIsUserDropdownOpen(false)} 
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setIsUserDropdownOpen(false)}
                   />
-                  <div className="absolute right-0 left-0 mt-[42px] top-0 bg-white border border-gray-200 rounded-xl shadow-lg z-50 p-2.5 space-y-2 max-h-56 overflow-y-auto">
+                  <div className="absolute left-0 mt-1.5 w-64 bg-white border border-gray-200 rounded-xl shadow-lg z-50 p-2.5 space-y-2 max-h-56 overflow-y-auto">
                     <div className="flex items-center justify-between text-[9px] pb-1 border-b border-gray-100 font-bold text-gray-400">
                       <span>USERS</span>
                       <div className="flex gap-2">
-                        <button 
-                          type="button" 
-                          onClick={(e) => { e.stopPropagation(); setSelectedUsers([]); }} 
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); setSelectedUsers([]); }}
                           className="text-indigo-600 hover:text-indigo-850"
                         >
                           Clear
                         </button>
                         <span>•</span>
-                        <button 
-                          type="button" 
-                          onClick={(e) => { e.stopPropagation(); setSelectedUsers(allUsersList.map(u => u.email)); }} 
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); setSelectedUsers(allUsersList.map(u => u.email)); }}
                           className="text-indigo-600 hover:text-indigo-850"
                         >
                           All
@@ -623,47 +763,50 @@ export default function DSRLogs({
             </div>
           )}
 
-          {/* Admin-only Status filter — single select, Pending or Approved (not both) */}
+          {/* Status pill (Admin only) — single select, Pending / Approved / Remark */}
           {isAdmin && (
-            <div className="flex items-center gap-2 h-[44px]">
-              <ShieldCheck size={13} className="text-gray-400 shrink-0" />
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value as any)}
-                className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-[13px] font-medium text-gray-950 focus:outline-none transition cursor-pointer h-[44px]"
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsStatusDropdownOpen(!isStatusDropdownOpen);
+                  setIsProjectDropdownOpen(false);
+                  setIsDateDropdownOpen(false);
+                  setIsUserDropdownOpen(false);
+                }}
+                className={`flex items-center gap-1.5 pl-4 pr-3 py-2.5 rounded-xl border text-[13px] font-semibold whitespace-nowrap transition cursor-pointer ${
+                  statusFilter !== 'all'
+                    ? 'border-indigo-200 bg-indigo-50 text-indigo-700'
+                    : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
+                }`}
               >
-                <option value="all">All Status</option>
-                <option value="Pending">Pending Only</option>
-                <option value="Approved">Approved Only</option>
-                <option value="Remark">Remark Only</option>
-              </select>
+                <ShieldCheck size={14} className={statusFilter !== 'all' ? 'text-indigo-500' : 'text-gray-400'} />
+                <span>Status:</span>
+                <span className="max-w-[8rem] truncate">{STATUS_FILTER_LABELS[statusFilter]}</span>
+                <ChevronDown size={14} className={`transition-transform shrink-0 ${statusFilter !== 'all' ? 'text-indigo-400' : 'text-gray-400'} ${isStatusDropdownOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {isStatusDropdownOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setIsStatusDropdownOpen(false)} />
+                  <div className="absolute right-0 mt-1.5 w-44 bg-white border border-gray-200 rounded-xl shadow-lg z-50 p-1.5 space-y-0.5">
+                    {(['all', 'Pending', 'Approved', 'Remark'] as const).map((s) => (
+                      <div
+                        key={s}
+                        onClick={() => { setStatusFilter(s); setIsStatusDropdownOpen(false); }}
+                        className={`px-2.5 py-1.5 rounded-lg cursor-pointer text-[12px] font-bold transition-colors ${
+                          statusFilter === s ? 'bg-indigo-50 text-indigo-700' : 'text-gray-800 hover:bg-gray-50'
+                        }`}
+                      >
+                        {STATUS_FILTER_LABELS[s]}
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
           )}
         </div>
-
-        {/* Custom date pickers if range chosen */}
-        {dateFilterType === 'custom' && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-indigo-50/15 rounded-2xl border border-indigo-105/30">
-            <div className="space-y-1">
-              <label className="block text-[10px] font-bold text-indigo-900 uppercase tracking-wider">Start Date</label>
-              <input
-                type="date"
-                value={customStartDate}
-                onChange={(e) => setCustomStartDate(e.target.value)}
-                className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs text-gray-950 focus:outline-none focus:ring-1 focus:ring-indigo-555"
-              />
-            </div>
-            <div className="space-y-1">
-              <label className="block text-[10px] font-bold text-indigo-900 uppercase tracking-wider">End Date</label>
-              <input
-                type="date"
-                value={customEndDate}
-                onChange={(e) => setCustomEndDate(e.target.value)}
-                className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs text-gray-950 focus:outline-none focus:ring-1 focus:ring-indigo-555"
-              />
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Primary entries feed list */}
@@ -745,55 +888,61 @@ export default function DSRLogs({
                       : 'border-slate-150 hover:border-slate-200/90 shadow-2xs hover:shadow-3xs'
                   }`}
                 >
-                  {/* Card Main Bar */}
+                  {/* Card Main Bar — single compact row on desktop. A CSS grid (instead of
+                      flex + justify-end) is used deliberately so the stats/breakdown fill
+                      the WHOLE middle of the row instead of being clumped together on the
+                      right with a big empty gap next to the date/user block. */}
                   <div
                     onClick={() => toggleExpand(item.uniqueId)}
-                    className="p-5 sm:px-6 sm:py-5 hover:bg-slate-50/45 flex flex-col lg:flex-row lg:items-center justify-between gap-4 cursor-pointer select-none transition-colors"
+                    className="px-4 py-3.5 sm:px-5 sm:py-4 hover:bg-slate-50/45 cursor-pointer select-none transition-colors"
                   >
-                    <div className="flex items-start gap-4">
-                      <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-indigo-50 to-slate-50 border border-slate-150 flex items-center justify-center text-indigo-650 shrink-0">
-                        <Calendar size={18} />
-                      </div>
-                      <div className="text-left space-y-1.5">
-                        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                          <span className="text-[16px] font-black text-gray-900 tracking-tight">
-                            {formattedFilledDate}
-                          </span>
-                          <span className="text-[12px] text-slate-450 font-semibold flex items-center gap-1">
-                            <Clock size={11} className="text-slate-400" />
-                            Submitted: {submittedTimeStr}
-                          </span>
-                        </div>
+                    <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.15fr)_auto_minmax(0,1.5fr)_auto] items-center gap-3 lg:gap-5">
 
-                        {/* Submitted Time text */}
-                        <div className="text-[13px] text-slate-500 font-medium leading-normal flex flex-wrap items-center gap-x-2 gap-y-1">
-                          <span>Report Synced: <strong className="text-slate-700 font-semibold">{formattedSubmittedString}</strong></span>
-                          <span className="text-slate-300">•</span>
-                          <span>User: <strong className="text-indigo-700 font-semibold">{activeUserDisplayName}</strong></span>
+                      {/* Date + user meta */}
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-indigo-50 to-slate-50 border border-slate-150 flex items-center justify-center text-indigo-650 shrink-0">
+                          <Calendar size={15} />
+                        </div>
+                        <div className="text-left min-w-0">
+                          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                            <span className="text-[14px] font-black text-gray-900 tracking-tight whitespace-nowrap">
+                              {formattedFilledDate}
+                            </span>
+                            <span className="text-[11px] text-slate-450 font-semibold flex items-center gap-1 whitespace-nowrap">
+                              <Clock size={10} className="text-slate-400" />
+                              {submittedTimeStr}
+                            </span>
+                          </div>
+                          <div className="text-[12px] text-slate-500 font-medium leading-normal truncate">
+                            Synced <strong className="text-slate-700 font-semibold">{formattedSubmittedString}</strong>
+                            <span className="text-slate-300 mx-1">•</span>
+                            <strong className="text-indigo-700 font-semibold">{activeUserDisplayName}</strong>
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    <div className="flex flex-wrap items-center gap-x-6 gap-y-3 lg:justify-end pt-3 lg:pt-0 border-t lg:border-t-0 border-slate-100">
-                      {/* W / NW / Total Projects — stacked label-over-value columns */}
+                      {/* W / NW / Total Projects — compact stat columns, sit right after the
+                          date block instead of being pushed all the way to the far right */}
                       {totalProjectCount > 0 && (
-                        <div className="flex items-center gap-5">
+                        <div className="flex items-center gap-4 lg:pl-1 lg:border-l lg:border-slate-100">
                           <div className="flex flex-col items-start leading-tight">
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">W</span>
-                            <span className="text-[16px] font-black text-emerald-600">{workedProjectCount}</span>
+                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">W</span>
+                            <span className="text-[15px] font-black text-emerald-600">{workedProjectCount}</span>
                           </div>
                           <div className="flex flex-col items-start leading-tight">
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">NW</span>
-                            <span className="text-[16px] font-black text-amber-600">{notWorkedProjectCount}</span>
+                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">NW</span>
+                            <span className="text-[15px] font-black text-amber-600">{notWorkedProjectCount}</span>
                           </div>
                           <div className="flex flex-col items-start leading-tight">
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Projects</span>
-                            <span className="text-[16px] font-black text-indigo-650">{totalProjectCount}</span>
+                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Projects</span>
+                            <span className="text-[15px] font-black text-indigo-650">{totalProjectCount}</span>
                           </div>
                         </div>
                       )}
 
-                      {/* Category breakdown — plain text, no boxed pill, matching cleaner look */}
+                      {/* Category breakdown — occupies the actual middle of the row so the
+                          horizontal space between the date block and the status/chevron is
+                          used, rather than left empty. Truncates gracefully on smaller widths. */}
                       {(() => {
                         const countEntries: { label: string; value: number }[] = [
                           { label: 'List', value: totalListings },
@@ -810,32 +959,37 @@ export default function DSRLogs({
                           }))
                         ].filter((entry) => entry.value > 0);
 
-                        if (countEntries.length === 0) return null;
-
                         const grandTotal = countEntries.reduce((sum, entry) => sum + entry.value, 0);
 
                         return (
-                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] max-w-xs sm:max-w-md">
-                            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-slate-600 font-medium">
-                              {countEntries.map((entry, idx) => (
-                                <React.Fragment key={entry.label}>
-                                  {idx > 0 && <span className="text-slate-300">•</span>}
-                                  <span title={entry.label}>
-                                    <span className="font-bold text-slate-800">{entry.value}</span> {entry.label}
-                                  </span>
-                                </React.Fragment>
-                              ))}
+                          <div className="min-w-0 flex items-center gap-3 lg:pl-1 lg:border-l lg:border-slate-100">
+                            <div className="min-w-0 flex-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12.5px] text-slate-600 font-medium">
+                              {countEntries.length > 0 ? (
+                                countEntries.map((entry, idx) => (
+                                  <React.Fragment key={entry.label}>
+                                    {idx > 0 && <span className="text-slate-300">•</span>}
+                                    <span title={entry.label} className="whitespace-nowrap">
+                                      <span className="font-bold text-slate-800">{entry.value}</span> {entry.label}
+                                    </span>
+                                  </React.Fragment>
+                                ))
+                              ) : (
+                                <span className="text-slate-350 italic">No submission counts logged</span>
+                              )}
                             </div>
-                            <span className="text-indigo-700 font-bold whitespace-nowrap">
-                              {grandTotal} Total Backlinks
-                            </span>
+                            {grandTotal > 0 && (
+                              <span className="shrink-0 text-[11.5px] font-bold text-indigo-700 bg-indigo-50/70 border border-indigo-100 px-2.5 py-1 rounded-lg whitespace-nowrap">
+                                {grandTotal} Total Backlinks
+                              </span>
+                            )}
                           </div>
                         );
                       })()}
 
-                      <div className="flex items-center gap-2.5">
+                      {/* Status + expand toggle */}
+                      <div className="flex items-center gap-2.5 justify-start lg:justify-end">
                         {item.status && (
-                          <span className={`text-[11px] uppercase font-bold px-3 py-1.5 rounded-lg border tracking-wider font-sans ${
+                          <span className={`text-[10.5px] uppercase font-bold px-2.5 py-1.5 rounded-lg border tracking-wider font-sans whitespace-nowrap ${
                             item.status === 'Approved' ? 'bg-emerald-50 text-emerald-800 border-emerald-100' :
                             item.status === 'Needs Revision' ? 'bg-rose-50 text-rose-855 border-rose-100' :
                             item.status === 'Remark' ? 'bg-violet-50 text-violet-800 border-violet-150' :
@@ -850,7 +1004,7 @@ export default function DSRLogs({
                             e.stopPropagation();
                             toggleExpand(item.uniqueId);
                           }}
-                          className="flex items-center justify-center p-2 bg-slate-50 border border-slate-200 hover:bg-slate-100 text-slate-500 rounded-lg transition"
+                          className="flex items-center justify-center p-2 bg-slate-50 border border-slate-200 hover:bg-slate-100 text-slate-500 rounded-lg transition shrink-0"
                         >
                           {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                         </button>
