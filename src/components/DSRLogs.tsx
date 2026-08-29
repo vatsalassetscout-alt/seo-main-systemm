@@ -198,7 +198,7 @@ export default function DSRLogs({
   // only) — a flat constant rather than something computed off name length,
   // so it's always exactly this size regardless of how short/long any given
   // name is. Content inside gets center-aligned to suit a fixed box.
-  const userColWidthPx = 260;
+  const userColWidthPx = 400;
 
   const employeeNamesMap = useMemo(() => {
     const map: Record<string, string> = {};
