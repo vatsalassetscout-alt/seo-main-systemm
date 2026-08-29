@@ -505,16 +505,6 @@ export default function DSRLogs({
           Overview Panel's "Workspace Filters" treatment: a growing search bar
           plus inline pill dropdowns, all on one row instead of a boxy grid. */}
       <div className="bg-white p-4 sm:p-5 rounded-2xl border border-gray-100 shadow-xs space-y-3">
-        <div className="flex items-center justify-between gap-4">
-          <h3 className="text-[15px] font-black text-gray-900">Historical Daily Logs</h3>
-          <button
-            onClick={handleResetFilters}
-            className="flex items-center gap-1.5 text-[12.5px] font-bold text-indigo-600 hover:text-indigo-800 focus:outline-none"
-          >
-            Reset Filters
-          </button>
-        </div>
-
         <div className="flex flex-wrap items-center gap-2.5">
           {/* Dynamic search bar — grows to fill remaining width */}
           <div className="relative flex-1 min-w-[220px]">
@@ -893,71 +883,73 @@ export default function DSRLogs({
                       : 'border-slate-150 hover:border-slate-200/90 shadow-2xs hover:shadow-3xs'
                   }`}
                 >
-                  {/* Card Main Bar — fixed-width CSS grid columns (not flex-wrap) so every
-                      "|" separator lines up in a straight vertical line across every row,
-                      regardless of how long the date/user/breakdown text is. Every column
-                      is always rendered (even when a value is 0 / empty) so the grid never
-                      shifts row-to-row. The grid spans the full row width edge-to-edge, and
-                      the breakdown column ("1fr") absorbs whatever space is left over. */}
+                  {/* Card Main Bar — single-line flex row (no wrapping): Date → stat pills
+                      (Worked / Not Worked / Total Project) → User → submission breakdown
+                      (flex-1, absorbs all leftover space) → Total Backlinks → Status +
+                      expand toggle. Because the breakdown block grows to fill the row,
+                      everything after it (backlinks, status, chevron) is naturally pinned
+                      to the right edge. */}
                   <div
                     onClick={() => toggleExpand(item.uniqueId)}
                     className="px-4 py-3.5 sm:px-5 sm:py-4 hover:bg-slate-50/45 cursor-pointer select-none transition-colors overflow-x-auto"
                   >
-                    <div className="grid grid-cols-[124px_12px_176px_12px_340px_12px_268px_12px_minmax(120px,1fr)_12px_168px_136px] items-center gap-x-2 min-w-[1600px] w-full">
+                    <div className="flex items-center gap-3 flex-nowrap overflow-x-auto">
 
-                      {/* Date — big, with a small "on [actual submitted date] [time]" line
+                      {/* Date — big, with a small "on [actual submitted date]" line
                           underneath ONLY when this was filled for a past date (i.e. the
                           entry is backdated / logged later than the day it's for). If it
-                          was filled the same day, nothing extra shows below it. */}
-                      <div className="flex items-start gap-1.5 min-w-0">
-                        <Calendar size={14} className="text-indigo-500 mt-0.5 shrink-0" />
+                          was filled the same day, nothing extra shows below it. Time is
+                          intentionally omitted from the sub-line — just the date. */}
+                      <div className="flex items-start gap-1.5 shrink-0 min-w-0">
+                        <Calendar size={15} className="text-indigo-500 mt-0.5 shrink-0" />
                         <div className="leading-tight min-w-0">
-                          <span className="text-[14px] font-black text-gray-900 tracking-tight whitespace-nowrap block truncate">
+                          <span className="text-[16px] font-black text-gray-900 tracking-tight whitespace-nowrap block truncate">
                             {formattedFilledDate}
                           </span>
                           {submittedOnDifferentDate && (
                             <span className="text-[10.5px] text-slate-400 font-semibold whitespace-nowrap block truncate">
-                              on {submittedDateOnlyStr} {submittedTimeStr}
+                              on {submittedDateOnlyStr}
                             </span>
                           )}
                         </div>
                       </div>
 
-                      <span className="text-slate-300 select-none text-center">|</span>
-
-                      {/* User */}
-                      <div className="flex items-center gap-1.5 min-w-0">
-                        <User size={13} className="text-slate-400 shrink-0" />
-                        <span className="text-[12.5px] text-slate-600 font-medium whitespace-nowrap truncate">
-                          User: <strong className="text-indigo-700 font-semibold">{activeUserDisplayName}</strong>
-                        </span>
-                      </div>
-
-                      <span className="text-slate-300 select-none text-center">|</span>
+                      <span className="text-slate-300 select-none shrink-0">|</span>
 
                       {/* Worked / Not Worked / Total Project — boxed stat pills, each with
-                          its own colored border (green/red/blue). Always rendered (even at
-                          0/0/0) so this column never collapses and breaks the grid. */}
-                      <div className="flex items-center gap-2">
-                        <div className="flex flex-col items-center justify-center px-3 py-1.5 rounded-xl border border-emerald-150 bg-emerald-50/50 flex-1 leading-tight">
-                          <span className="text-[9.5px] font-bold text-emerald-600 uppercase tracking-wider">Worked</span>
+                          its own colored border (green/red/blue). */}
+                      <div className="flex items-center gap-2 shrink-0">
+                        <div className="flex flex-col items-center justify-center px-3 py-1.5 rounded-xl border border-emerald-150 bg-emerald-50/50 leading-tight">
+                          <span className="text-[9.5px] font-bold text-emerald-600 uppercase tracking-wider whitespace-nowrap">Worked</span>
                           <span className="text-[16px] font-black text-emerald-600">{workedProjectCount}</span>
                         </div>
-                        <div className="flex flex-col items-center justify-center px-3 py-1.5 rounded-xl border border-rose-150 bg-rose-50/50 flex-1 leading-tight">
+                        <div className="flex flex-col items-center justify-center px-3 py-1.5 rounded-xl border border-rose-150 bg-rose-50/50 leading-tight">
                           <span className="text-[9.5px] font-bold text-rose-600 uppercase tracking-wider whitespace-nowrap">Not Worked</span>
                           <span className="text-[16px] font-black text-rose-600">{notWorkedProjectCount}</span>
                         </div>
-                        <div className="flex flex-col items-center justify-center px-3 py-1.5 rounded-xl border border-indigo-150 bg-indigo-50/50 flex-1 leading-tight">
+                        <div className="flex flex-col items-center justify-center px-3 py-1.5 rounded-xl border border-indigo-150 bg-indigo-50/50 leading-tight">
                           <span className="text-[9.5px] font-bold text-indigo-600 uppercase tracking-wider whitespace-nowrap">Total Project</span>
                           <span className="text-[16px] font-black text-indigo-650">{totalProjectCount}</span>
                         </div>
                       </div>
 
-                      <span className="text-slate-300 select-none text-center">|</span>
+                      <span className="text-slate-300 select-none shrink-0">|</span>
+
+                      {/* User — bumped up in size/weight and given its own soft pill so it
+                          reads as a clear identity marker in the row, not a throwaway label. */}
+                      <div className="flex items-center gap-2 shrink-0 pl-2.5 pr-3 py-1.5 rounded-xl bg-indigo-50/40 border border-indigo-100">
+                        <User size={15} className="text-indigo-500 shrink-0" />
+                        <span className="text-[12px] text-slate-500 font-bold uppercase tracking-wide whitespace-nowrap">User</span>
+                        <strong className="text-[15px] text-indigo-700 font-black whitespace-nowrap truncate max-w-[180px]">
+                          {activeUserDisplayName}
+                        </strong>
+                      </div>
+
+                      <span className="text-slate-300 select-none shrink-0">|</span>
 
                       {/* Submission distribution — plain flowing text, fills the leftover
-                          width of the row (this column is "1fr"). Shows a dash when a day
-                          has no submission counts, so the column stays present either way. */}
+                          width of the row and pushes backlinks/status to the right edge.
+                          Shows a dash when a day has no submission counts. */}
                       {(() => {
                         const countEntries: { label: string; value: number }[] = [
                           { label: 'List', value: totalListings },
@@ -975,7 +967,7 @@ export default function DSRLogs({
                         ].filter((entry) => entry.value > 0);
 
                         return (
-                          <div className="min-w-0 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12.5px] text-slate-600 font-medium">
+                          <div className="flex-1 min-w-[120px] flex flex-wrap items-center gap-x-2 gap-y-1 text-[12.5px] text-slate-600 font-medium">
                             {countEntries.length > 0 ? (
                               countEntries.map((entry, idx) => (
                                 <React.Fragment key={entry.label}>
@@ -992,10 +984,10 @@ export default function DSRLogs({
                         );
                       })()}
 
-                      <span className="text-slate-300 select-none text-center">|</span>
+                      <span className="text-slate-300 select-none shrink-0">|</span>
 
-                      {/* Total Backlinks — always reserves this column's width; shows a
-                          dash when there's nothing to add up. */}
+                      {/* Total Backlinks — sits just left of status; shows a dash when
+                          there's nothing to add up. */}
                       {(() => {
                         const grandTotal =
                           totalListings + totalBlogs + totalForums + totalPdfs + totalImages +
@@ -1003,7 +995,7 @@ export default function DSRLogs({
                           (customSubmissionTypes || []).reduce((sum, type) => sum + item.works.reduce((s: number, w: any) => s + (Number(w.customValues?.[type.id]) || 0), 0), 0);
 
                         return (
-                          <div className="flex items-center gap-1.5 min-w-0">
+                          <div className="flex items-center gap-1.5 shrink-0">
                             {grandTotal > 0 ? (
                               <>
                                 <Layers size={13} className="text-indigo-400 shrink-0" />
@@ -1018,8 +1010,9 @@ export default function DSRLogs({
                         );
                       })()}
 
-                      {/* Status + expand toggle — fixed-width column, right-aligned within it */}
-                      <div className="flex items-center gap-2.5 justify-end">
+                      {/* Status + expand toggle — stuck to the right edge of the row since
+                          the submission-breakdown block above absorbs all leftover space. */}
+                      <div className="flex items-center gap-2.5 shrink-0">
                         {item.status && (
                           <span className={`text-[10.5px] uppercase font-bold px-2.5 py-1.5 rounded-lg border tracking-wider font-sans whitespace-nowrap ${
                             item.status === 'Approved' ? 'bg-emerald-50 text-emerald-800 border-emerald-100' :
