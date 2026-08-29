@@ -2223,19 +2223,19 @@ export default function DSRDashboard({
             </div>
 
             <div className="overflow-x-auto overflow-y-auto" style={{ maxHeight: dynamicTableMaxHeight }}>
-              <table className="w-full text-left text-[13px] min-w-[700px]">
-                <thead className="bg-slate-50 text-slate-500 font-extrabold text-[10px] uppercase border-b border-gray-150 sticky top-0 z-10">
+              <table className="w-full text-left text-[14px] min-w-[700px]">
+                <thead className="bg-slate-50 text-slate-500 font-bold text-[11px] uppercase tracking-normal border-b border-gray-150 sticky top-0 z-10">
                   <tr>
-                    <th className="px-4 py-3.5 w-14 bg-slate-50">Sr No.</th>
-                    <th className="px-4 py-3.5 bg-slate-50">Project Name</th>
-                    <th className="px-4 py-3.5 bg-slate-50">Domain</th>
-                    <th className="px-4 py-3.5 w-28 bg-slate-50">Priority</th>
-                    <th className="px-4 py-3.5 w-28 text-center bg-slate-50">Best Ranking</th>
-                    <th className="px-4 py-3.5 w-32 text-center bg-slate-50">Times Worked / Not Worked</th>
-                    <th className="px-4 py-3.5 w-44 bg-slate-50">Last Worked</th>
-                    {isAdmin && <th className="px-4 py-3.5 bg-slate-50">User</th>}
-                    {isAdmin && <th className="px-4 py-3.5 w-44 bg-slate-50">Admin Actions</th>}
-                    {isAdmin && <th className="px-4 py-3.5 w-24 text-center bg-slate-50">Action</th>}
+                    <th className="px-5 py-4 w-14 bg-slate-50">Sr No.</th>
+                    <th className="px-5 py-4 bg-slate-50">Project Name</th>
+                    <th className="px-5 py-4 bg-slate-50">Domain</th>
+                    <th className="px-5 py-4 w-28 bg-slate-50">Priority</th>
+                    <th className="px-5 py-4 w-28 text-center bg-slate-50">Best Ranking</th>
+                    <th className="px-5 py-4 w-32 text-center bg-slate-50">Times Worked / Not Worked</th>
+                    <th className="px-5 py-4 w-44 bg-slate-50">Last Worked</th>
+                    {isAdmin && <th className="px-5 py-4 bg-slate-50">User</th>}
+                    {isAdmin && <th className="px-5 py-4 w-44 bg-slate-50">Admin Actions</th>}
+                    {isAdmin && <th className="px-5 py-4 w-24 text-center bg-slate-50">Action</th>}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-150">
@@ -2245,19 +2245,19 @@ export default function DSRDashboard({
                         key={item.id}
                         className="hover:bg-slate-50/60 transition-colors"
                       >
-                        <td className="px-4 py-3.5 font-mono font-extrabold text-indigo-600">{item.srNo}</td>
-                        <td className="px-4 py-3.5">
+                        <td className="px-5 py-5 font-semibold text-indigo-600">{item.srNo}</td>
+                        <td className="px-5 py-5">
                           <div className="flex items-center gap-2">
-                            <span className="text-[13px] font-black text-gray-900">{item.name}</span>
+                            <span className="text-[14px] font-bold text-gray-900">{item.name}</span>
                           </div>
                         </td>
-                        <td className="px-4 py-3.5 font-mono text-gray-600">
+                        <td className="px-5 py-5 text-gray-600">
                           {item.domain ? (
                             <a 
                               href={domainHref(item.domain)} 
                               target="_blank" 
                               rel="noreferrer" 
-                              className="text-[13px] text-indigo-700 hover:underline font-extrabold"
+                              className="text-[13px] text-indigo-700 hover:underline font-semibold"
                             >
                               {cleanDomain(item.domain)}
                             </a>
@@ -2265,7 +2265,7 @@ export default function DSRDashboard({
                             <span className="text-gray-400 italic">—</span>
                           )}
                         </td>
-                        <td className="px-4 py-3.5">
+                        <td className="px-5 py-5">
                           {item.priority === 'X1' && (
                             <span className="inline-flex items-center gap-1 bg-red-50 text-red-700 text-[10px] font-black px-2 py-0.5 rounded border border-red-100 uppercase tracking-wider">
                                X1
@@ -2297,9 +2297,9 @@ export default function DSRDashboard({
                             </span>
                           )}
                         </td>
-                        <td className="px-4 py-3.5 text-center">
+                        <td className="px-5 py-5 text-center">
                           {item.bestRanking !== null && item.bestRanking !== undefined ? (
-                            <span className={`inline-flex items-center justify-center font-mono font-black text-[10px] px-2 py-0.5 rounded border whitespace-nowrap ${
+                            <span className={`inline-flex items-center justify-center font-bold text-[11px] px-2 py-0.5 rounded border whitespace-nowrap ${
                               item.bestRanking <= 10
                                 ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
                                 : item.bestRanking <= 30
@@ -2312,15 +2312,15 @@ export default function DSRDashboard({
                             <span className="text-[10px] font-bold text-gray-300 italic">—</span>
                           )}
                         </td>
-                        <td className="px-4 py-3.5 text-center font-mono font-bold text-gray-700">
+                        <td className="px-5 py-5 text-center font-semibold text-gray-700">
                           <span className="text-emerald-700">{item.timesWorked}</span>
                           <span className="text-gray-400"> / </span>
                           <span className="text-red-600">{item.timesNotWorked}</span>
                         </td>
-                        <td className="px-4 py-3.5">
+                        <td className="px-5 py-5">
                           {(() => {
                             if (item.lastWorked === 'Never' || !item.lastWorkedAt) {
-                              return <span className="text-[11px] font-semibold text-gray-400 italic">Never</span>;
+                              return <span className="text-[12px] font-semibold text-gray-400 italic">Never</span>;
                             }
                             const d = new Date(item.lastWorkedAt);
                             const diffHrs = (Date.now() - d.getTime()) / (1000 * 60 * 60);
@@ -2336,14 +2336,14 @@ export default function DSRDashboard({
                             const timeLabel = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
                             return (
                               <div className="flex flex-col gap-1">
-                                <span className="text-[12px] font-black text-gray-800 leading-none">{relLabel}</span>
-                                <span className="text-[11px] font-semibold text-gray-600 leading-none">{dateLabel} &middot; {timeLabel}</span>
+                                <span className="text-[13px] font-bold text-gray-800 leading-none">{relLabel}</span>
+                                <span className="text-[12px] font-medium text-gray-600 leading-none">{dateLabel} &middot; {timeLabel}</span>
                               </div>
                             );
                           })()}
                         </td>
                         {isAdmin && (
-                          <td className="px-4 py-3.5">
+                          <td className="px-5 py-5">
                             {(() => {
                               const names = getAssignedUsersForProject(item.id).split(',').map(n => n.trim()).filter(Boolean);
                               if (names.length === 0) {
@@ -2371,7 +2371,7 @@ export default function DSRDashboard({
                           </td>
                         )}
                         {isAdmin && (
-                          <td className="px-4 py-3.5">
+                          <td className="px-5 py-5">
                             <div className="flex items-center gap-1.5">
                               <select
                                 value={
@@ -2402,7 +2402,7 @@ export default function DSRDashboard({
                           </td>
                         )}
                         {isAdmin && (
-                          <td className="px-4 py-3.5 text-center">
+                          <td className="px-5 py-5 text-center">
                             <button
                               onClick={() => setSelectedPlanProject(item)}
                               className="inline-flex items-center gap-1 bg-indigo-50 text-indigo-750 font-black uppercase text-[10px] px-3 py-1.5 rounded-xl border border-indigo-200 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition shadow-3xs cursor-pointer"
