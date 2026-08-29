@@ -903,7 +903,7 @@ export default function DSRLogs({
                     onClick={() => toggleExpand(item.uniqueId)}
                     className="px-4 py-3.5 sm:px-5 sm:py-4 hover:bg-slate-50/45 cursor-pointer select-none transition-colors overflow-x-auto"
                   >
-                    <div className="grid grid-cols-[124px_12px_176px_12px_156px_12px_268px_12px_minmax(120px,1fr)_12px_168px_136px] items-center gap-x-2 min-w-[1400px] w-full">
+                    <div className="grid grid-cols-[124px_12px_176px_12px_340px_12px_268px_12px_minmax(120px,1fr)_12px_168px_136px] items-center gap-x-2 min-w-[1600px] w-full">
 
                       {/* Date — big, with a small "on [actual submitted date] [time]" line
                           underneath ONLY when this was filled for a past date (i.e. the
