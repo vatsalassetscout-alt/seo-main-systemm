@@ -894,65 +894,71 @@ export default function DSRLogs({
                       : 'border-slate-150 hover:border-slate-200/90 shadow-2xs hover:shadow-3xs'
                   }`}
                 >
-                  {/* Card Main Bar — single compact row on desktop. A CSS grid (instead of
-                      flex + justify-end) is used deliberately so the stats/breakdown fill
-                      the WHOLE middle of the row instead of being clumped together on the
-                      right with a big empty gap next to the date/user block. */}
+                  {/* Card Main Bar — one flowing row with literal "|" pipe separators
+                      between each segment: Date | Submitted time | User | Worked/Not
+                      Worked/Total Project | Submission breakdown (plain text, no box) |
+                      Total Backlinks — status + chevron pinned to the end. */}
                   <div
                     onClick={() => toggleExpand(item.uniqueId)}
                     className="px-4 py-3.5 sm:px-5 sm:py-4 hover:bg-slate-50/45 cursor-pointer select-none transition-colors"
                   >
-                    <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.15fr)_auto_minmax(0,1.5fr)_auto] items-center gap-3 lg:gap-5">
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
 
-                      {/* Date + user meta — just the filled-for date, its submitted time
-                          (plus the submitted date only if it lands on a different day
-                          than the filled-for date), and the user's name. No "Report
-                          Synced" line anymore. */}
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-indigo-50 to-slate-50 border border-slate-150 flex items-center justify-center text-indigo-650 shrink-0">
-                          <Calendar size={15} />
-                        </div>
-                        <div className="text-left min-w-0">
-                          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                            <span className="text-[14px] font-black text-gray-900 tracking-tight whitespace-nowrap">
-                              {formattedFilledDate}
-                            </span>
-                            <span className="text-[11px] text-slate-450 font-semibold flex items-center gap-1 whitespace-nowrap">
-                              <Clock size={10} className="text-slate-400" />
-                              Submitted: {submittedTimeStr}
-                              {submittedOnDifferentDate && (
-                                <span className="text-slate-400"> on {submittedDateOnlyStr}</span>
-                              )}
-                            </span>
-                          </div>
-                          <div className="text-[12px] text-slate-500 font-medium leading-normal truncate">
-                            User: <strong className="text-indigo-700 font-semibold">{activeUserDisplayName}</strong>
-                          </div>
-                        </div>
+                      {/* Date */}
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <Calendar size={14} className="text-indigo-500" />
+                        <span className="text-[14px] font-black text-gray-900 tracking-tight whitespace-nowrap">
+                          {formattedFilledDate}
+                        </span>
+                      </div>
+
+                      <span className="text-slate-300 shrink-0 select-none">|</span>
+
+                      {/* Submitted time — plus the submitted date only if it lands on a
+                          different calendar day than the filled-for date */}
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <Clock size={13} className="text-slate-400" />
+                        <span className="text-[12px] text-slate-500 font-semibold whitespace-nowrap">
+                          Submitted: {submittedTimeStr}
+                          {submittedOnDifferentDate && (
+                            <span className="text-slate-400"> on {submittedDateOnlyStr}</span>
+                          )}
+                        </span>
+                      </div>
+
+                      <span className="text-slate-300 shrink-0 select-none">|</span>
+
+                      {/* User */}
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <User size={13} className="text-slate-400" />
+                        <span className="text-[12.5px] text-slate-600 font-medium whitespace-nowrap">
+                          User: <strong className="text-indigo-700 font-semibold">{activeUserDisplayName}</strong>
+                        </span>
                       </div>
 
                       {/* Worked / Not Worked / Total Project — boxed stat pills, each with
-                          its own colored border (green/red/blue), matching the reference UI. */}
+                          its own colored border (green/red/blue) */}
                       {totalProjectCount > 0 && (
-                        <div className="flex items-center gap-2">
-                          <div className="flex flex-col items-center justify-center px-3.5 py-1.5 rounded-xl border border-emerald-150 bg-emerald-50/50 min-w-[64px] leading-tight">
-                            <span className="text-[9.5px] font-bold text-emerald-600 uppercase tracking-wider">Worked</span>
-                            <span className="text-[16px] font-black text-emerald-600">{workedProjectCount}</span>
+                        <>
+                          <span className="text-slate-300 shrink-0 select-none">|</span>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <div className="flex flex-col items-center justify-center px-3.5 py-1.5 rounded-xl border border-emerald-150 bg-emerald-50/50 min-w-[64px] leading-tight">
+                              <span className="text-[9.5px] font-bold text-emerald-600 uppercase tracking-wider">Worked</span>
+                              <span className="text-[16px] font-black text-emerald-600">{workedProjectCount}</span>
+                            </div>
+                            <div className="flex flex-col items-center justify-center px-3.5 py-1.5 rounded-xl border border-rose-150 bg-rose-50/50 min-w-[76px] leading-tight">
+                              <span className="text-[9.5px] font-bold text-rose-600 uppercase tracking-wider whitespace-nowrap">Not Worked</span>
+                              <span className="text-[16px] font-black text-rose-600">{notWorkedProjectCount}</span>
+                            </div>
+                            <div className="flex flex-col items-center justify-center px-3.5 py-1.5 rounded-xl border border-indigo-150 bg-indigo-50/50 min-w-[86px] leading-tight">
+                              <span className="text-[9.5px] font-bold text-indigo-600 uppercase tracking-wider whitespace-nowrap">Total Project</span>
+                              <span className="text-[16px] font-black text-indigo-650">{totalProjectCount}</span>
+                            </div>
                           </div>
-                          <div className="flex flex-col items-center justify-center px-3.5 py-1.5 rounded-xl border border-rose-150 bg-rose-50/50 min-w-[76px] leading-tight">
-                            <span className="text-[9.5px] font-bold text-rose-600 uppercase tracking-wider whitespace-nowrap">Not Worked</span>
-                            <span className="text-[16px] font-black text-rose-600">{notWorkedProjectCount}</span>
-                          </div>
-                          <div className="flex flex-col items-center justify-center px-3.5 py-1.5 rounded-xl border border-indigo-150 bg-indigo-50/50 min-w-[86px] leading-tight">
-                            <span className="text-[9.5px] font-bold text-indigo-600 uppercase tracking-wider whitespace-nowrap">Total Project</span>
-                            <span className="text-[16px] font-black text-indigo-650">{totalProjectCount}</span>
-                          </div>
-                        </div>
+                        </>
                       )}
 
-                      {/* Submission distribution — same List/Blog/PDF/Image/etc. breakdown
-                          as before, now boxed in its own bordered panel so it reads as a
-                          clean, self-contained block instead of loose inline text. */}
+                      {/* Submission distribution — plain flowing text, no border/box around it */}
                       {(() => {
                         const countEntries: { label: string; value: number }[] = [
                           { label: 'List', value: totalListings },
@@ -972,32 +978,40 @@ export default function DSRLogs({
                         const grandTotal = countEntries.reduce((sum, entry) => sum + entry.value, 0);
 
                         return (
-                          <div className="min-w-0 flex items-center gap-3">
-                            <div className="min-w-0 flex-1 flex flex-wrap items-center gap-x-2 gap-y-1 px-3.5 py-2 rounded-xl border border-slate-150 bg-slate-50/40 text-[12.5px] text-slate-600 font-medium">
-                              {countEntries.length > 0 ? (
-                                countEntries.map((entry, idx) => (
-                                  <React.Fragment key={entry.label}>
-                                    {idx > 0 && <span className="text-slate-300">•</span>}
-                                    <span title={entry.label} className="whitespace-nowrap">
-                                      <span className="font-bold text-slate-800">{entry.value}</span> {entry.label}
-                                    </span>
-                                  </React.Fragment>
-                                ))
-                              ) : (
-                                <span className="text-slate-350 italic">No submission counts logged</span>
-                              )}
-                            </div>
-                            {grandTotal > 0 && (
-                              <span className="shrink-0 text-[11.5px] font-bold text-indigo-700 bg-indigo-50/70 border border-indigo-100 px-2.5 py-1 rounded-lg whitespace-nowrap">
-                                {grandTotal} Total Backlinks
-                              </span>
+                          <>
+                            {countEntries.length > 0 && (
+                              <>
+                                <span className="text-slate-300 shrink-0 select-none">|</span>
+                                <div className="min-w-0 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12.5px] text-slate-600 font-medium">
+                                  {countEntries.map((entry, idx) => (
+                                    <React.Fragment key={entry.label}>
+                                      {idx > 0 && <span className="text-slate-300">•</span>}
+                                      <span title={entry.label} className="whitespace-nowrap">
+                                        <span className="font-bold text-slate-800">{entry.value}</span> {entry.label}
+                                      </span>
+                                    </React.Fragment>
+                                  ))}
+                                </div>
+                              </>
                             )}
-                          </div>
+
+                            {grandTotal > 0 && (
+                              <>
+                                <span className="text-slate-300 shrink-0 select-none">|</span>
+                                <div className="flex items-center gap-1.5 shrink-0">
+                                  <Layers size={13} className="text-indigo-400" />
+                                  <span className="text-[12.5px] font-bold text-indigo-700 whitespace-nowrap">
+                                    {grandTotal} Total Backlinks
+                                  </span>
+                                </div>
+                              </>
+                            )}
+                          </>
                         );
                       })()}
 
-                      {/* Status + expand toggle */}
-                      <div className="flex items-center gap-2.5 justify-start lg:justify-end">
+                      {/* Status + expand toggle — pinned to the end of the row */}
+                      <div className="flex items-center gap-2.5 ml-auto shrink-0">
                         {item.status && (
                           <span className={`text-[10.5px] uppercase font-bold px-2.5 py-1.5 rounded-lg border tracking-wider font-sans whitespace-nowrap ${
                             item.status === 'Approved' ? 'bg-emerald-50 text-emerald-800 border-emerald-100' :
