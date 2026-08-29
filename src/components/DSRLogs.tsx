@@ -935,8 +935,8 @@ export default function DSRLogs({
                     <div
                       className="grid items-center gap-x-2 w-full"
                       style={{
-                        gridTemplateColumns: `150px 12px ${userColWidthPx}px minmax(20px,1fr) 12px 340px 12px 560px 12px max-content`,
-                        minWidth: `${950 + userColWidthPx}px`,
+                        gridTemplateColumns: `150px 12px ${isAdmin ? userColWidthPx : 190}px minmax(20px,1fr) 12px 340px 12px 560px 12px max-content`,
+                        minWidth: `${950 + (isAdmin ? userColWidthPx : 190)}px`,
                       }}
                     >
 
@@ -961,21 +961,27 @@ export default function DSRLogs({
 
                       <span className="text-slate-300 select-none text-center">|</span>
 
-                      {/* User — sits right beside the date, bumped up in size/weight to
-                          read as a clear identity marker. No border/box around it, and
-                          no separate "User" text label either — just the icon plus the
-                          name. "Submitted Time" is stuck directly to this same block,
-                          right after the username. Column width is computed
-                          (userColWidthPx) off the single longest display name across
-                          every user, so it renders at the exact same width on every
-                          row without ever truncating anyone's name. */}
-                      <div className="flex items-center gap-2 min-w-0 overflow-hidden">
-                        <User size={15} className="text-indigo-500 shrink-0" />
-                        <strong className="text-[15px] text-indigo-700 font-black whitespace-nowrap truncate min-w-0">
-                          {activeUserDisplayName}
-                        </strong>
-                        <span className="text-slate-300 select-none shrink-0">|</span>
-                        <span className="text-[11.5px] text-slate-500 font-semibold whitespace-nowrap shrink-0">
+                      {/* Admin: user icon + name (sized off userColWidthPx, the single
+                          longest display name across every user — a fixed, stable
+                          width, not recomputed per row) followed by Submitted Time.
+                          Non-admin: the user is looking at their own logs, so the
+                          name/icon is pointless — this column shows Submitted Time
+                          directly after Date, nudged right a bit (pl-3) since it no
+                          longer has an icon/name/separator in front of it to space it
+                          out. Either way the Submitted Time text itself gets a touch
+                          of extra left margin (ml-1.5) so it doesn't sit flush against
+                          whatever's immediately before it. */}
+                      <div className={`flex items-center gap-2 min-w-0 overflow-hidden ${isAdmin ? '' : 'pl-3'}`}>
+                        {isAdmin && (
+                          <>
+                            <User size={15} className="text-indigo-500 shrink-0" />
+                            <strong className="text-[15px] text-indigo-700 font-black whitespace-nowrap truncate min-w-0">
+                              {activeUserDisplayName}
+                            </strong>
+                            <span className="text-slate-300 select-none shrink-0">|</span>
+                          </>
+                        )}
+                        <span className="text-[11.5px] text-slate-500 font-semibold whitespace-nowrap shrink-0 ml-1.5">
                           Submitted Time : <span className="text-slate-700 font-bold">{submittedTimeStr}</span>
                         </span>
                       </div>
