@@ -78,6 +78,24 @@ function sortPendingFirst(list: TaskAssignment[]): TaskAssignment[] {
   });
 }
 
+// Green → red heatmap for the History tab's "Daily Assignment Status"
+// calendar. A day only earns full green once every assignment on it was
+// Submitted — the moment even one item is still Pending, it steps down to a
+// clearly lighter/different shade (never stays indistinguishable from a
+// fully-clean day), sliding through yellow/orange as the pending share
+// grows, all the way to full red once everything on that day is Pending.
+// Days with no assignments at all are left uncolored (no data to show).
+function heatmapClassesForDay(stat?: { total: number; pending: number }): { cell: string; ring: string; dot: string } | null {
+  if (!stat || stat.total === 0) return null;
+  const pendingRatio = stat.pending / stat.total;
+  if (pendingRatio === 0) return { cell: 'bg-green-500 border-green-600 text-white', ring: 'ring-green-300', dot: 'bg-green-500 border-green-600' };
+  if (pendingRatio <= 0.25) return { cell: 'bg-green-300 border-green-400 text-green-900', ring: 'ring-green-200', dot: 'bg-green-300 border-green-400' };
+  if (pendingRatio <= 0.5) return { cell: 'bg-yellow-300 border-yellow-400 text-yellow-900', ring: 'ring-yellow-200', dot: 'bg-yellow-300 border-yellow-400' };
+  if (pendingRatio <= 0.75) return { cell: 'bg-orange-300 border-orange-400 text-orange-900', ring: 'ring-orange-200', dot: 'bg-orange-300 border-orange-400' };
+  if (pendingRatio < 1) return { cell: 'bg-red-300 border-red-400 text-red-900', ring: 'ring-red-200', dot: 'bg-red-300 border-red-400' };
+  return { cell: 'bg-red-500 border-red-600 text-white', ring: 'ring-red-300', dot: 'bg-red-500 border-red-600' };
+}
+
 const Badge = ({ priority }: { priority: string }) => (
   <span className={`inline-flex items-center px-2 py-0.5 rounded border text-[10px] font-black uppercase tracking-wider ${PRIORITY_BADGE[priority] || 'bg-gray-50 text-gray-500 border-gray-150'}`}>
     {priority || '—'}
@@ -140,45 +158,70 @@ const StatusBadge = ({ status, isPaused }: { status: string; isPaused?: boolean 
 );
 
 // Small reusable "list of pending projects" block used for both Yesterday
-// Pending and Today Pending — project names, not just a bare count.
+// Pending and Total Pending — project names, not just a bare count.
+// Columns run Project Name -> User (admin view only) -> Priority -> Date,
+// with Project Name and Date sharing the same larger text size so both
+// read as the two "headline" pieces of info in the row.
 // `getOwner`, when passed (admin/History view), shows whose task it is.
-// `onLogWork`, when passed, adds a "Log Work" button next to each item's
-// date that jumps straight to the Work Log pre-filled for that date.
+// `showDate` hides the Date column entirely (used for Yesterday Pending,
+// where every row is implicitly "yesterday" so a date is redundant).
+// `onLogWork`, when passed, adds a "Log Work" button that jumps straight to
+// the Work Log pre-filled for that date.
 const PendingProjectList = ({
   items,
   getOwner,
   onLogWork,
+  showDate = true,
 }: {
   items: TaskAssignment[];
   getOwner?: (a: TaskAssignment) => string;
   onLogWork?: (a: TaskAssignment) => void;
+  showDate?: boolean;
 }) => (
   items.length === 0 ? (
     <p className="text-xs font-semibold text-gray-400">Nothing pending — all caught up.</p>
   ) : (
-    <div className="space-y-1.5 max-h-64 overflow-y-auto pr-1">
-      {sortPendingFirst(items).map((a) => (
-        <div key={a.id} className="flex items-center justify-between text-sm font-bold text-gray-700">
-          <span className="truncate pr-2">
-            {a.projectName}
-            {getOwner && <span className="block text-[10px] text-gray-400 font-semibold">{getOwner(a)}</span>}
-          </span>
-          <div className="flex items-center gap-2 shrink-0">
-            <Badge priority={a.priority} />
-            <span className="text-[10px] text-gray-400 font-semibold">{a.date}</span>
+    <div className="max-h-80 overflow-y-auto pr-1">
+      <div className="flex items-center gap-3 px-2.5 pb-2 mb-1.5 border-b border-gray-100">
+        <span className="flex-1 min-w-0 text-[10px] font-black text-gray-400 uppercase tracking-wider">Project</span>
+        {getOwner && (
+          <span className="w-24 shrink-0 text-[10px] font-black text-gray-400 uppercase tracking-wider text-right">User</span>
+        )}
+        <span className="w-12 shrink-0 text-[10px] font-black text-gray-400 uppercase tracking-wider text-center">Priority</span>
+        {showDate && (
+          <span className="w-[84px] shrink-0 text-[10px] font-black text-gray-400 uppercase tracking-wider text-right">Date</span>
+        )}
+      </div>
+      <div className="space-y-1">
+        {sortPendingFirst(items).map((a) => (
+          <div key={a.id} className="flex items-center gap-3 px-2.5 py-2 rounded-xl hover:bg-gray-50 transition-colors">
+            <span className="flex-1 min-w-0 truncate text-[15px] font-black text-gray-800">{a.projectName}</span>
+            {getOwner && (
+              <span className="w-24 shrink-0 truncate text-[11px] font-bold text-gray-500 text-right" title={getOwner(a)}>
+                {getOwner(a)}
+              </span>
+            )}
+            <div className="w-12 shrink-0 flex justify-center">
+              <Badge priority={a.priority} />
+            </div>
+            {showDate && (
+              <span className="w-[84px] shrink-0 text-[15px] font-black text-gray-800 text-right whitespace-nowrap">
+                {a.date}
+              </span>
+            )}
             {onLogWork && (
               <button
                 type="button"
                 onClick={() => onLogWork(a)}
-                className="flex items-center gap-1 px-2 py-1 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-black rounded-lg transition cursor-pointer"
+                className="flex items-center gap-1 px-2 py-1 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-black rounded-lg transition cursor-pointer shrink-0"
               >
                 <PenTool size={11} />
                 Log Work
               </button>
             )}
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
   )
 );
@@ -231,6 +274,11 @@ export default function TaskLineup({
   const [historyCalDay, setHistoryCalDay] = useState<string | null>(null);
   const [historyCalAssignments, setHistoryCalAssignments] = useState<TaskAssignment[]>([]);
   const [historyCalLoading, setHistoryCalLoading] = useState(false);
+
+  // Per-day { total, pending } counts for every day in the visible month —
+  // powers the calendar's green (all Submitted) → red (all Pending)
+  // heatmap shading. Keyed by "YYYY-MM-DD".
+  const [historyCalMonthSummary, setHistoryCalMonthSummary] = useState<Record<string, { total: number; pending: number }>>({});
 
   const activeDate = date || todayStr();
 
@@ -308,11 +356,33 @@ export default function TaskLineup({
     }
   }, [authHeaders]);
 
+  // Fetch the whole visible month's per-day submitted/pending counts in one
+  // request, for the History tab's heatmap calendar.
+  const loadHistoryCalMonthSummary = useCallback(async (year: number, monthIndex: number) => {
+    try {
+      const res = await fetch(`/api/task-lineup/month-summary?year=${year}&month=${monthIndex + 1}`, { headers: authHeaders });
+      const data = await res.json();
+      setHistoryCalMonthSummary(data && typeof data.days === 'object' && data.days ? data.days : {});
+    } catch (err) {
+      console.error('Failed to load month summary:', err);
+      setHistoryCalMonthSummary({});
+    }
+  }, [authHeaders]);
+
   useEffect(() => {
     loadLineup(activeDate);
     if (!isAdmin) loadPendingSummary();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeDate, loadLineup, isAdmin, loadPendingSummary]);
+
+  // Refresh the heatmap whenever the History tab's calendar month changes
+  // (including the first time it's opened).
+  useEffect(() => {
+    if (view === 'history') {
+      loadHistoryCalMonthSummary(historyCalYear, historyCalMonth);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view, historyCalYear, historyCalMonth]);
 
   useEffect(() => {
     if (isAdmin) {
@@ -939,21 +1009,23 @@ export default function TaskLineup({
       {view === 'history' && (
         <div className="space-y-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* Left: Yesterday Pending */}
-            <div className="bg-white rounded-2xl border border-gray-150 p-4 shadow-xs">
-              <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">
+            {/* Left: Yesterday Pending — no Date column since every row here
+                is implicitly "yesterday". */}
+            <div className="bg-white rounded-2xl border border-gray-150 p-5 shadow-xs min-h-[320px]">
+              <p className="text-xs font-black text-gray-500 uppercase tracking-wider mb-3">
                 Yesterday Pending ({historyYesterdayPending.length})
               </p>
               <PendingProjectList
                 items={historyYesterdayPending}
                 getOwner={isAdmin ? (a) => nameFor(a.userEmail) : undefined}
                 onLogWork={!isAdmin ? (a) => onJumpToWorkLog(a.projectId, a.date) : undefined}
+                showDate={false}
               />
             </div>
             {/* Right: Total Pending — the signed-in user's own all-time
                 total, or, for admins, every user's pooled together. */}
-            <div className="bg-white rounded-2xl border border-gray-150 p-4 shadow-xs">
-              <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">
+            <div className="bg-white rounded-2xl border border-gray-150 p-5 shadow-xs min-h-[320px]">
+              <p className="text-xs font-black text-gray-500 uppercase tracking-wider mb-3">
                 Total Pending ({historyTotalPending.length})
               </p>
               <PendingProjectList
@@ -1010,23 +1082,27 @@ export default function TaskLineup({
                 </div>
               </div>
 
-              <div className="p-5 grid grid-cols-1 lg:grid-cols-12 gap-6">
-                {/* Left: calendar grid */}
-                <div className="lg:col-span-7 bg-slate-50/50 p-5 rounded-2xl border border-slate-150/60 shadow-inner">
-                  <div className="grid grid-cols-7 gap-2 mb-3 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest">
+              <div className="p-4 grid grid-cols-1 lg:grid-cols-12 gap-4">
+                {/* Left: calendar grid, shaded as a green (all Submitted) →
+                    red (all Pending) heatmap so the day's status is visible
+                    at a glance without clicking in. */}
+                <div className="lg:col-span-7 bg-slate-50/50 p-3.5 rounded-xl border border-slate-150/60 shadow-inner">
+                  <div className="grid grid-cols-7 gap-1.5 mb-2 text-center text-[9px] font-black text-slate-400 uppercase tracking-widest">
                     <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
                   </div>
-                  <div className="grid grid-cols-7 gap-2">
+                  <div className="grid grid-cols-7 gap-1.5">
                     {historyCalMonthDays.blanks.map((_, idx) => (
                       <div
                         key={`hcal-blank-${idx}`}
-                        className="aspect-square bg-slate-50/30 rounded-xl border border-dashed border-slate-200/20 opacity-20 select-none"
+                        className="aspect-square bg-slate-50/30 rounded-lg border border-dashed border-slate-200/20 opacity-20 select-none"
                       />
                     ))}
                     {historyCalMonthDays.days.map((day) => {
                       const dateStr = `${historyCalYear}-${String(historyCalMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
                       const isSelected = historyCalDay === dateStr;
                       const isFuture = dateStr > todayStr();
+                      const stat = historyCalMonthSummary[dateStr];
+                      const heat = !isFuture ? heatmapClassesForDay(stat) : null;
                       return (
                         <button
                           key={`hcal-day-${day}`}
@@ -1036,12 +1112,15 @@ export default function TaskLineup({
                             setHistoryCalDay(dateStr);
                             loadHistoryCalDay(dateStr);
                           }}
-                          className={`aspect-square rounded-2xl flex items-center justify-center text-[12px] font-black transition-all duration-200 select-none ${
+                          title={heat && stat ? `${stat.total - stat.pending} submitted · ${stat.pending} pending` : undefined}
+                          className={`aspect-square rounded-lg flex items-center justify-center text-[11px] font-black transition-all duration-200 select-none border ${
                             isFuture
-                              ? 'bg-slate-50 text-slate-300 cursor-not-allowed'
+                              ? 'bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed'
+                              : heat
+                              ? `${heat.cell} ${isSelected ? `ring-2 ${heat.ring} ring-offset-1 scale-105 shadow-xs` : 'hover:scale-105 hover:shadow-xs'} cursor-pointer`
                               : isSelected
-                              ? 'bg-indigo-600 text-white shadow-xs ring-2 ring-indigo-300 ring-offset-1 scale-105 cursor-pointer'
-                              : 'bg-white border border-slate-200 text-slate-600 hover:bg-indigo-50 hover:border-indigo-200 cursor-pointer'
+                              ? 'bg-indigo-600 border-indigo-600 text-white shadow-xs ring-2 ring-indigo-300 ring-offset-1 scale-105 cursor-pointer'
+                              : 'bg-white border-slate-200 text-slate-600 hover:bg-indigo-50 hover:border-indigo-200 cursor-pointer'
                           }`}
                         >
                           {day}
@@ -1049,7 +1128,19 @@ export default function TaskLineup({
                       );
                     })}
                   </div>
-                  <p className="mt-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                  <div className="mt-3 pt-2.5 border-t border-slate-200/60 flex items-center justify-between gap-2 flex-wrap">
+                    <span className="text-[9px] font-black text-green-700 uppercase tracking-wider">All Submitted</span>
+                    <div className="flex items-center gap-1">
+                      <div className="w-3 h-3 rounded bg-green-500 border border-green-600" title="All submitted" />
+                      <div className="w-3 h-3 rounded bg-green-300 border border-green-400" title="Mostly submitted" />
+                      <div className="w-3 h-3 rounded bg-yellow-300 border border-yellow-400" title="About half pending" />
+                      <div className="w-3 h-3 rounded bg-orange-300 border border-orange-400" title="Mostly pending" />
+                      <div className="w-3 h-3 rounded bg-red-300 border border-red-400" title="Almost all pending" />
+                      <div className="w-3 h-3 rounded bg-red-500 border border-red-600" title="All pending" />
+                    </div>
+                    <span className="text-[9px] font-black text-red-700 uppercase tracking-wider">All Pending</span>
+                  </div>
+                  <p className="mt-2.5 text-[9px] font-bold text-slate-400 uppercase tracking-wider">
                     Click any day to see every user's assigned projects and submission status.
                   </p>
                 </div>
