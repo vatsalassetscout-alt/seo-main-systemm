@@ -14,7 +14,6 @@ import {
   FileCheck2,
   Image,
   Tag,
-  Clock,
   Trash2,
   Compass,
   Download,
@@ -894,71 +893,71 @@ export default function DSRLogs({
                       : 'border-slate-150 hover:border-slate-200/90 shadow-2xs hover:shadow-3xs'
                   }`}
                 >
-                  {/* Card Main Bar — one flowing row with literal "|" pipe separators
-                      between each segment: Date | Submitted time | User | Worked/Not
-                      Worked/Total Project | Submission breakdown (plain text, no box) |
-                      Total Backlinks — status + chevron pinned to the end. */}
+                  {/* Card Main Bar — fixed-width CSS grid columns (not flex-wrap) so every
+                      "|" separator lines up in a straight vertical line across every row,
+                      regardless of how long the date/user/breakdown text is. Every column
+                      is always rendered (even when a value is 0 / empty) so the grid never
+                      shifts row-to-row. The grid spans the full row width edge-to-edge, and
+                      the breakdown column ("1fr") absorbs whatever space is left over. */}
                   <div
                     onClick={() => toggleExpand(item.uniqueId)}
-                    className="px-4 py-3.5 sm:px-5 sm:py-4 hover:bg-slate-50/45 cursor-pointer select-none transition-colors"
+                    className="px-4 py-3.5 sm:px-5 sm:py-4 hover:bg-slate-50/45 cursor-pointer select-none transition-colors overflow-x-auto"
                   >
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+                    <div className="grid grid-cols-[124px_12px_176px_12px_156px_12px_268px_12px_minmax(120px,1fr)_12px_168px_136px] items-center gap-x-2 min-w-[1400px] w-full">
 
-                      {/* Date */}
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <Calendar size={14} className="text-indigo-500" />
-                        <span className="text-[14px] font-black text-gray-900 tracking-tight whitespace-nowrap">
-                          {formattedFilledDate}
-                        </span>
-                      </div>
-
-                      <span className="text-slate-300 shrink-0 select-none">|</span>
-
-                      {/* Submitted time — plus the submitted date only if it lands on a
-                          different calendar day than the filled-for date */}
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <Clock size={13} className="text-slate-400" />
-                        <span className="text-[12px] text-slate-500 font-semibold whitespace-nowrap">
-                          Submitted: {submittedTimeStr}
+                      {/* Date — big, with a small "on [actual submitted date] [time]" line
+                          underneath ONLY when this was filled for a past date (i.e. the
+                          entry is backdated / logged later than the day it's for). If it
+                          was filled the same day, nothing extra shows below it. */}
+                      <div className="flex items-start gap-1.5 min-w-0">
+                        <Calendar size={14} className="text-indigo-500 mt-0.5 shrink-0" />
+                        <div className="leading-tight min-w-0">
+                          <span className="text-[14px] font-black text-gray-900 tracking-tight whitespace-nowrap block truncate">
+                            {formattedFilledDate}
+                          </span>
                           {submittedOnDifferentDate && (
-                            <span className="text-slate-400"> on {submittedDateOnlyStr}</span>
+                            <span className="text-[10.5px] text-slate-400 font-semibold whitespace-nowrap block truncate">
+                              on {submittedDateOnlyStr} {submittedTimeStr}
+                            </span>
                           )}
-                        </span>
+                        </div>
                       </div>
 
-                      <span className="text-slate-300 shrink-0 select-none">|</span>
+                      <span className="text-slate-300 select-none text-center">|</span>
 
                       {/* User */}
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <User size={13} className="text-slate-400" />
-                        <span className="text-[12.5px] text-slate-600 font-medium whitespace-nowrap">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <User size={13} className="text-slate-400 shrink-0" />
+                        <span className="text-[12.5px] text-slate-600 font-medium whitespace-nowrap truncate">
                           User: <strong className="text-indigo-700 font-semibold">{activeUserDisplayName}</strong>
                         </span>
                       </div>
 
-                      {/* Worked / Not Worked / Total Project — boxed stat pills, each with
-                          its own colored border (green/red/blue) */}
-                      {totalProjectCount > 0 && (
-                        <>
-                          <span className="text-slate-300 shrink-0 select-none">|</span>
-                          <div className="flex items-center gap-2 shrink-0">
-                            <div className="flex flex-col items-center justify-center px-3.5 py-1.5 rounded-xl border border-emerald-150 bg-emerald-50/50 min-w-[64px] leading-tight">
-                              <span className="text-[9.5px] font-bold text-emerald-600 uppercase tracking-wider">Worked</span>
-                              <span className="text-[16px] font-black text-emerald-600">{workedProjectCount}</span>
-                            </div>
-                            <div className="flex flex-col items-center justify-center px-3.5 py-1.5 rounded-xl border border-rose-150 bg-rose-50/50 min-w-[76px] leading-tight">
-                              <span className="text-[9.5px] font-bold text-rose-600 uppercase tracking-wider whitespace-nowrap">Not Worked</span>
-                              <span className="text-[16px] font-black text-rose-600">{notWorkedProjectCount}</span>
-                            </div>
-                            <div className="flex flex-col items-center justify-center px-3.5 py-1.5 rounded-xl border border-indigo-150 bg-indigo-50/50 min-w-[86px] leading-tight">
-                              <span className="text-[9.5px] font-bold text-indigo-600 uppercase tracking-wider whitespace-nowrap">Total Project</span>
-                              <span className="text-[16px] font-black text-indigo-650">{totalProjectCount}</span>
-                            </div>
-                          </div>
-                        </>
-                      )}
+                      <span className="text-slate-300 select-none text-center">|</span>
 
-                      {/* Submission distribution — plain flowing text, no border/box around it */}
+                      {/* Worked / Not Worked / Total Project — boxed stat pills, each with
+                          its own colored border (green/red/blue). Always rendered (even at
+                          0/0/0) so this column never collapses and breaks the grid. */}
+                      <div className="flex items-center gap-2">
+                        <div className="flex flex-col items-center justify-center px-3 py-1.5 rounded-xl border border-emerald-150 bg-emerald-50/50 flex-1 leading-tight">
+                          <span className="text-[9.5px] font-bold text-emerald-600 uppercase tracking-wider">Worked</span>
+                          <span className="text-[16px] font-black text-emerald-600">{workedProjectCount}</span>
+                        </div>
+                        <div className="flex flex-col items-center justify-center px-3 py-1.5 rounded-xl border border-rose-150 bg-rose-50/50 flex-1 leading-tight">
+                          <span className="text-[9.5px] font-bold text-rose-600 uppercase tracking-wider whitespace-nowrap">Not Worked</span>
+                          <span className="text-[16px] font-black text-rose-600">{notWorkedProjectCount}</span>
+                        </div>
+                        <div className="flex flex-col items-center justify-center px-3 py-1.5 rounded-xl border border-indigo-150 bg-indigo-50/50 flex-1 leading-tight">
+                          <span className="text-[9.5px] font-bold text-indigo-600 uppercase tracking-wider whitespace-nowrap">Total Project</span>
+                          <span className="text-[16px] font-black text-indigo-650">{totalProjectCount}</span>
+                        </div>
+                      </div>
+
+                      <span className="text-slate-300 select-none text-center">|</span>
+
+                      {/* Submission distribution — plain flowing text, fills the leftover
+                          width of the row (this column is "1fr"). Shows a dash when a day
+                          has no submission counts, so the column stays present either way. */}
                       {(() => {
                         const countEntries: { label: string; value: number }[] = [
                           { label: 'List', value: totalListings },
@@ -975,43 +974,52 @@ export default function DSRLogs({
                           }))
                         ].filter((entry) => entry.value > 0);
 
-                        const grandTotal = countEntries.reduce((sum, entry) => sum + entry.value, 0);
-
                         return (
-                          <>
-                            {countEntries.length > 0 && (
-                              <>
-                                <span className="text-slate-300 shrink-0 select-none">|</span>
-                                <div className="min-w-0 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12.5px] text-slate-600 font-medium">
-                                  {countEntries.map((entry, idx) => (
-                                    <React.Fragment key={entry.label}>
-                                      {idx > 0 && <span className="text-slate-300">•</span>}
-                                      <span title={entry.label} className="whitespace-nowrap">
-                                        <span className="font-bold text-slate-800">{entry.value}</span> {entry.label}
-                                      </span>
-                                    </React.Fragment>
-                                  ))}
-                                </div>
-                              </>
-                            )}
-
-                            {grandTotal > 0 && (
-                              <>
-                                <span className="text-slate-300 shrink-0 select-none">|</span>
-                                <div className="flex items-center gap-1.5 shrink-0">
-                                  <Layers size={13} className="text-indigo-400" />
-                                  <span className="text-[12.5px] font-bold text-indigo-700 whitespace-nowrap">
-                                    {grandTotal} Total Backlinks
+                          <div className="min-w-0 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12.5px] text-slate-600 font-medium">
+                            {countEntries.length > 0 ? (
+                              countEntries.map((entry, idx) => (
+                                <React.Fragment key={entry.label}>
+                                  {idx > 0 && <span className="text-slate-300">•</span>}
+                                  <span title={entry.label} className="whitespace-nowrap">
+                                    <span className="font-bold text-slate-800">{entry.value}</span> {entry.label}
                                   </span>
-                                </div>
-                              </>
+                                </React.Fragment>
+                              ))
+                            ) : (
+                              <span className="text-slate-350">—</span>
                             )}
-                          </>
+                          </div>
                         );
                       })()}
 
-                      {/* Status + expand toggle — pinned to the end of the row */}
-                      <div className="flex items-center gap-2.5 ml-auto shrink-0">
+                      <span className="text-slate-300 select-none text-center">|</span>
+
+                      {/* Total Backlinks — always reserves this column's width; shows a
+                          dash when there's nothing to add up. */}
+                      {(() => {
+                        const grandTotal =
+                          totalListings + totalBlogs + totalForums + totalPdfs + totalImages +
+                          totalVideos + totalProfiles + totalLinks +
+                          (customSubmissionTypes || []).reduce((sum, type) => sum + item.works.reduce((s: number, w: any) => s + (Number(w.customValues?.[type.id]) || 0), 0), 0);
+
+                        return (
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            {grandTotal > 0 ? (
+                              <>
+                                <Layers size={13} className="text-indigo-400 shrink-0" />
+                                <span className="text-[12.5px] font-bold text-indigo-700 whitespace-nowrap truncate">
+                                  {grandTotal} Total Backlinks
+                                </span>
+                              </>
+                            ) : (
+                              <span className="text-slate-350">—</span>
+                            )}
+                          </div>
+                        );
+                      })()}
+
+                      {/* Status + expand toggle — fixed-width column, right-aligned within it */}
+                      <div className="flex items-center gap-2.5 justify-end">
                         {item.status && (
                           <span className={`text-[10.5px] uppercase font-bold px-2.5 py-1.5 rounded-lg border tracking-wider font-sans whitespace-nowrap ${
                             item.status === 'Approved' ? 'bg-emerald-50 text-emerald-800 border-emerald-100' :
