@@ -895,7 +895,7 @@ export default function DSRLogs({
                     onClick={() => toggleExpand(item.uniqueId)}
                     className="px-4 py-3.5 sm:px-5 sm:py-4 hover:bg-slate-50/45 cursor-pointer select-none transition-colors overflow-x-auto"
                   >
-                    <div className="grid grid-cols-[150px_12px_max-content_minmax(20px,1fr)_12px_340px_12px_560px_12px_max-content] items-center gap-x-2 min-w-[1350px] w-full">
+                    <div className="grid grid-cols-[150px_12px_400px_minmax(20px,1fr)_12px_340px_12px_560px_12px_max-content] items-center gap-x-2 min-w-[1350px] w-full">
 
                       {/* Date — big, with a small "on [actual submitted date]" line
                           underneath ONLY when this was filled for a past date (i.e. the
@@ -921,8 +921,11 @@ export default function DSRLogs({
                       {/* User — sits right beside the date, bumped up in size/weight to
                           read as a clear identity marker. No border/box around it — just
                           plain bold text. "Submitted Time" is stuck directly to this same
-                          block, right after the username. */}
-                      <div className="flex items-center gap-2 min-w-0">
+                          block, right after the username. Fixed-width column (sized to
+                          the max expected length of this whole block) so it renders at
+                          the exact same width on every row — the name truncates if it's
+                          ever unusually long, keeping the row perfectly even. */}
+                      <div className="flex items-center gap-2 min-w-0 overflow-hidden">
                         <User size={15} className="text-indigo-500 shrink-0" />
                         <span className="text-[12px] text-slate-500 font-bold uppercase tracking-wide whitespace-nowrap shrink-0">User</span>
                         <strong className="text-[15px] text-indigo-700 font-black whitespace-nowrap truncate min-w-0">
@@ -988,7 +991,7 @@ export default function DSRLogs({
                           (customSubmissionTypes || []).reduce((sum, type) => sum + item.works.reduce((s: number, w: any) => s + (Number(w.customValues?.[type.id]) || 0), 0), 0);
 
                         return (
-                          <div className="max-w-[560px] flex flex-col gap-1">
+                          <div className="max-w-[560px] flex flex-col gap-1 pl-4">
                             <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[12.5px] text-slate-600 font-medium">
                               {countEntries.length > 0 ? (
                                 countEntries.map((entry, idx) => (
@@ -1020,10 +1023,12 @@ export default function DSRLogs({
                           takes exactly the space it needs and no more (no forced fixed
                           width / no wasted space), and sits right after the submission
                           block since both are now clustered together at the row's right
-                          edge. */}
+                          edge. The badge itself has a shared min-width + text-center so
+                          "PENDING" and "APPROVED" (etc.) render at the same size instead
+                          of looking uneven row to row. */}
                       <div className="flex items-center gap-2.5">
                         {item.status && (
-                          <span className={`text-[10.5px] uppercase font-bold px-2.5 py-1.5 rounded-lg border tracking-wider font-sans whitespace-nowrap ${
+                          <span className={`text-[10.5px] uppercase font-bold px-2.5 py-1.5 rounded-lg border tracking-wider font-sans whitespace-nowrap min-w-[96px] text-center ${
                             item.status === 'Approved' ? 'bg-emerald-50 text-emerald-800 border-emerald-100' :
                             item.status === 'Needs Revision' ? 'bg-rose-50 text-rose-855 border-rose-100' :
                             item.status === 'Remark' ? 'bg-violet-50 text-violet-800 border-violet-150' :
