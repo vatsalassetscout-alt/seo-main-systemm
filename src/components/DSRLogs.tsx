@@ -933,33 +933,37 @@ export default function DSRLogs({
 
                       <span className="text-slate-300 select-none text-center">|</span>
 
-                      {/* Admin: user icon + name in a flat FIXED-width column
-                          (userColWidthPx — a constant, not computed off name
-                          length), with the content center-aligned inside that
-                          box so it sits nicely regardless of name length,
-                          followed by Submitted Time. Non-admin: the user is
-                          looking at their own logs, so the name/icon is
-                          pointless — this column shows Submitted Time directly
-                          after Date, nudged right a bit (pl-3) since it no
-                          longer has an icon/name/separator in front of it to
-                          space it out. Either way the Submitted Time text
-                          itself gets a touch of extra left margin (ml-1.5) so
-                          it doesn't sit flush against whatever's immediately
-                          before it. */}
-                      <div className={`flex items-center gap-2 min-w-0 overflow-hidden ${isAdmin ? 'justify-center' : 'pl-3'}`}>
-                        {isAdmin && (
-                          <>
-                            <User size={15} className="text-indigo-500 shrink-0" />
-                            <strong className="text-[15px] text-indigo-700 font-black whitespace-nowrap truncate min-w-0">
-                              {activeUserDisplayName}
-                            </strong>
-                            <span className="text-slate-300 select-none shrink-0">|</span>
-                          </>
-                        )}
-                        <span className="text-[12.5px] text-slate-500 font-semibold whitespace-nowrap shrink-0 ml-1.5">
-                          Submitted Time : <span className="text-slate-700 font-bold">{submittedTimeStr}</span>
-                        </span>
-                      </div>
+                      {/* Admin: user icon (fixed, left) + Submitted Time (fixed,
+                          right) with the name sitting in the flexible middle
+                          slot between them and centered inside it — so the
+                          icon and the time always land in the same spot on
+                          every row, and only the name text re-centers itself
+                          in the space left over, instead of the whole
+                          icon+name+time cluster shifting around together
+                          based on how long any given name happens to be.
+                          Non-admin: the user is looking at their own logs, so
+                          the name/icon is pointless — this column shows
+                          Submitted Time directly after Date, nudged right a
+                          bit (pl-3) since it no longer has an icon/name/
+                          separator in front of it to space it out. */}
+                      {isAdmin ? (
+                        <div className="grid grid-cols-[auto_1fr_auto_auto] items-center gap-2 min-w-0 overflow-hidden">
+                          <User size={15} className="text-indigo-500 shrink-0" />
+                          <strong className="text-[15px] text-indigo-700 font-black whitespace-nowrap truncate text-center min-w-0">
+                            {activeUserDisplayName}
+                          </strong>
+                          <span className="text-slate-300 select-none shrink-0">|</span>
+                          <span className="text-[12.5px] text-slate-500 font-semibold whitespace-nowrap shrink-0 ml-1.5">
+                            Submitted Time : <span className="text-slate-700 font-bold">{submittedTimeStr}</span>
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2 min-w-0 overflow-hidden pl-3">
+                          <span className="text-[12.5px] text-slate-500 font-semibold whitespace-nowrap shrink-0 ml-1.5">
+                            Submitted Time : <span className="text-slate-700 font-bold">{submittedTimeStr}</span>
+                          </span>
+                        </div>
+                      )}
 
                       {/* Flexible spacer — empty; absorbs all leftover row width so the
                           stat pills / submission / status cluster below sticks to the
