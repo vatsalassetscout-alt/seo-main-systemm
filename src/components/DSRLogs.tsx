@@ -895,7 +895,7 @@ export default function DSRLogs({
                     onClick={() => toggleExpand(item.uniqueId)}
                     className="px-4 py-3.5 sm:px-5 sm:py-4 hover:bg-slate-50/45 cursor-pointer select-none transition-colors overflow-x-auto"
                   >
-                    <div className="grid grid-cols-[150px_12px_minmax(0,260px)_minmax(20px,1fr)_12px_340px_12px_560px_12px_max-content] items-center gap-x-2 min-w-[1350px] w-full">
+                    <div className="grid grid-cols-[150px_12px_max-content_minmax(20px,1fr)_12px_340px_12px_560px_12px_max-content] items-center gap-x-2 min-w-[1350px] w-full">
 
                       {/* Date — big, with a small "on [actual submitted date]" line
                           underneath ONLY when this was filled for a past date (i.e. the
@@ -920,13 +920,18 @@ export default function DSRLogs({
 
                       {/* User — sits right beside the date, bumped up in size/weight to
                           read as a clear identity marker. No border/box around it — just
-                          plain bold text. */}
+                          plain bold text. "Submitted Time" is stuck directly to this same
+                          block, right after the username. */}
                       <div className="flex items-center gap-2 min-w-0">
                         <User size={15} className="text-indigo-500 shrink-0" />
                         <span className="text-[12px] text-slate-500 font-bold uppercase tracking-wide whitespace-nowrap shrink-0">User</span>
                         <strong className="text-[15px] text-indigo-700 font-black whitespace-nowrap truncate min-w-0">
                           {activeUserDisplayName}
                         </strong>
+                        <span className="text-slate-300 select-none shrink-0">|</span>
+                        <span className="text-[11.5px] text-slate-500 font-semibold whitespace-nowrap shrink-0">
+                          Submitted Time : <span className="text-slate-700 font-bold">{submittedTimeStr}</span>
+                        </span>
                       </div>
 
                       {/* Flexible spacer — empty; absorbs all leftover row width so the
@@ -956,12 +961,11 @@ export default function DSRLogs({
 
                       <span className="text-slate-300 select-none text-center">|</span>
 
-                      {/* Submission distribution + Total Backlinks — merged into a single
-                          flowing group (backlinks attached right after the breakdown, no
-                          divider between them). Fixed max-width sized to comfortably fit
-                          the worst case (every submission type + Total Backlinks); wraps
-                          to a second line if needed instead of growing the column. Shows
-                          a dash when empty. */}
+                      {/* Submission distribution + Total Backlinks — two lines in the same
+                          block: the breakdown list on top (wraps as needed), and the
+                          grand total stuck to the bottom-right of the same block. Fixed
+                          max-width sized to comfortably fit the worst case (every
+                          submission type). Shows a dash when empty. */}
                       {(() => {
                         const countEntries: { label: string; value: number }[] = [
                           { label: 'List', value: totalListings },
@@ -984,28 +988,27 @@ export default function DSRLogs({
                           (customSubmissionTypes || []).reduce((sum, type) => sum + item.works.reduce((s: number, w: any) => s + (Number(w.customValues?.[type.id]) || 0), 0), 0);
 
                         return (
-                          <div className="max-w-[560px] flex flex-wrap items-center gap-x-2 gap-y-1 text-[12.5px] text-slate-600 font-medium">
-                            {countEntries.length > 0 ? (
-                              countEntries.map((entry, idx) => (
-                                <React.Fragment key={entry.label}>
-                                  {idx > 0 && <span className="text-slate-300">•</span>}
-                                  <span title={entry.label} className="whitespace-nowrap">
-                                    <span className="font-bold text-slate-800">{entry.value}</span> {entry.label}
-                                  </span>
-                                </React.Fragment>
-                              ))
-                            ) : (
-                              <span className="text-slate-350">—</span>
-                            )}
+                          <div className="max-w-[560px] flex flex-col gap-1">
+                            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[12.5px] text-slate-600 font-medium">
+                              {countEntries.length > 0 ? (
+                                countEntries.map((entry, idx) => (
+                                  <React.Fragment key={entry.label}>
+                                    {idx > 0 && <span className="text-slate-300">•</span>}
+                                    <span title={entry.label} className="whitespace-nowrap">
+                                      <span className="font-bold text-slate-800">{entry.value}</span> {entry.label}
+                                    </span>
+                                  </React.Fragment>
+                                ))
+                              ) : (
+                                <span className="text-slate-350">—</span>
+                              )}
+                            </div>
 
                             {grandTotal > 0 && (
-                              <>
-                                <span className="text-slate-300">•</span>
-                                <span className="flex items-center gap-1.5 whitespace-nowrap">
-                                  <Layers size={13} className="text-indigo-400 shrink-0" />
-                                  <span className="font-bold text-indigo-700">{grandTotal} Total Backlinks</span>
-                                </span>
-                              </>
+                              <div className="flex items-center justify-end gap-1.5 whitespace-nowrap">
+                                <Layers size={13} className="text-indigo-400 shrink-0" />
+                                <span className="text-[12.5px] font-bold text-indigo-700">{grandTotal} Total Backlinks</span>
+                              </div>
                             )}
                           </div>
                         );
