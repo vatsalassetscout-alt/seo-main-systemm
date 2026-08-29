@@ -883,18 +883,19 @@ export default function DSRLogs({
                       : 'border-slate-150 hover:border-slate-200/90 shadow-2xs hover:shadow-3xs'
                   }`}
                 >
-                  {/* Card Main Bar — fixed-width CSS grid columns (not flex) so every
-                      column, especially the 3 project-count boxes, renders at the exact
-                      same x-position on every row regardless of how long the date/user
-                      name/submission text happens to be. Order: Date → User → stat pills
-                      (Worked / Not Worked / Total Project) → submission breakdown merged
-                      with Total Backlinks (the "1fr" column, absorbs leftover space) →
-                      Status + expand toggle (right-aligned within its own fixed column). */}
+                  {/* Card Main Bar — fixed-width CSS grid columns. Date + User sit on the
+                      left; a flexible spacer right after User absorbs all leftover row
+                      width, so the 3 project-count boxes, the submission breakdown, and
+                      Status all sit clustered together, stuck to the right edge, on every
+                      row — regardless of how long the date/user name happens to be.
+                      Status has no forced width; it's sized to exactly what it needs
+                      (max-content). Submission has a generous fixed max-width sized to
+                      fit the worst case (every submission type + Total Backlinks). */}
                   <div
                     onClick={() => toggleExpand(item.uniqueId)}
                     className="px-4 py-3.5 sm:px-5 sm:py-4 hover:bg-slate-50/45 cursor-pointer select-none transition-colors overflow-x-auto"
                   >
-                    <div className="grid grid-cols-[150px_12px_200px_12px_340px_12px_minmax(160px,1fr)_12px_190px] items-center gap-x-2 min-w-[1250px] w-full">
+                    <div className="grid grid-cols-[150px_12px_minmax(0,260px)_minmax(20px,1fr)_12px_340px_12px_560px_12px_max-content] items-center gap-x-2 min-w-[1350px] w-full">
 
                       {/* Date — big, with a small "on [actual submitted date]" line
                           underneath ONLY when this was filled for a past date (i.e. the
@@ -917,18 +918,21 @@ export default function DSRLogs({
 
                       <span className="text-slate-300 select-none text-center">|</span>
 
-                      {/* User — sits right beside the date (left cluster), bumped up in
-                          size/weight and given its own soft pill so it reads as a clear
-                          identity marker in the row, not a throwaway label. Fixed-width
-                          column with a truncating name so this cell never changes width
-                          and shift everything to its right. */}
-                      <div className="flex items-center gap-2 min-w-0 pl-2.5 pr-3 py-1.5 rounded-xl bg-indigo-50/40 border border-indigo-100">
+                      {/* User — sits right beside the date, bumped up in size/weight to
+                          read as a clear identity marker. No border/box around it — just
+                          plain bold text. */}
+                      <div className="flex items-center gap-2 min-w-0">
                         <User size={15} className="text-indigo-500 shrink-0" />
                         <span className="text-[12px] text-slate-500 font-bold uppercase tracking-wide whitespace-nowrap shrink-0">User</span>
                         <strong className="text-[15px] text-indigo-700 font-black whitespace-nowrap truncate min-w-0">
                           {activeUserDisplayName}
                         </strong>
                       </div>
+
+                      {/* Flexible spacer — empty; absorbs all leftover row width so the
+                          stat pills / submission / status cluster below sticks to the
+                          right edge on every row. */}
+                      <div />
 
                       <span className="text-slate-300 select-none text-center">|</span>
 
@@ -954,9 +958,10 @@ export default function DSRLogs({
 
                       {/* Submission distribution + Total Backlinks — merged into a single
                           flowing group (backlinks attached right after the breakdown, no
-                          divider between them). This is the "1fr" column, so it absorbs
-                          all leftover row width; Status still lands in its own fixed
-                          column right after it either way. Shows a dash when empty. */}
+                          divider between them). Fixed max-width sized to comfortably fit
+                          the worst case (every submission type + Total Backlinks); wraps
+                          to a second line if needed instead of growing the column. Shows
+                          a dash when empty. */}
                       {(() => {
                         const countEntries: { label: string; value: number }[] = [
                           { label: 'List', value: totalListings },
@@ -979,7 +984,7 @@ export default function DSRLogs({
                           (customSubmissionTypes || []).reduce((sum, type) => sum + item.works.reduce((s: number, w: any) => s + (Number(w.customValues?.[type.id]) || 0), 0), 0);
 
                         return (
-                          <div className="min-w-0 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12.5px] text-slate-600 font-medium">
+                          <div className="max-w-[560px] flex flex-wrap items-center gap-x-2 gap-y-1 text-[12.5px] text-slate-600 font-medium">
                             {countEntries.length > 0 ? (
                               countEntries.map((entry, idx) => (
                                 <React.Fragment key={entry.label}>
@@ -1008,10 +1013,12 @@ export default function DSRLogs({
 
                       <span className="text-slate-300 select-none text-center">|</span>
 
-                      {/* Status + expand toggle — its own fixed-width column, right-aligned
-                          within it, so it always lands flush against the row's right edge
-                          on every log regardless of the content to its left. */}
-                      <div className="flex items-center gap-2.5 justify-end">
+                      {/* Status + expand toggle — column is "max-content" width, i.e. it
+                          takes exactly the space it needs and no more (no forced fixed
+                          width / no wasted space), and sits right after the submission
+                          block since both are now clustered together at the row's right
+                          edge. */}
+                      <div className="flex items-center gap-2.5">
                         {item.status && (
                           <span className={`text-[10.5px] uppercase font-bold px-2.5 py-1.5 rounded-lg border tracking-wider font-sans whitespace-nowrap ${
                             item.status === 'Approved' ? 'bg-emerald-50 text-emerald-800 border-emerald-100' :
