@@ -1012,6 +1012,19 @@ export default function DSRDashboard({
       const priority = pendingChanges[p.id]?.priority !== undefined ? pendingChanges[p.id].priority : p.priority;
       const frequency = pendingChanges[p.id]?.frequency !== undefined ? pendingChanges[p.id].frequency : p.frequency;
 
+      // Best (lowest/top) keyword ranking for this project across all tracked keywords - same
+      // computation used in the Idle Projects tab's Best Ranking column.
+      const projRankings: Record<string, { ranking: string; lastChecked: string }> = rankings[p.id] || {};
+      let bestRanking: number | null = null;
+      let bestRankingLastChecked: string | null = null;
+      Object.values(projRankings).forEach((r) => {
+        const parsed = parseInt(String(r?.ranking ?? '').replace(/[^0-9]/g, ''), 10);
+        if (!isNaN(parsed) && (bestRanking === null || parsed < bestRanking)) {
+          bestRanking = parsed;
+          bestRankingLastChecked = r?.lastChecked || null;
+        }
+      });
+
       return {
         id: p.id,
         name: p.name,
@@ -1030,6 +1043,8 @@ export default function DSRDashboard({
         priority,
         frequency,
         keywords: p.keywords || [],
+        bestRanking,
+        bestRankingLastChecked,
       };
     });
 
@@ -1052,7 +1067,7 @@ export default function DSRDashboard({
       ...item,
       srNo: idx + 1
     }));
-  }, [filteredProjectsForMetrics, filteredWorks, enrichedWorks, pendingChanges]);
+  }, [filteredProjectsForMetrics, filteredWorks, enrichedWorks, pendingChanges, rankings]);
 
   // Computation of days in current selection
   const timeSpanDays = useMemo(() => {
@@ -2151,10 +2166,12 @@ export default function DSRDashboard({
                     <th className="px-4 py-3.5 bg-slate-50">Project Name</th>
                     <th className="px-4 py-3.5 bg-slate-50">Domain</th>
                     <th className="px-4 py-3.5 w-28 bg-slate-50">Priority</th>
+                    <th className="px-4 py-3.5 w-28 text-center bg-slate-50">Best Ranking</th>
                     <th className="px-4 py-3.5 w-32 text-center bg-slate-50">Times Worked / Not Worked</th>
                     <th className="px-4 py-3.5 w-44 bg-slate-50">Last Worked</th>
                     <th className="px-4 py-3.5 bg-slate-50">User</th>
                     {isAdmin && <th className="px-4 py-3.5 w-44 bg-slate-50">Admin Actions</th>}
+                    {isAdmin && <th className="px-4 py-3.5 w-24 text-center bg-slate-50">Action</th>}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-150">
@@ -2214,6 +2231,21 @@ export default function DSRDashboard({
                             <span className="text-[10px] font-bold text-gray-400 italic">
                               — none —
                             </span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3.5 text-center">
+                          {item.bestRanking !== null && item.bestRanking !== undefined ? (
+                            <span className={`inline-flex items-center justify-center font-mono font-black text-[10px] px-2 py-0.5 rounded border whitespace-nowrap ${
+                              item.bestRanking <= 10
+                                ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
+                                : item.bestRanking <= 30
+                                ? 'bg-amber-50 text-amber-700 border-amber-100'
+                                : 'bg-rose-50 text-rose-700 border-rose-100'
+                            }`}>
+                              #{item.bestRanking}
+                            </span>
+                          ) : (
+                            <span className="text-[10px] font-bold text-gray-300 italic">—</span>
                           )}
                         </td>
                         <td className="px-4 py-3.5 text-center font-mono font-bold text-gray-700">
@@ -2300,6 +2332,16 @@ export default function DSRDashboard({
                                 <option value="X5">X5</option>
                               </select>
                             </div>
+                          </td>
+                        )}
+                        {isAdmin && (
+                          <td className="px-4 py-3.5 text-center">
+                            <button
+                              onClick={() => setSelectedPlanProject(item)}
+                              className="inline-flex items-center gap-1 bg-indigo-50 text-indigo-750 font-black uppercase text-[10px] px-3 py-1.5 rounded-xl border border-indigo-200 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition shadow-3xs cursor-pointer"
+                            >
+                              Plan
+                            </button>
                           </td>
                         )}
                       </tr>
