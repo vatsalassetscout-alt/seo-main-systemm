@@ -2174,21 +2174,34 @@ export default function DSRDashboard({
               </div>
             </div>
 
-            <div className="overflow-x-auto overflow-y-auto" style={{ maxHeight: dynamicTableMaxHeight }}>
-              <table className="w-auto min-w-full text-left text-[15px] table-auto">
-                <thead className="bg-slate-50 text-slate-500 font-bold text-[12px] uppercase tracking-normal border-b border-gray-150 sticky top-0 z-10">
+            <div className="overflow-y-auto overflow-x-hidden" style={{ maxHeight: dynamicTableMaxHeight }}>
+              <table className="w-full text-left text-[13px] table-fixed">
+                <colgroup>
+                  <col style={{ width: isAdmin ? '4%' : '5%' }} />
+                  <col style={{ width: isAdmin ? '14%' : '19%' }} />
+                  <col style={{ width: isAdmin ? '11%' : '15%' }} />
+                  <col style={{ width: isAdmin ? '7%' : '9%' }} />
+                  <col style={{ width: isAdmin ? '8%' : '10%' }} />
+                  <col style={{ width: isAdmin ? '10%' : '13%' }} />
+                  <col style={{ width: isAdmin ? '12%' : '17%' }} />
+                  <col style={{ width: isAdmin ? '8%' : '12%' }} />
+                  {isAdmin && <col style={{ width: '11%' }} />}
+                  {isAdmin && <col style={{ width: '9%' }} />}
+                  {isAdmin && <col style={{ width: '6%' }} />}
+                </colgroup>
+                <thead className="bg-slate-50 text-slate-500 font-bold text-[11px] uppercase tracking-normal border-b border-gray-150 sticky top-0 z-10">
                   <tr>
-                    <th className="px-5 py-4 whitespace-nowrap bg-slate-50">Sr No.</th>
-                    <th className="px-5 py-4 whitespace-nowrap bg-slate-50">Project Name</th>
-                    <th className="px-5 py-4 whitespace-nowrap bg-slate-50">Domain</th>
-                    <th className="px-5 py-4 whitespace-nowrap bg-slate-50">Priority</th>
-                    <th className="px-5 py-4 text-center whitespace-nowrap bg-slate-50">Best Ranking</th>
-                    <th className="px-5 py-4 text-center whitespace-nowrap bg-slate-50">Times Worked / Not Worked</th>
-                    <th className="px-5 py-4 whitespace-nowrap bg-slate-50">Last Worked</th>
-                    <th className="px-5 py-4 text-center whitespace-nowrap bg-slate-50">Total Keywords</th>
-                    {isAdmin && <th className="px-5 py-4 whitespace-nowrap bg-slate-50">User</th>}
-                    {isAdmin && <th className="px-5 py-4 whitespace-nowrap bg-slate-50">Admin Actions</th>}
-                    {isAdmin && <th className="px-5 py-4 text-center whitespace-nowrap bg-slate-50">Action</th>}
+                    <th className="px-2 py-3 truncate bg-slate-50">Sr No.</th>
+                    <th className="px-2 py-3 truncate bg-slate-50">Project Name</th>
+                    <th className="px-2 py-3 truncate bg-slate-50">Domain</th>
+                    <th className="px-2 py-3 truncate bg-slate-50">Priority</th>
+                    <th className="px-2 py-3 text-center truncate bg-slate-50">Best Ranking</th>
+                    <th className="px-2 py-3 text-center truncate bg-slate-50">Worked / Not Worked</th>
+                    <th className="px-2 py-3 truncate bg-slate-50">Last Worked</th>
+                    <th className="px-2 py-3 text-center truncate bg-slate-50">Keywords</th>
+                    {isAdmin && <th className="px-2 py-3 truncate bg-slate-50">User</th>}
+                    {isAdmin && <th className="px-2 py-3 truncate bg-slate-50">Admin Actions</th>}
+                    {isAdmin && <th className="px-2 py-3 text-center truncate bg-slate-50">Action</th>}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-150">
@@ -2198,19 +2211,20 @@ export default function DSRDashboard({
                         key={item.id}
                         className="hover:bg-slate-50/60 transition-colors"
                       >
-                        <td className="px-5 py-5 whitespace-nowrap font-semibold text-indigo-600">{item.srNo}</td>
-                        <td className="px-5 py-5 whitespace-nowrap">
-                          <div className="flex items-center gap-2">
-                            <span className="text-[15px] font-bold text-gray-900">{item.name}</span>
+                        <td className="px-2 py-3 truncate font-semibold text-indigo-600">{item.srNo}</td>
+                        <td className="px-2 py-3">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="text-[13px] font-bold text-gray-900 truncate block" title={item.name}>{item.name}</span>
                           </div>
                         </td>
-                        <td className="px-5 py-5 whitespace-nowrap text-gray-600">
+                        <td className="px-2 py-3 text-gray-600">
                           {item.domain ? (
                             <a 
                               href={domainHref(item.domain)} 
                               target="_blank" 
                               rel="noreferrer" 
-                              className="text-[14px] text-indigo-700 hover:underline font-semibold"
+                              className="text-[12px] text-indigo-700 hover:underline font-semibold truncate block"
+                              title={cleanDomain(item.domain)}
                             >
                               {cleanDomain(item.domain)}
                             </a>
@@ -2218,7 +2232,7 @@ export default function DSRDashboard({
                             <span className="text-gray-400 italic">—</span>
                           )}
                         </td>
-                        <td className="px-5 py-5 whitespace-nowrap">
+                        <td className="px-2 py-3 truncate">
                           {item.priority === 'X1' && (
                             <span className="inline-flex items-center gap-1 bg-red-50 text-red-700 text-[11px] font-black px-2.5 py-1 rounded border border-red-100 uppercase tracking-wider">
                                X1
@@ -2250,9 +2264,9 @@ export default function DSRDashboard({
                             </span>
                           )}
                         </td>
-                        <td className="px-5 py-5 whitespace-nowrap text-center">
+                        <td className="px-2 py-3 text-center">
                           {item.bestRanking !== null && item.bestRanking !== undefined ? (
-                            <span className={`inline-flex items-center justify-center font-bold text-[12px] px-2.5 py-1 rounded border whitespace-nowrap ${
+                            <span className={`inline-flex items-center justify-center font-bold text-[11px] px-1.5 py-1 rounded border whitespace-nowrap ${
                               item.bestRanking <= 10
                                 ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
                                 : item.bestRanking <= 30
@@ -2265,15 +2279,15 @@ export default function DSRDashboard({
                             <span className="text-[11px] font-bold text-gray-300 italic">—</span>
                           )}
                         </td>
-                        <td className="px-5 py-5 whitespace-nowrap text-center font-semibold text-gray-700">
+                        <td className="px-2 py-3 text-center font-semibold text-gray-700 truncate">
                           <span className="text-emerald-700">{item.timesWorked}</span>
                           <span className="text-gray-400"> / </span>
                           <span className="text-red-600">{item.timesNotWorked}</span>
                         </td>
-                        <td className="px-5 py-5 whitespace-nowrap">
+                        <td className="px-2 py-3">
                           {(() => {
                             if (item.lastWorked === 'Never' || !item.lastWorkedAt) {
-                              return <span className="text-[13px] font-semibold text-gray-400 italic">Never</span>;
+                              return <span className="text-[12px] font-semibold text-gray-400 italic">Never</span>;
                             }
                             const d = new Date(item.lastWorkedAt);
                             const diffHrs = (Date.now() - d.getTime()) / (1000 * 60 * 60);
@@ -2288,18 +2302,18 @@ export default function DSRDashboard({
                             const dateLabel = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
                             const timeLabel = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
                             return (
-                              <div className="flex flex-col gap-1">
-                                <span className="text-[14px] font-bold text-gray-800 leading-none">{relLabel}</span>
-                                <span className="text-[13px] font-medium text-gray-600 leading-none">{dateLabel} &middot; {timeLabel}</span>
+                              <div className="flex flex-col gap-0.5 min-w-0">
+                                <span className="text-[12px] font-bold text-gray-800 leading-tight truncate">{relLabel}</span>
+                                <span className="text-[11px] font-medium text-gray-600 leading-tight truncate">{dateLabel} &middot; {timeLabel}</span>
                               </div>
                             );
                           })()}
                         </td>
-                        <td className="px-5 py-5 whitespace-nowrap text-center">
+                        <td className="px-2 py-3 text-center">
                           {(() => {
                             const kwCount = Array.isArray(item.keywords) ? item.keywords.length : 0;
                             return (
-                              <span className={`inline-flex items-center justify-center gap-1.5 font-bold text-[12px] px-3 py-1.5 rounded-full border whitespace-nowrap ${
+                              <span className={`inline-flex items-center justify-center gap-1 font-bold text-[11px] px-2 py-1 rounded-full border whitespace-nowrap ${
                                 kwCount > 0
                                   ? 'bg-indigo-50 text-indigo-700 border-indigo-150'
                                   : 'bg-gray-50 text-gray-400 border-gray-150'
@@ -2311,7 +2325,7 @@ export default function DSRDashboard({
                           })()}
                         </td>
                         {isAdmin && (
-                          <td className="px-5 py-5">
+                          <td className="px-2 py-3">
                             {(() => {
                               const names = getAssignedUsersForProject(item.id).split(',').map(n => n.trim()).filter(Boolean);
                               if (names.length === 0) {
@@ -2325,11 +2339,11 @@ export default function DSRDashboard({
                               const initials = uname.split(' ').filter(Boolean).map(p => p[0]).slice(0, 2).join('').toUpperCase();
                               const color = avatarColors[uname.charCodeAt(0) % avatarColors.length];
                               return (
-                                <div className="flex items-center gap-2">
-                                  <span className={`w-7 h-7 rounded-full ${color} text-white text-[10px] font-black flex items-center justify-center shrink-0 leading-none`}>
+                                <div className="flex items-center gap-1.5 min-w-0">
+                                  <span className={`w-6 h-6 rounded-full ${color} text-white text-[9px] font-black flex items-center justify-center shrink-0 leading-none`}>
                                     {initials}
                                   </span>
-                                  <span className="text-gray-900 text-[12px] font-bold truncate max-w-[140px]">{uname}</span>
+                                  <span className="text-gray-900 text-[11px] font-bold truncate min-w-0" title={uname}>{uname}</span>
                                   {extraCount > 0 && (
                                     <span className="text-[9px] font-black text-gray-400 bg-gray-100 rounded-full px-1.5 py-0.5 shrink-0">+{extraCount}</span>
                                   )}
@@ -2339,7 +2353,7 @@ export default function DSRDashboard({
                           </td>
                         )}
                         {isAdmin && (
-                          <td className="px-5 py-5">
+                          <td className="px-2 py-3">
                             <div className="flex items-center gap-1.5">
                               <select
                                 value={
@@ -2357,7 +2371,7 @@ export default function DSRDashboard({
                                     }
                                   }));
                                 }}
-                                className="px-1.5 py-0.5 text-[10px] font-bold bg-white border border-gray-200 rounded text-gray-800 cursor-pointer focus:outline-none"
+                                className="w-full max-w-[88px] px-1 py-1 text-[9.5px] font-bold bg-white border border-gray-200 rounded text-gray-800 cursor-pointer focus:outline-none"
                               >
                                 <option value="">- Priority -</option>
                                 <option value="X1">X1</option>
@@ -2370,10 +2384,10 @@ export default function DSRDashboard({
                           </td>
                         )}
                         {isAdmin && (
-                          <td className="px-5 py-5 text-center">
+                          <td className="px-2 py-3 text-center">
                             <button
                               onClick={() => setSelectedPlanProject(item)}
-                              className="inline-flex items-center gap-1 bg-indigo-50 text-indigo-750 font-black uppercase text-[10px] px-3 py-1.5 rounded-xl border border-indigo-200 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition shadow-3xs cursor-pointer"
+                              className="inline-flex items-center gap-1 bg-indigo-50 text-indigo-750 font-black uppercase text-[9.5px] px-2 py-1.5 rounded-xl border border-indigo-200 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition shadow-3xs cursor-pointer whitespace-nowrap"
                             >
                               Plan
                             </button>
