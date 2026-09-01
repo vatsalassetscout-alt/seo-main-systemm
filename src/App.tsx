@@ -1070,24 +1070,72 @@ export default function App() {
                 onClick={() => (isNavMenuOpen ? closeNavMenuNow() : openNavMenu())}
                 aria-expanded={isNavMenuOpen}
                 aria-label="Open navigation menu"
-                className={`flex items-center justify-center h-10 w-10 rounded-xl border transition cursor-pointer ${
+                className={`relative flex items-center justify-center h-10 w-10 rounded-xl border transition-colors duration-200 cursor-pointer overflow-hidden ${
                   isNavMenuOpen
                     ? 'bg-indigo-50 border-indigo-200 text-indigo-700'
                     : 'bg-white border-gray-150 text-gray-600 hover:bg-slate-50 hover:text-indigo-600'
                 }`}
               >
-                <Menu size={19} />
+                <motion.span
+                  className="flex items-center justify-center"
+                  animate={{ rotate: isNavMenuOpen ? 90 : 0 }}
+                  transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+                >
+                  <AnimatePresence mode="wait" initial={false}>
+                    {isNavMenuOpen ? (
+                      <motion.span
+                        key="close-icon"
+                        initial={{ opacity: 0, scale: 0.6 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.6 }}
+                        transition={{ duration: 0.15 }}
+                        className="flex"
+                      >
+                        <X size={19} />
+                      </motion.span>
+                    ) : (
+                      <motion.span
+                        key="menu-icon"
+                        initial={{ opacity: 0, scale: 0.6 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.6 }}
+                        transition={{ duration: 0.15 }}
+                        className="flex"
+                      >
+                        <Menu size={19} />
+                      </motion.span>
+                    )}
+                  </AnimatePresence>
+                </motion.span>
               </button>
 
-              {/* Pop-out panel: floats over content, full viewport height, doesn't push/shrink the page */}
-              {isNavMenuOpen && (
-                <div
-                  className="fixed top-0 left-0 z-50 h-screen w-[280px] sm:w-[300px] bg-white border-r border-gray-150 shadow-2xl flex flex-col animate-fade-in"
-                >
-                  {/* Panel header */}
-                  <div className="flex items-center justify-between h-16 px-4 border-b border-gray-150 shrink-0">
-                    <img
-                      src="https://assetscout.in/assets/images/Assetscout%20Logo%20Black.webp"
+              <AnimatePresence>
+                {isNavMenuOpen && (
+                  <React.Fragment>
+                    {/* Soft backdrop for focus + depth */}
+                    <motion.div
+                      key="nav-menu-backdrop"
+                      onClick={closeNavMenuNow}
+                      className="fixed inset-0 z-40 bg-gray-900/10 backdrop-blur-[1.5px]"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                    />
+
+                    {/* Pop-out panel: floats over content, full viewport height, doesn't push/shrink the page */}
+                    <motion.div
+                      key="nav-menu-panel"
+                      className="fixed top-0 left-0 z-50 h-screen w-[280px] sm:w-[300px] bg-white border-r border-gray-150 shadow-2xl flex flex-col"
+                      initial={{ x: '-100%', opacity: 0 }}
+                      animate={{ x: 0, opacity: 1 }}
+                      exit={{ x: '-100%', opacity: 0 }}
+                      transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+                    >
+                    {/* Panel header */}
+                    <div className="flex items-center justify-between h-16 px-4 border-b border-gray-150 shrink-0">
+                      <img
+                        src="https://assetscout.in/assets/images/Assetscout%20Logo%20Black.webp"
                       alt="Assetscout Logo"
                       className="h-7 w-auto object-contain block dark-logo-invert"
                       referrerPolicy="no-referrer"
@@ -1204,19 +1252,21 @@ export default function App() {
                       )}
                     </div>
 
-                    {/* Reports — new section, next to Overview Panel */}
-                    <button
-                      id="tab-reports"
-                      onClick={() => { setActiveTab('reports'); closeNavMenuNow(); }}
-                      className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold cursor-pointer transition ${
-                        activeTab === 'reports'
-                          ? 'bg-indigo-50 text-indigo-700'
-                          : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'
-                      }`}
-                    >
-                      <FileBarChart size={15} />
-                      Reports
-                    </button>
+                    {/* Reports — admin only, next to Overview Panel */}
+                    {isAdmin && (
+                      <button
+                        id="tab-reports"
+                        onClick={() => { setActiveTab('reports'); closeNavMenuNow(); }}
+                        className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold cursor-pointer transition ${
+                          activeTab === 'reports'
+                            ? 'bg-indigo-50 text-indigo-700'
+                            : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'
+                        }`}
+                      >
+                        <FileBarChart size={15} />
+                        Reports
+                      </button>
+                    )}
                   </nav>
 
                   {/* Panel footer: admin settings icon + logout, pinned to the bottom */}
@@ -1244,8 +1294,10 @@ export default function App() {
                       Logout
                     </button>
                   </div>
-                </div>
-              )}
+                    </motion.div>
+                  </React.Fragment>
+                )}
+              </AnimatePresence>
             </div>
 
             {/* Center: branding */}
