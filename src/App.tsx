@@ -1084,20 +1084,12 @@ export default function App() {
             <div
               className="relative flex items-center"
               ref={navMenuRef}
+              onMouseEnter={openNavMenu}
+              onMouseLeave={scheduleNavMenuClose}
             >
-              {/* Full-left-edge hover zone — touching the far left of the display pops the menu open */}
-              <div
-                className="fixed top-0 left-0 h-screen w-3 z-30"
-                onMouseEnter={openNavMenu}
-                onMouseLeave={scheduleNavMenuClose}
-                aria-hidden="true"
-              />
-
               <button
                 type="button"
                 onClick={() => (isNavMenuOpen ? closeNavMenuNow() : openNavMenu())}
-                onMouseEnter={openNavMenu}
-                onMouseLeave={scheduleNavMenuClose}
                 aria-expanded={isNavMenuOpen}
                 aria-label="Open navigation menu"
                 className={`relative flex items-center justify-center h-10 w-10 rounded-xl border transition-colors duration-200 cursor-pointer overflow-hidden ${
@@ -1159,14 +1151,12 @@ export default function App() {
                         plain slide, and closes the same way. */}
                     <motion.div
                       key="nav-menu-panel"
-                      onMouseEnter={openNavMenu}
-                      onMouseLeave={scheduleNavMenuClose}
                       className="fixed top-20 left-4 z-50 w-[300px] max-h-[calc(100vh-6rem)] bg-white rounded-[28px] ring-1 ring-black/5 shadow-2xl flex flex-col overflow-hidden"
-                      style={{ transformOrigin: 'top left' }}
-                      initial={{ opacity: 0, scale: 0.82, y: -18, rotate: -4, filter: 'blur(8px)' }}
-                      animate={{ opacity: 1, scale: 1, y: 0, rotate: 0, filter: 'blur(0px)' }}
-                      exit={{ opacity: 0, scale: 0.85, y: -14, rotate: -3, filter: 'blur(6px)' }}
-                      transition={{ type: 'spring', stiffness: 320, damping: 26, mass: 0.9 }}
+                      style={{ transformOrigin: 'top left', willChange: 'transform, opacity' }}
+                      initial={{ opacity: 0, scale: 0.9, y: -12 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.92, y: -8 }}
+                      transition={{ type: 'spring', stiffness: 380, damping: 30, mass: 0.7 }}
                     >
                     {/* Accent header strip */}
                     <div className="h-1.5 w-full bg-gradient-to-r from-indigo-500 via-violet-500 to-indigo-500 shrink-0" />
@@ -1176,6 +1166,10 @@ export default function App() {
                       <img
                         src="https://assetscout.in/assets/images/Assetscout%20Logo%20Black.webp"
                         alt="Assetscout Logo"
+                        width={110}
+                        height={24}
+                        loading="lazy"
+                        decoding="async"
                         className="h-6 w-auto object-contain block dark-logo-invert"
                         referrerPolicy="no-referrer"
                       />
@@ -1385,6 +1379,11 @@ export default function App() {
               <img 
                 src="https://assetscout.in/assets/images/Assetscout%20Logo%20Black.webp" 
                 alt="Assetscout Logo" 
+                width={140}
+                height={32}
+                loading="eager"
+                fetchPriority="high"
+                decoding="async"
                 className="h-7 sm:h-8 w-auto object-contain block dark-logo-invert"
                 referrerPolicy="no-referrer"
               />
