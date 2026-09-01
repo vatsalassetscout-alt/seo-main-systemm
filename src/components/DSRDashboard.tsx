@@ -2108,54 +2108,6 @@ export default function DSRDashboard({
         </div>
       </div>
 
-
-      {/* 5 Horizontal Buttons Tab Selection Bar - Premium, Larger & Highly Professional */}
-      <div className="bg-slate-100/80 p-1 rounded-2xl flex flex-wrap items-center gap-2 border border-slate-200/60 shadow-inner">
-        {tabsInfo.map((tab) => {
-          const IconComponent = tab.icon;
-          const isActive = activeTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-[13px] font-extrabold uppercase tracking-wider transition-all duration-200 select-none cursor-pointer active:scale-95 ${
-                isActive
-                  ? 'bg-indigo-600 text-white shadow-md border-b-2 border-indigo-800 font-black'
-                  : 'bg-transparent text-slate-650 hover:text-indigo-600 hover:bg-white/60'
-              }`}
-            >
-              <IconComponent size={14} className={`transition-transform duration-200 ${isActive ? 'text-white scale-110' : 'text-slate-400'}`} />
-              <span>{tab.label}</span>
-            </button>
-          );
-        })}
-
-        {/* Monthly Progress - inline, same row as the tab buttons, pinned right.
-            Projects covered (any entry logged, incl. No Activity) out of total
-            projects in the current filter scope. Resets every calendar month. */}
-        <div className="flex items-center gap-2 ml-auto bg-white px-3 py-1.5 rounded-xl border border-slate-200/70 shadow-sm shrink-0">
-          <TrendingUp size={13} className="text-indigo-500 shrink-0" />
-          <div className="flex flex-col gap-1 min-w-[130px]">
-            <div className="flex items-center justify-between gap-3">
-              <span className="text-[9px] font-black text-black uppercase tracking-wider leading-none">
-                Monthly Progress
-              </span>
-              <span className="text-[10.5px] font-black text-black font-mono leading-none whitespace-nowrap">
-                <span className="text-black">{monthlyProgressStats.covered}</span>
-                <span className="text-black"> / {monthlyProgressStats.total}</span>
-                <span className="text-black font-black ml-1">({monthlyProgressStats.percent}%)</span>
-              </span>
-            </div>
-            <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden border border-gray-150">
-              <div
-                className="h-full bg-gradient-to-r from-indigo-500 to-indigo-600 rounded-full transition-all duration-500 ease-out"
-                style={{ width: `${monthlyProgressStats.percent}%` }}
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-
       </div>
 
       {/* Content Section corresponding to Selected Tab */}
