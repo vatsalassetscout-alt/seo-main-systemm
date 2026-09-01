@@ -40,7 +40,11 @@ import {
   Bell,
   RefreshCw,
   Sparkles,
-  X
+  X,
+  Menu,
+  ChevronRight,
+  Settings,
+  FileBarChart
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -318,7 +322,7 @@ export default function App() {
     return (sessionStorage.getItem('dsr_logged_role') as 'user' | 'admin') || null;
   });
 
-  const [activeTab, setActiveTab] = useState<'submit' | 'logs' | 'dashboard' | 'settings' | 'task-lineup'>(() => {
+  const [activeTab, setActiveTab] = useState<'submit' | 'logs' | 'dashboard' | 'settings' | 'task-lineup' | 'reports'>(() => {
     const savedUser = sessionStorage.getItem('dsr_logged_user');
     const savedRole = sessionStorage.getItem('dsr_logged_role') as 'user' | 'admin' | null;
     if (savedUser) {
@@ -333,6 +337,49 @@ export default function App() {
   });
 
   const [dashboardSubTab, setDashboardSubTab] = useState<'project_table' | 'activity' | 'backlinks' | 'unworked_project' | 'keyword_section' | 'update_ranking'>('project_table');
+
+  // Aesthetic pop-out navigation menu (replaces old top-center nav bar)
+  const [isNavMenuOpen, setIsNavMenuOpen] = useState(false);
+  const [isOverviewExpanded, setIsOverviewExpanded] = useState(false);
+  const navMenuRef = useRef<HTMLDivElement>(null);
+  const navMenuCloseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clearNavMenuCloseTimer = () => {
+    if (navMenuCloseTimer.current) {
+      clearTimeout(navMenuCloseTimer.current);
+      navMenuCloseTimer.current = null;
+    }
+  };
+
+  const openNavMenu = () => {
+    clearNavMenuCloseTimer();
+    setIsNavMenuOpen(true);
+  };
+
+  const scheduleNavMenuClose = () => {
+    clearNavMenuCloseTimer();
+    navMenuCloseTimer.current = setTimeout(() => {
+      setIsNavMenuOpen(false);
+      setIsOverviewExpanded(false);
+    }, 220);
+  };
+
+  const closeNavMenuNow = () => {
+    clearNavMenuCloseTimer();
+    setIsNavMenuOpen(false);
+    setIsOverviewExpanded(false);
+  };
+
+  // Close the pop-out menu when clicking anywhere outside of it
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (navMenuRef.current && !navMenuRef.current.contains(e.target as Node)) {
+        closeNavMenuNow();
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Synchronize dynamic data from our local database server
   const syncWithBackend = async () => {
@@ -1011,8 +1058,198 @@ export default function App() {
         <div className="w-full px-3 sm:px-5 lg:px-8 xl:px-10">
           <div className="flex justify-between items-center h-16">
             
-            {/* Left side: branding */}
-            <div className="flex items-center">
+            {/* Left side: pop-out navigation menu trigger */}
+            <div
+              className="relative flex items-center"
+              ref={navMenuRef}
+              onMouseEnter={openNavMenu}
+              onMouseLeave={scheduleNavMenuClose}
+            >
+              <button
+                type="button"
+                onClick={() => (isNavMenuOpen ? closeNavMenuNow() : openNavMenu())}
+                aria-expanded={isNavMenuOpen}
+                aria-label="Open navigation menu"
+                className={`flex items-center justify-center h-10 w-10 rounded-xl border transition cursor-pointer ${
+                  isNavMenuOpen
+                    ? 'bg-indigo-50 border-indigo-200 text-indigo-700'
+                    : 'bg-white border-gray-150 text-gray-600 hover:bg-slate-50 hover:text-indigo-600'
+                }`}
+              >
+                <Menu size={19} />
+              </button>
+
+              {/* Pop-out panel: floats over content, full viewport height, doesn't push/shrink the page */}
+              {isNavMenuOpen && (
+                <div
+                  className="fixed top-0 left-0 z-50 h-screen w-[280px] sm:w-[300px] bg-white border-r border-gray-150 shadow-2xl flex flex-col animate-fade-in"
+                >
+                  {/* Panel header */}
+                  <div className="flex items-center justify-between h-16 px-4 border-b border-gray-150 shrink-0">
+                    <img
+                      src="https://assetscout.in/assets/images/Assetscout%20Logo%20Black.webp"
+                      alt="Assetscout Logo"
+                      className="h-7 w-auto object-contain block dark-logo-invert"
+                      referrerPolicy="no-referrer"
+                    />
+                    <button
+                      type="button"
+                      onClick={closeNavMenuNow}
+                      className="p-1.5 rounded-lg text-gray-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
+                      title="Close menu"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+
+                  {/* Scrollable nav sections */}
+                  <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1" aria-label="Global Workspace Navigation">
+                    {!isAdmin && (
+                      <button
+                        id="tab-submit"
+                        onClick={() => { setActiveTab('submit'); closeNavMenuNow(); }}
+                        className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold cursor-pointer transition ${
+                          activeTab === 'submit'
+                            ? 'bg-indigo-50 text-indigo-700'
+                            : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'
+                        }`}
+                      >
+                        <PenTool size={15} />
+                        Work Log
+                      </button>
+                    )}
+
+                    {isAdmin && (
+                      <button
+                        id="tab-logs"
+                        onClick={() => { setActiveTab('logs'); closeNavMenuNow(); }}
+                        className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold cursor-pointer transition ${
+                          activeTab === 'logs'
+                            ? 'bg-indigo-50 text-indigo-700'
+                            : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'
+                        }`}
+                      >
+                        <Database size={15} />
+                        Work Log History
+                      </button>
+                    )}
+
+                    <button
+                      id="tab-task-lineup"
+                      onClick={() => { setActiveTab('task-lineup'); closeNavMenuNow(); }}
+                      className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold cursor-pointer transition ${
+                        activeTab === 'task-lineup'
+                          ? 'bg-indigo-50 text-indigo-700'
+                          : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'
+                      }`}
+                    >
+                      <Sparkles size={15} />
+                      Task Lineup
+                    </button>
+
+                    {/* Overview Panel — expands on click or hover to reveal its sub-sections */}
+                    <div
+                      onMouseEnter={() => setIsOverviewExpanded(true)}
+                    >
+                      <button
+                        id="tab-dashboard"
+                        onClick={() => {
+                          setActiveTab('dashboard');
+                          setIsOverviewExpanded((prev) => !prev);
+                        }}
+                        className={`w-full flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold cursor-pointer transition ${
+                          activeTab === 'dashboard'
+                            ? 'bg-indigo-50 text-indigo-700'
+                            : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'
+                        }`}
+                      >
+                        <span className="flex items-center gap-3">
+                          <LayoutGrid size={15} />
+                          Overview Panel
+                        </span>
+                        <ChevronRight
+                          size={13}
+                          className={`transition-transform ${isOverviewExpanded ? 'rotate-90' : ''}`}
+                        />
+                      </button>
+
+                      {isOverviewExpanded && (
+                        <div className="mt-1 ml-4 pl-3 border-l border-gray-150 space-y-0.5">
+                          {[
+                            { id: 'project_table' as const, label: 'Project Table', icon: FileSpreadsheet },
+                            { id: 'activity' as const, label: isAdmin ? 'Team Activity' : 'Activity', icon: Bell },
+                            { id: 'backlinks' as const, label: 'Backlinks', icon: HardDriveUpload },
+                            { id: 'unworked_project' as const, label: 'Idle Projects', icon: Building2 },
+                            { id: 'keyword_section' as const, label: 'Ranking', icon: UserCheck },
+                            { id: 'update_ranking' as const, label: isAdmin ? 'Manual Ranking' : 'Update Ranking', icon: Sliders }
+                          ].map((sub) => (
+                            <button
+                              key={sub.id}
+                              onClick={() => {
+                                setActiveTab('dashboard');
+                                setDashboardSubTab(sub.id);
+                                closeNavMenuNow();
+                              }}
+                              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[11px] font-bold cursor-pointer transition ${
+                                activeTab === 'dashboard' && dashboardSubTab === sub.id
+                                  ? 'bg-indigo-50 text-indigo-700'
+                                  : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'
+                              }`}
+                            >
+                              <sub.icon size={13} />
+                              {sub.label}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Reports — new section, next to Overview Panel */}
+                    <button
+                      id="tab-reports"
+                      onClick={() => { setActiveTab('reports'); closeNavMenuNow(); }}
+                      className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold cursor-pointer transition ${
+                        activeTab === 'reports'
+                          ? 'bg-indigo-50 text-indigo-700'
+                          : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'
+                      }`}
+                    >
+                      <FileBarChart size={15} />
+                      Reports
+                    </button>
+                  </nav>
+
+                  {/* Panel footer: admin settings icon + logout, pinned to the bottom */}
+                  <div className="shrink-0 border-t border-gray-150 px-3 py-3 flex items-center gap-2">
+                    {isAdmin && (
+                      <button
+                        id="tab-settings"
+                        onClick={() => { setActiveTab('settings'); closeNavMenuNow(); }}
+                        title="Admin Settings"
+                        className={`flex items-center justify-center h-10 w-10 rounded-xl border transition cursor-pointer ${
+                          activeTab === 'settings'
+                            ? 'bg-indigo-50 border-indigo-200 text-indigo-700'
+                            : 'bg-white border-gray-150 text-gray-500 hover:bg-slate-50 hover:text-indigo-600'
+                        }`}
+                      >
+                        <Settings size={17} />
+                      </button>
+                    )}
+                    <button
+                      onClick={handleLogout}
+                      title="Switch Account / Sign Out"
+                      className="flex-1 flex items-center justify-center gap-2 h-10 rounded-xl border border-gray-150 text-gray-500 hover:bg-rose-50 hover:text-rose-600 transition cursor-pointer text-xs font-bold"
+                    >
+                      <LogOut size={15} />
+                      Logout
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Center: branding */}
+            <div className="flex items-center absolute left-1/2 -translate-x-1/2">
               <img 
                 src="https://assetscout.in/assets/images/Assetscout%20Logo%20Black.webp" 
                 alt="Assetscout Logo" 
@@ -1020,80 +1257,6 @@ export default function App() {
                 referrerPolicy="no-referrer"
               />
             </div>
-
-            {/* Middle navigation tabs */}
-            <nav className="hidden md:flex space-x-1" aria-label="Global Workspace Navigation">
-              {!isAdmin && (
-                <button
-                  id="tab-submit"
-                  onClick={() => setActiveTab('submit')}
-                  className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold cursor-pointer transition ${
-                    activeTab === 'submit'
-                      ? 'bg-indigo-50 text-indigo-700'
-                      : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'
-                  }`}
-                >
-                  <PenTool size={14} />
-                  Work Log 
-                </button>
-              )}
-
-              {isAdmin && (
-                <button
-                  id="tab-logs"
-                  onClick={() => setActiveTab('logs')}
-                  className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold cursor-pointer transition ${
-                    activeTab === 'logs'
-                      ? 'bg-indigo-50 text-indigo-700'
-                      : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'
-                  }`}
-                >
-                  <Database size={14} />
-                  Work Log History
-                </button>
-              )}
-
-              <button
-                id="tab-task-lineup"
-                onClick={() => setActiveTab('task-lineup')}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold cursor-pointer transition ${
-                  activeTab === 'task-lineup'
-                    ? 'bg-indigo-50 text-indigo-700'
-                    : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'
-                }`}
-              >
-                <Sparkles size={14} />
-                Task Lineup
-              </button>
-
-              <button
-                id="tab-dashboard"
-                onClick={() => setActiveTab('dashboard')}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold cursor-pointer transition ${
-                  activeTab === 'dashboard'
-                    ? 'bg-indigo-50 text-indigo-700'
-                    : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'
-                }`}
-              >
-                <LayoutGrid size={14} />
-                Overview Panel
-              </button>
-
-              {isAdmin && (
-                <button
-                  id="tab-settings"
-                  onClick={() => setActiveTab('settings')}
-                  className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold cursor-pointer transition ${
-                    activeTab === 'settings'
-                      ? 'bg-indigo-50 text-indigo-700'
-                      : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'
-                  }`}
-                >
-                  <Sliders size={14} />
-                  Admin Settings
-                </button>
-              )}
-            </nav>
 
             {/* Right Side: Account Actions & Logouts */}
             <div className="flex items-center gap-3">
@@ -1265,15 +1428,6 @@ export default function App() {
                   </span>
                 </div>
               </div>
-
-              {/* Log out actions */}
-              <button
-                onClick={handleLogout}
-                className="p-2 border border-gray-150 hover:bg-rose-50 text-gray-500 hover:text-rose-600 rounded-xl transition cursor-pointer"
-                title="Switch Account / Sign Out"
-              >
-                <LogOut size={15} />
-              </button>
             </div>
 
           </div>
@@ -1555,6 +1709,16 @@ export default function App() {
                   onClearMultipleAlerts={handleClearMultipleAlerts}
                   onResetToDefault={handleResetToDefault}
                 />
+              )}
+
+              {activeTab === 'reports' && (
+                <div className="flex flex-col items-center justify-center text-center py-24 px-6 bg-white border border-gray-150 rounded-2xl">
+                  <FileBarChart size={34} className="text-indigo-300 mb-3" />
+                  <h3 className="font-extrabold text-gray-800 text-sm">Reports</h3>
+                  <p className="text-xs text-gray-400 font-medium mt-1 max-w-sm">
+                    This section is set up and ready — reporting content will live here.
+                  </p>
+                </div>
               )}
             </motion.div>
           </AnimatePresence>
