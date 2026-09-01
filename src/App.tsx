@@ -338,6 +338,28 @@ export default function App() {
 
   const [dashboardSubTab, setDashboardSubTab] = useState<'project_table' | 'activity' | 'backlinks' | 'unworked_project' | 'keyword_section' | 'update_ranking'>('project_table');
 
+  // Global Monthly Progress — mirrors the Overview Panel's "covered this month"
+  // logic, but unfiltered (all projects / all entries), for the nav menu card.
+  const monthlyProgressStats = useMemo(() => {
+    const now = new Date();
+    const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+    const coveredProjectIds = new Set<string>();
+    entries.forEach((entry) => {
+      if (!entry || !entry.date || !entry.date.startsWith(currentMonthKey)) return;
+      (entry.works || []).forEach((w) => {
+        if (w && w.projectId) coveredProjectIds.add(w.projectId);
+      });
+    });
+
+    const total = projects.length;
+    const covered = coveredProjectIds.size;
+    const remaining = Math.max(0, total - covered);
+    const percent = total > 0 ? Math.min(100, Math.round((covered / total) * 100)) : 0;
+
+    return { covered, total, remaining, percent };
+  }, [entries, projects]);
+
   // Aesthetic pop-out navigation menu (replaces old top-center nav bar)
   const [isNavMenuOpen, setIsNavMenuOpen] = useState(false);
   const [isOverviewExpanded, setIsOverviewExpanded] = useState(false);
@@ -1062,12 +1084,20 @@ export default function App() {
             <div
               className="relative flex items-center"
               ref={navMenuRef}
-              onMouseEnter={openNavMenu}
-              onMouseLeave={scheduleNavMenuClose}
             >
+              {/* Full-left-edge hover zone — touching the far left of the display pops the menu open */}
+              <div
+                className="fixed top-0 left-0 h-screen w-3 z-30"
+                onMouseEnter={openNavMenu}
+                onMouseLeave={scheduleNavMenuClose}
+                aria-hidden="true"
+              />
+
               <button
                 type="button"
                 onClick={() => (isNavMenuOpen ? closeNavMenuNow() : openNavMenu())}
+                onMouseEnter={openNavMenu}
+                onMouseLeave={scheduleNavMenuClose}
                 aria-expanded={isNavMenuOpen}
                 aria-label="Open navigation menu"
                 className={`relative flex items-center justify-center h-10 w-10 rounded-xl border transition-colors duration-200 cursor-pointer overflow-hidden ${
@@ -1123,35 +1153,85 @@ export default function App() {
                       transition={{ duration: 0.2 }}
                     />
 
-                    {/* Pop-out panel: floats over content, full viewport height, doesn't push/shrink the page */}
+                    {/* Pop-out panel: a floating rounded block — NOT stuck to the left
+                        edge and NOT stuck to the top; it pops out with its own
+                        distinct "unfold" motion (scale + blur + tilt) instead of a
+                        plain slide, and closes the same way. */}
                     <motion.div
                       key="nav-menu-panel"
-                      className="fixed top-0 left-0 z-50 h-screen w-[280px] sm:w-[300px] bg-white border-r border-gray-150 shadow-2xl flex flex-col"
-                      initial={{ x: '-100%', opacity: 0 }}
-                      animate={{ x: 0, opacity: 1 }}
-                      exit={{ x: '-100%', opacity: 0 }}
-                      transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+                      onMouseEnter={openNavMenu}
+                      onMouseLeave={scheduleNavMenuClose}
+                      className="fixed top-20 left-4 z-50 w-[300px] max-h-[calc(100vh-6rem)] bg-white rounded-[28px] ring-1 ring-black/5 shadow-2xl flex flex-col overflow-hidden"
+                      style={{ transformOrigin: 'top left' }}
+                      initial={{ opacity: 0, scale: 0.82, y: -18, rotate: -4, filter: 'blur(8px)' }}
+                      animate={{ opacity: 1, scale: 1, y: 0, rotate: 0, filter: 'blur(0px)' }}
+                      exit={{ opacity: 0, scale: 0.85, y: -14, rotate: -3, filter: 'blur(6px)' }}
+                      transition={{ type: 'spring', stiffness: 320, damping: 26, mass: 0.9 }}
                     >
+                    {/* Accent header strip */}
+                    <div className="h-1.5 w-full bg-gradient-to-r from-indigo-500 via-violet-500 to-indigo-500 shrink-0" />
+
                     {/* Panel header */}
-                    <div className="flex items-center justify-between h-16 px-4 border-b border-gray-150 shrink-0">
+                    <div className="flex items-center justify-between px-4 pt-3 pb-2.5 shrink-0">
                       <img
                         src="https://assetscout.in/assets/images/Assetscout%20Logo%20Black.webp"
-                      alt="Assetscout Logo"
-                      className="h-7 w-auto object-contain block dark-logo-invert"
-                      referrerPolicy="no-referrer"
-                    />
-                    <button
-                      type="button"
-                      onClick={closeNavMenuNow}
-                      className="p-1.5 rounded-lg text-gray-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
-                      title="Close menu"
-                    >
-                      <X size={16} />
-                    </button>
-                  </div>
+                        alt="Assetscout Logo"
+                        className="h-6 w-auto object-contain block dark-logo-invert"
+                        referrerPolicy="no-referrer"
+                      />
+                      <button
+                        type="button"
+                        onClick={closeNavMenuNow}
+                        className="p-1.5 rounded-lg text-gray-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
+                        title="Close menu"
+                      >
+                        <X size={15} />
+                      </button>
+                    </div>
+
+                    {/* Monthly Progress card */}
+                    <div className="mx-3 mb-3 p-3.5 bg-white border border-gray-150 rounded-2xl shadow-3xs shrink-0">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-[9.5px] font-black text-gray-800 uppercase tracking-wider">
+                          Monthly Progress
+                        </span>
+                        <span className="text-[11px] font-black text-gray-900 font-mono whitespace-nowrap">
+                          {monthlyProgressStats.covered} / {monthlyProgressStats.total}
+                          <span className="text-indigo-600"> ({monthlyProgressStats.percent}%)</span>
+                        </span>
+                      </div>
+                      <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden mb-3">
+                        <motion.div
+                          className="h-full bg-gradient-to-r from-indigo-500 to-indigo-600 rounded-full"
+                          initial={{ width: 0 }}
+                          animate={{ width: `${monthlyProgressStats.percent}%` }}
+                          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between text-[11px] font-semibold text-gray-600">
+                          <span className="flex items-center gap-1.5">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+                            Worked
+                          </span>
+                          <span className="font-mono font-bold text-gray-800">{monthlyProgressStats.covered}</span>
+                        </div>
+                        <div className="flex items-center justify-between text-[11px] font-semibold text-gray-600">
+                          <span className="flex items-center gap-1.5">
+                            <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0" />
+                            Remaining
+                          </span>
+                          <span className="font-mono font-bold text-gray-800">{monthlyProgressStats.remaining}</span>
+                        </div>
+                        <div className="flex items-center justify-between text-[11px] font-black text-gray-900 pt-1.5 border-t border-gray-100">
+                          <span>Total Projects</span>
+                          <span className="font-mono">{monthlyProgressStats.total}</span>
+                        </div>
+                      </div>
+                    </div>
 
                   {/* Scrollable nav sections */}
-                  <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1" aria-label="Global Workspace Navigation">
+                  <nav className="flex-1 overflow-y-auto px-3 pb-3 space-y-1" aria-label="Global Workspace Navigation">
                     {!isAdmin && (
                       <button
                         id="tab-submit"
