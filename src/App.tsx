@@ -344,55 +344,50 @@ export default function App() {
     const now = new Date();
     const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
+    // Combined set (worked + not worked) — drives "Projects Covered" + the bar
     const coveredProjectIds = new Set<string>();
+    // Separate sets so a project counts once in each bucket even if logged multiple times
+    const workedProjectIds = new Set<string>();
+    const notWorkedProjectIds = new Set<string>();
+
     entries.forEach((entry) => {
       if (!entry || !entry.date || !entry.date.startsWith(currentMonthKey)) return;
       (entry.works || []).forEach((w) => {
-        if (w && w.projectId) coveredProjectIds.add(w.projectId);
+        if (!w || !w.projectId) return;
+        coveredProjectIds.add(w.projectId);
+        if (w.workStatus === 'worked') workedProjectIds.add(w.projectId);
+        else if (w.workStatus === 'not_worked') notWorkedProjectIds.add(w.projectId);
       });
     });
 
     const total = projects.length;
     const covered = coveredProjectIds.size;
+    const worked = workedProjectIds.size;
+    const notWorked = notWorkedProjectIds.size;
     const remaining = Math.max(0, total - covered);
     const percent = total > 0 ? Math.min(100, Math.round((covered / total) * 100)) : 0;
 
-    return { covered, total, remaining, percent };
+    return { covered, total, worked, notWorked, remaining, percent };
   }, [entries, projects]);
 
   // Aesthetic pop-out navigation menu (replaces old top-center nav bar)
+  // No more hover-to-close: once open, it only closes on the X button or an
+  // outside click. It can still be *opened* by hovering the trigger button
+  // or by pushing the cursor all the way to the left edge of the screen.
   const [isNavMenuOpen, setIsNavMenuOpen] = useState(false);
   const [isOverviewExpanded, setIsOverviewExpanded] = useState(false);
   const navMenuRef = useRef<HTMLDivElement>(null);
-  const navMenuCloseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const clearNavMenuCloseTimer = () => {
-    if (navMenuCloseTimer.current) {
-      clearTimeout(navMenuCloseTimer.current);
-      navMenuCloseTimer.current = null;
-    }
-  };
 
   const openNavMenu = () => {
-    clearNavMenuCloseTimer();
     setIsNavMenuOpen(true);
   };
 
-  const scheduleNavMenuClose = () => {
-    clearNavMenuCloseTimer();
-    navMenuCloseTimer.current = setTimeout(() => {
-      setIsNavMenuOpen(false);
-      setIsOverviewExpanded(false);
-    }, 220);
-  };
-
   const closeNavMenuNow = () => {
-    clearNavMenuCloseTimer();
     setIsNavMenuOpen(false);
     setIsOverviewExpanded(false);
   };
 
-  // Close the pop-out menu when clicking anywhere outside of it
+  // Close the pop-out menu only when clicking outside of it (or the X button)
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (navMenuRef.current && !navMenuRef.current.contains(e.target as Node)) {
@@ -401,6 +396,19 @@ export default function App() {
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Open the menu whenever the cursor is pushed all the way to the left edge
+  // of the screen — acts like an edge trigger, same as hovering the button.
+  useEffect(() => {
+    const EDGE_THRESHOLD_PX = 4;
+    const handleMouseMove = (e: MouseEvent) => {
+      if (e.clientX <= EDGE_THRESHOLD_PX) {
+        setIsNavMenuOpen((prev) => (prev ? prev : true));
+      }
+    };
+    document.addEventListener('mousemove', handleMouseMove);
+    return () => document.removeEventListener('mousemove', handleMouseMove);
   }, []);
 
   // Synchronize dynamic data from our local database server
@@ -1085,7 +1093,6 @@ export default function App() {
               className="relative flex items-center"
               ref={navMenuRef}
               onMouseEnter={openNavMenu}
-              onMouseLeave={scheduleNavMenuClose}
             >
               <button
                 type="button"
@@ -1187,7 +1194,7 @@ export default function App() {
                     <div className="mx-3 mb-3 p-3.5 bg-white border border-gray-150 rounded-2xl shadow-3xs shrink-0">
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-[9.5px] font-black text-gray-800 uppercase tracking-wider">
-                          Monthly Progress
+                          Projects Covered
                         </span>
                         <span className="text-[11px] font-black text-gray-900 font-mono whitespace-nowrap">
                           {monthlyProgressStats.covered} / {monthlyProgressStats.total}
@@ -1208,7 +1215,14 @@ export default function App() {
                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
                             Worked
                           </span>
-                          <span className="font-mono font-bold text-gray-800">{monthlyProgressStats.covered}</span>
+                          <span className="font-mono font-bold text-gray-800">{monthlyProgressStats.worked}</span>
+                        </div>
+                        <div className="flex items-center justify-between text-[11px] font-semibold text-gray-600">
+                          <span className="flex items-center gap-1.5">
+                            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
+                            Not Worked
+                          </span>
+                          <span className="font-mono font-bold text-gray-800">{monthlyProgressStats.notWorked}</span>
                         </div>
                         <div className="flex items-center justify-between text-[11px] font-semibold text-gray-600">
                           <span className="flex items-center gap-1.5">
