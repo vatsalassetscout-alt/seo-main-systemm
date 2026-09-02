@@ -1655,7 +1655,7 @@ export default function DSRDashboard({
 
 
       {/* Sticky wrapper: keeps filters + tab bar visible while scrolling */}
-      <div ref={stickyBarRef} className="sticky top-16 z-30 -mx-1 px-1 pt-2 pb-2.5 bg-gray-50/95 backdrop-blur-sm space-y-3">
+      <div ref={stickyBarRef} className="sticky top-16 z-30 -mx-1 px-1 pt-2 pb-2.5 bg-gray-50/95 dark:bg-slate-900/95 backdrop-blur-sm space-y-3">
 
       {/* Workspace Filters panel - ON TOP OF PAGE */}
       <div className="bg-white dark:bg-slate-900 p-3 rounded-2xl shadow-2xs space-y-2.5">
@@ -1758,7 +1758,7 @@ export default function DSRDashboard({
                   className={`flex-1 text-center py-2 px-3 text-[11px] tracking-wider font-extrabold transition-all duration-200 rounded-lg cursor-pointer ${
                     regionFilter === r.value
                       ? 'bg-indigo-600 dark:bg-blue-600 text-white shadow-xs font-black'
-                      : 'text-gray-500 dark:text-slate-400 hover:text-gray-800 hover:dark:text-slate-100 hover:bg-gray-200/50'
+                      : 'text-gray-500 dark:text-slate-400 hover:text-gray-800 hover:dark:text-slate-100 hover:bg-gray-200/50 hover:dark:bg-slate-700/50'
                   }`}
                 >
                   {r.label}
@@ -2229,7 +2229,7 @@ export default function DSRDashboard({
                     return (
                       <tr 
                         key={item.id}
-                        className="hover:bg-slate-50/60 transition-colors"
+                        className="hover:bg-slate-50/60 hover:dark:bg-slate-800/60 transition-colors"
                       >
                         <td className="px-2 py-3 truncate font-semibold text-indigo-600 dark:text-blue-400">{item.srNo}</td>
                         <td className="px-2 py-3">
@@ -2832,7 +2832,7 @@ export default function DSRDashboard({
 
                                   {/* Dropdown to switch projects if this user submitted to multiple projects */}
                                   {isUserExpanded && userProjectIds.length > 0 && (
-                                    <div className="bg-slate-50/70 p-3 rounded-xl border border-slate-200/50 space-y-1.5">
+                                    <div className="bg-slate-50/70 dark:bg-slate-800/40 p-3 rounded-xl border border-slate-200/50 dark:border-slate-800 space-y-1.5">
                                       <label className="block text-[9px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-wider">
                                         Select Project ({userProjectIds.length} worked)
                                       </label>
@@ -3559,7 +3559,7 @@ export default function DSRDashboard({
                                 [proj.id]: !prev[proj.id]
                               }));
                             }}
-                            className="hover:bg-slate-50/60 transition-colors cursor-pointer select-none"
+                            className="hover:bg-slate-50/60 hover:dark:bg-slate-800/60 transition-colors cursor-pointer select-none"
                           >
                             {/* Sr No. */}
                             <td className="px-5 py-5 whitespace-nowrap font-semibold text-gray-500 dark:text-slate-400 text-center">{proj.srNo}</td>
