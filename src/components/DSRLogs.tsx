@@ -1055,12 +1055,12 @@ export default function DSRLogs({
                       <div className="flex items-center gap-2.5">
                         {item.status && (
                           <span className={`text-[10.5px] uppercase font-bold px-2.5 py-1.5 rounded-lg border tracking-wider font-sans whitespace-nowrap min-w-[96px] text-center ${
-                            item.status === 'Approved' ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-800 border-emerald-100 dark:border-emerald-500/20' :
-                            item.status === 'Needs Revision' ? 'bg-rose-50 dark:bg-rose-500/10 text-rose-855 dark:text-rose-300 border-rose-100 dark:border-rose-500/20' :
-                            item.status === 'Remark' ? 'bg-violet-50 dark:bg-violet-500/10 text-violet-800 dark:text-violet-300 border-violet-150 dark:border-violet-500/20' :
-                            'bg-amber-50 dark:bg-amber-500/10 text-amber-855 border-amber-100 dark:border-amber-500/20'
+                            item.status === 'Approved' ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-800 dark:text-emerald-400 border-emerald-100 dark:border-emerald-500/20' :
+                            item.status === 'Needs Revision' ? 'bg-rose-50 dark:bg-rose-500/10 text-rose-855 dark:text-rose-400 border-rose-100 dark:border-rose-500/20' :
+                            item.status === 'Remark' ? 'bg-violet-50 dark:bg-violet-500/10 text-violet-800 dark:text-violet-400 border-violet-150 dark:border-violet-500/20' :
+                            'bg-amber-50 dark:bg-amber-500/10 text-amber-855 dark:text-amber-400 border-amber-100 dark:border-amber-500/20'
                           }`}>
-                            {item.status === 'Remark' ? '💬 Remark' : item.status}
+                            {item.status === 'Remark' ? ' Remark' : item.status}
                           </span>
                         )}
 
@@ -1159,10 +1159,10 @@ export default function DSRLogs({
                                         <h4 className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
                                           {hasDomain ? `Project ${projectDisplayNumber}` : 'Note'}
                                         </h4>
-                                        <p className="text-sm font-black text-slate-900 mt-1 flex items-center gap-2">
-                                          📂 {hasDomain ? (workMatchedProj?.name || work.projectName || 'Work Note') : 'Work Note'}
+                                        <p className="text-sm font-black text-slate-900 dark:text-white mt-1 flex items-center gap-2">
+                                           {hasDomain ? (workMatchedProj?.name || work.projectName || 'Work Note') : 'Work Note'}
                                           {workMatchedProj?.domain && (
-                                            <span className="font-mono text-xs text-slate-500 dark:text-slate-400 font-bold bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-800 px-2 py-0.5 rounded-lg">
+                                            <span className="font-mono text-xs text-slate-500 dark:text-slate-100 font-bold bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-800 px-2 py-0.5 rounded-lg">
                                               {cleanDomain(workMatchedProj.domain)}
                                             </span>
                                           )}
