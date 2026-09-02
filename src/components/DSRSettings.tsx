@@ -246,14 +246,14 @@ export default function DSRSettings({
     <div className="space-y-8 animate-fade-in">
       
       {/* Internal Setup Tabs */}
-      <div className="flex flex-wrap items-center justify-between border-b border-gray-150 gap-4 pb-px">
+      <div className="flex flex-wrap items-center justify-between border-b border-gray-150 dark:border-slate-800 gap-4 pb-px">
         <div className="flex gap-2 overflow-x-auto">
           <button
             onClick={() => setActiveSubTab('users')}
             className={`flex items-center gap-2 px-5 py-3 border-b-2 font-bold text-xs cursor-pointer transition ${
               activeSubTab === 'users'
-                ? 'border-indigo-600 text-indigo-700'
-                : 'border-transparent text-gray-400 hover:text-gray-700 hover:border-gray-200'
+                ? 'border-indigo-600 dark:border-blue-500/50 text-indigo-700 dark:text-blue-400'
+                : 'border-transparent text-gray-400 dark:text-slate-500 hover:text-gray-700 hover:dark:text-slate-200 hover:border-gray-200 hover:dark:border-slate-800'
             }`}
           >
             <Users size={15} />
@@ -264,8 +264,8 @@ export default function DSRSettings({
             onClick={() => setActiveSubTab('admin-control')}
             className={`flex items-center gap-2 px-5 py-3 border-b-2 font-bold text-xs cursor-pointer transition ${
               activeSubTab === 'admin-control'
-                ? 'border-indigo-600 text-indigo-700'
-                : 'border-transparent text-gray-400 hover:text-gray-700 hover:border-gray-200'
+                ? 'border-indigo-600 dark:border-blue-500/50 text-indigo-700 dark:text-blue-400'
+                : 'border-transparent text-gray-400 dark:text-slate-500 hover:text-gray-700 hover:dark:text-slate-200 hover:border-gray-200 hover:dark:border-slate-800'
             }`}
           >
             <UserPlus size={15} />
@@ -276,8 +276,8 @@ export default function DSRSettings({
             onClick={() => setActiveSubTab('assignments')}
             className={`flex items-center gap-2 px-5 py-3 border-b-2 font-bold text-xs cursor-pointer transition ${
               activeSubTab === 'assignments'
-                ? 'border-indigo-600 text-indigo-700'
-                : 'border-transparent text-gray-400 hover:text-gray-700 hover:border-gray-200'
+                ? 'border-indigo-600 dark:border-blue-500/50 text-indigo-700 dark:text-blue-400'
+                : 'border-transparent text-gray-400 dark:text-slate-500 hover:text-gray-700 hover:dark:text-slate-200 hover:border-gray-200 hover:dark:border-slate-800'
             }`}
           >
             <Lock size={15} />
@@ -288,8 +288,8 @@ export default function DSRSettings({
             onClick={() => setActiveSubTab('database')}
             className={`flex items-center gap-2 px-5 py-3 border-b-2 font-bold text-xs cursor-pointer transition ${
               activeSubTab === 'database'
-                ? 'border-indigo-600 text-indigo-700'
-                : 'border-transparent text-gray-400 hover:text-gray-700 hover:border-gray-200'
+                ? 'border-indigo-600 dark:border-blue-500/50 text-indigo-700 dark:text-blue-400'
+                : 'border-transparent text-gray-400 dark:text-slate-500 hover:text-gray-700 hover:dark:text-slate-200 hover:border-gray-200 hover:dark:border-slate-800'
             }`}
           >
             <Database size={15} />
@@ -300,7 +300,7 @@ export default function DSRSettings({
         {onResetToDefault && (
           <button
             onClick={onResetToDefault}
-            className="flex items-center gap-1.5 px-4 py-2 text-[10px] font-black uppercase tracking-wider text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200 hover:border-rose-300 rounded-xl transition cursor-pointer self-center"
+            className="flex items-center gap-1.5 px-4 py-2 text-[10px] font-black uppercase tracking-wider text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-500/10 hover:bg-rose-100 border border-rose-200 dark:border-rose-500/25 hover:border-rose-300 rounded-xl transition cursor-pointer self-center"
           >
             <Database size={13} className="shrink-0" />
             Reset Workspace & Clear All Data
@@ -315,8 +315,8 @@ export default function DSRSettings({
           animate={{ opacity: 1, y: 0 }}
           className={`p-4 rounded-xl text-xs font-bold flex items-center gap-2 shadow-xs ${
             statusMsg.type === 'success'
-              ? 'bg-emerald-55 text-emerald-900 border border-emerald-100'
-              : 'bg-rose-50 text-rose-900 border border-rose-100'
+              ? 'bg-emerald-55 text-emerald-900 border border-emerald-100 dark:border-emerald-500/20'
+              : 'bg-rose-50 dark:bg-rose-500/10 text-rose-900 border border-rose-100'
           }`}
         >
           <span>{statusMsg.type === 'success' ? '🟢' : '🔴'}</span>
@@ -325,7 +325,7 @@ export default function DSRSettings({
       )}
 
       {/* Active settings module view */}
-      <div className="bg-white p-6 sm:p-8 rounded-3xl border border-gray-150 shadow-xs">
+      <div className="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl border border-gray-150 dark:border-slate-800 shadow-xs">
         {/* TAB 1: Users Panel — single pipeline: existing (project-assigned) +
              newly added users, full add/rename/delete control lives here.
              Kept mounted (just hidden) even off-tab so the merged user list
@@ -359,16 +359,16 @@ export default function DSRSettings({
         {/* TAB 4: Assign Projects Panel */}
         {activeSubTab === 'assignments' && (
           <div className="space-y-8 animate-fade-in text-left">
-            <div className="border-b border-gray-100 pb-4">
-              <h4 className="font-extrabold text-gray-900 text-sm flex items-center gap-2">
-                <Lock size={16} className="text-indigo-600" />
+            <div className="border-b border-gray-100 dark:border-slate-800/60 pb-4">
+              <h4 className="font-extrabold text-gray-900 dark:text-slate-50 text-sm flex items-center gap-2">
+                <Lock size={16} className="text-indigo-600 dark:text-blue-400" />
                 Assign Work
               </h4>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {/* Form: Assign Project */}
-              <div className="md:col-span-1 bg-slate-50/50 p-6 rounded-2xl border border-gray-150 h-fit space-y-4">
+              <div className="md:col-span-1 bg-slate-50/50 dark:bg-slate-800/40 p-6 rounded-2xl border border-gray-150 dark:border-slate-800 h-fit space-y-4">
                 <form
                   onSubmit={(e) => {
                     e.preventDefault();
@@ -412,7 +412,7 @@ export default function DSRSettings({
                       required
                       value={selectedUserEmail}
                       onChange={(e) => setSelectedUserEmail(e.target.value)}
-                      className="w-full px-3 py-2 bg-white border border-gray-200 rounded text-xs focus:ring-1 focus:ring-indigo-500 text-gray-900 focus:outline-none"
+                      className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded text-xs focus:ring-1 focus:ring-indigo-500 focus:dark:ring-blue-500/50 text-gray-900 dark:text-slate-50 focus:outline-none"
                     >
                       <option value="">- Select User -</option>
                       {(() => {
@@ -437,7 +437,7 @@ export default function DSRSettings({
                     <select
                       name="projectId"
                       required
-                      className="w-full px-3 py-2 bg-white border border-gray-200 rounded text-xs focus:ring-1 focus:ring-indigo-500 text-gray-900 focus:outline-none"
+                      className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded text-xs focus:ring-1 focus:ring-indigo-500 focus:dark:ring-blue-500/50 text-gray-900 dark:text-slate-50 focus:outline-none"
                     >
                       <option value="">- Select Active Project -</option>
                       {(() => {
@@ -462,23 +462,23 @@ export default function DSRSettings({
                       name="date"
                       required
                       defaultValue={new Date().toISOString().split('T')[0]}
-                      className="w-full px-3 py-2 bg-white border border-gray-200 rounded text-xs focus:ring-1 focus:ring-indigo-500 text-gray-900 font-mono focus:outline-none"
+                      className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded text-xs focus:ring-1 focus:ring-indigo-500 focus:dark:ring-blue-500/50 text-gray-900 dark:text-slate-50 font-mono focus:outline-none"
                     />
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-[10px] text-gray-500 font-bold block uppercase">Custom Notes</label>
+                    <label className="text-[10px] text-gray-500 dark:text-slate-400 font-bold block uppercase">Custom Notes</label>
                     <textarea
                       name="message"
                       rows={3}
                       placeholder="e.g. Please check SEO backlinks and indexation status"
-                      className="w-full px-3 py-2 bg-white border border-gray-200 rounded text-xs focus:ring-1 focus:ring-indigo-500 text-gray-900 focus:outline-none"
+                      className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded text-xs focus:ring-1 focus:ring-indigo-500 focus:dark:ring-blue-500/50 text-gray-900 dark:text-slate-50 focus:outline-none"
                     />
                   </div>
 
                   <button
                     type="submit"
-                    className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
+                    className="w-full py-2.5 bg-indigo-600 dark:bg-blue-600 hover:bg-indigo-700 hover:dark:bg-blue-500 text-white rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
                   >
                     Send Assignment Task
                   </button>
@@ -488,7 +488,7 @@ export default function DSRSettings({
               {/* Assignments History & Status Tracker Table */}
               <div className="md:col-span-2 space-y-4">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                  <h5 className="font-bold text-gray-800 text-xs uppercase tracking-wide flex items-center gap-1.5">
+                  <h5 className="font-bold text-gray-800 dark:text-slate-100 text-xs uppercase tracking-wide flex items-center gap-1.5">
                     🛡️ Active Task Assignments Board
                   </h5>
                   
@@ -508,7 +508,7 @@ export default function DSRSettings({
                               setSelectedAssignmentIds(allAssignmentIds);
                             }
                           }}
-                          className="px-2.5 py-1 text-[10px] font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition cursor-pointer"
+                          className="px-2.5 py-1 text-[10px] font-bold text-indigo-600 dark:text-blue-400 bg-indigo-50 dark:bg-blue-500/10 hover:bg-indigo-100 hover:dark:bg-blue-500/15 rounded-lg transition cursor-pointer"
                         >
                           {selectedAssignmentIds.length === (alerts || []).filter(a => a.alertType === 'project_assignment').length
                             ? 'Deselect All'
@@ -543,7 +543,7 @@ export default function DSRSettings({
                             setIsDeleteMode(false);
                             setSelectedAssignmentIds([]);
                           }}
-                          className="px-2.5 py-1 text-[10px] font-bold text-gray-500 bg-gray-100 hover:bg-gray-200 rounded-lg transition cursor-pointer"
+                          className="px-2.5 py-1 text-[10px] font-bold text-gray-500 dark:text-slate-400 bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 hover:dark:bg-slate-700 rounded-lg transition cursor-pointer"
                         >
                           Cancel
                         </button>
@@ -556,7 +556,7 @@ export default function DSRSettings({
                             setIsDeleteMode(true);
                             setSelectedAssignmentIds([]);
                           }}
-                          className="px-3 py-1.5 text-[10px] font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition flex items-center gap-1 cursor-pointer"
+                          className="px-3 py-1.5 text-[10px] font-bold text-indigo-700 dark:text-blue-400 bg-indigo-50 dark:bg-blue-500/10 hover:bg-indigo-100 hover:dark:bg-blue-500/15 rounded-lg transition flex items-center gap-1 cursor-pointer"
                         >
                           <Trash2 size={12} />
                           Delete Active Assignments
@@ -566,10 +566,10 @@ export default function DSRSettings({
                   </div>
                 </div>
 
-                <div className="bg-white border border-gray-150 rounded-2xl overflow-hidden shadow-2xs">
+                <div className="bg-white dark:bg-slate-900 border border-gray-150 dark:border-slate-800 rounded-2xl overflow-hidden shadow-2xs">
                   <div className="overflow-x-auto">
                     <table className="w-full text-left text-xs">
-                      <thead className="bg-gray-50/70 border-b border-gray-150 font-bold text-gray-500 text-[10px] uppercase">
+                      <thead className="bg-gray-50/70 border-b border-gray-150 dark:border-slate-800 font-bold text-gray-500 dark:text-slate-400 text-[10px] uppercase">
                         <tr>
                           {isDeleteMode && <th className="px-4 py-3 w-10 text-center">Select</th>}
                           <th className="px-4 py-3">Reporter</th>
@@ -580,13 +580,13 @@ export default function DSRSettings({
                           <th className="px-4 py-3 text-right">Action</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-gray-100">
+                      <tbody className="divide-y divide-gray-100 dark:divide-slate-800/60">
                         {(() => {
                           const assignmentAlertsList = (alerts || []).filter(a => a.alertType === 'project_assignment');
                           if (assignmentAlertsList.length === 0) {
                             return (
                               <tr>
-                                <td colSpan={isDeleteMode ? 7 : 6} className="px-4 py-8 text-center text-gray-400 italic">
+                                <td colSpan={isDeleteMode ? 7 : 6} className="px-4 py-8 text-center text-gray-400 dark:text-slate-500 italic">
                                   No direct assignments have been registered yet.
                                 </td>
                               </tr>
@@ -616,7 +616,7 @@ export default function DSRSettings({
                                     }
                                   }
                                 }}
-                                className={`hover:bg-slate-50/40 transition-colors ${isSelected ? 'bg-indigo-50/15' : ''} ${isDeleteMode ? 'cursor-pointer select-none' : ''}`}
+                                className={`hover:bg-slate-50/40 hover:dark:bg-slate-800/35 transition-colors ${isSelected ? 'bg-indigo-50/15' : ''} ${isDeleteMode ? 'cursor-pointer select-none' : ''}`}
                               >
                                 {isDeleteMode && (
                                   <td className="px-4 py-3.5 text-center">
@@ -624,36 +624,36 @@ export default function DSRSettings({
                                       type="checkbox"
                                       checked={isSelected}
                                       readOnly
-                                      className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                                      className="h-4 w-4 rounded border-gray-300 dark:border-slate-700 text-indigo-600 dark:text-blue-400 focus:ring-indigo-500 focus:dark:ring-blue-500/50 cursor-pointer"
                                     />
                                   </td>
                                 )}
                                 <td className="px-4 py-3.5">
-                                  <div className="font-bold text-gray-900">{getUserDisplayName(asg.userEmail, allowedUsers)}</div>
-                                  <div className="text-[10px] text-gray-400 font-mono">{asg.userEmail}</div>
+                                  <div className="font-bold text-gray-900 dark:text-slate-50">{getUserDisplayName(asg.userEmail, allowedUsers)}</div>
+                                  <div className="text-[10px] text-gray-400 dark:text-slate-500 font-mono">{asg.userEmail}</div>
                                 </td>
                                 <td className="px-4 py-3.5">
-                                  <div className="font-bold text-gray-800">{asg.projectName || 'Project'}</div>
+                                  <div className="font-bold text-gray-800 dark:text-slate-100">{asg.projectName || 'Project'}</div>
                                 </td>
-                                <td className="px-4 py-3.5 font-mono text-gray-600 font-semibold">
+                                <td className="px-4 py-3.5 font-mono text-gray-600 dark:text-slate-300 font-semibold">
                                   {asg.date}
                                 </td>
                                 <td className="px-4 py-3.5">
                                   {isFulfilled ? (
-                                    <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded border border-emerald-100">
+                                    <span className="inline-flex items-center gap-1 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 text-[10px] font-bold px-2 py-0.5 rounded border border-emerald-100 dark:border-emerald-500/20">
                                       🟢 Yes, Filled
                                     </span>
                                   ) : (
-                                    <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-700 text-[10px] font-bold px-2 py-0.5 rounded border border-amber-100">
+                                    <span className="inline-flex items-center gap-1 bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 text-[10px] font-bold px-2 py-0.5 rounded border border-amber-100 dark:border-amber-500/20">
                                       🚨 Pending
                                     </span>
                                   )}
                                 </td>
                                 <td className="px-4 py-3.5 text-center">
                                   {isFulfilled ? (
-                                    <span className="text-[10px] font-black text-emerald-600 tracking-wider">COMPLETED</span>
+                                    <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 tracking-wider">COMPLETED</span>
                                   ) : (
-                                    <span className="text-[10px] font-black text-amber-600 animate-pulse tracking-wider">ACTIVE BANNER</span>
+                                    <span className="text-[10px] font-black text-amber-600 dark:text-amber-400 animate-pulse tracking-wider">ACTIVE BANNER</span>
                                   )}
                                 </td>
                                 <td className="px-4 py-3.5 text-right">
@@ -666,7 +666,7 @@ export default function DSRSettings({
                                         }
                                       }
                                     }}
-                                    className="p-1.5 text-gray-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition cursor-pointer inline-flex items-center"
+                                    className="p-1.5 text-gray-400 dark:text-slate-500 hover:text-rose-600 hover:dark:text-rose-400 rounded-lg hover:bg-rose-50 hover:dark:bg-rose-500/10 transition cursor-pointer inline-flex items-center"
                                     title="Delete Assignment"
                                   >
                                     <Trash2 size={13} />
@@ -686,14 +686,14 @@ export default function DSRSettings({
         )}
 
         {activeSubTab === 'database' && (
-          <div className="bg-white rounded-2xl shadow-xs border border-gray-150 p-6 space-y-6">
-            <div className="flex items-center gap-2 pb-4 border-b border-gray-100">
-              <Database className="text-indigo-600" size={20} />
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xs border border-gray-150 dark:border-slate-800 p-6 space-y-6">
+            <div className="flex items-center gap-2 pb-4 border-b border-gray-100 dark:border-slate-800/60">
+              <Database className="text-indigo-600 dark:text-blue-400" size={20} />
               <div>
-                <h3 className="text-sm font-extrabold text-gray-900 uppercase tracking-wide">
+                <h3 className="text-sm font-extrabold text-gray-900 dark:text-slate-50 uppercase tracking-wide">
                   Supabase Database Status & Schema
                 </h3>
-                <p className="text-xs text-gray-400 mt-0.5">
+                <p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5">
                   View connection status and SQL schemas required to bootstrap persistent database tables.
                 </p>
               </div>
@@ -702,10 +702,10 @@ export default function DSRSettings({
             {/* Connection Status Box */}
             <div className={`p-4 rounded-xl flex items-start gap-3 border ${
               !supabaseConfigured
-                ? 'bg-amber-50/50 border-amber-100 text-amber-900'
+                ? 'bg-amber-50/50 border-amber-100 dark:border-amber-500/20 text-amber-900 dark:text-amber-300'
                 : databaseStatusError && databaseStatusError.includes('Missing table(s)')
                 ? 'bg-rose-50/50 border-rose-100 text-rose-900'
-                : 'bg-emerald-50/50 border-emerald-100 text-emerald-900'
+                : 'bg-emerald-50/50 border-emerald-100 dark:border-emerald-500/20 text-emerald-900'
             }`}>
               <span className="text-lg">
                 {!supabaseConfigured 
@@ -722,7 +722,7 @@ export default function DSRSettings({
                     ? 'Tables Missing in Supabase' 
                     : 'Active & Fully Connected'}
                 </div>
-                <p className="text-xs text-gray-500 font-medium leading-relaxed">
+                <p className="text-xs text-gray-500 dark:text-slate-400 font-medium leading-relaxed">
                   {!supabaseConfigured 
                     ? `SUPABASE_URL and SUPABASE_KEY are not specified in your secret environment variables. The system has fallen back to offline JSON files for local-only execution.`
                     : databaseStatusError && databaseStatusError.includes('Missing table(s)')
@@ -735,7 +735,7 @@ export default function DSRSettings({
             {/* SQL Table Schema Copy box */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <div className="text-xs font-extrabold text-gray-700 uppercase tracking-wider">
+                <div className="text-xs font-extrabold text-gray-700 dark:text-slate-200 uppercase tracking-wider">
                   Recommended SQL Table Initialization Schema
                 </div>
                 <button
@@ -747,17 +747,17 @@ export default function DSRSettings({
                         setTimeout(() => setIsSqlCopied(false), 2000);
                       });
                   }}
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-extrabold uppercase tracking-wider text-indigo-700 bg-indigo-50 border border-indigo-100 rounded-lg hover:bg-indigo-100 transition cursor-pointer inline-flex items-center"
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-extrabold uppercase tracking-wider text-indigo-700 dark:text-blue-400 bg-indigo-50 dark:bg-blue-500/10 border border-indigo-100 dark:border-blue-500/20 rounded-lg hover:bg-indigo-100 hover:dark:bg-blue-500/15 transition cursor-pointer inline-flex items-center"
                 >
                   {isSqlCopied ? <Check size={11} className="mr-1" /> : <Copy size={11} className="mr-1" />}
                   {isSqlCopied ? 'Copied' : 'Copy SQL Schema'}
                 </button>
               </div>
-              <p className="text-xs text-gray-400 leading-relaxed">
+              <p className="text-xs text-gray-400 dark:text-slate-500 leading-relaxed">
                 Copy and run this SQL script in your Supabase SQL Editor to instantly bootstrap all database tables, columns, indexes, and performance constraints.
               </p>
               
-              <div className="relative rounded-xl overflow-hidden border border-gray-150 bg-slate-900 p-4">
+              <div className="relative rounded-xl overflow-hidden border border-gray-150 dark:border-slate-800 bg-slate-900 p-4">
                 <pre className="text-[10px] text-indigo-200 font-mono overflow-x-auto max-h-72 leading-relaxed whitespace-pre-wrap select-all scrollbar-thin">
                   {supabaseSchemaSql || 'Loading SQL schema...'}
                 </pre>
@@ -765,15 +765,15 @@ export default function DSRSettings({
             </div>
 
             {/* Setup Instructions list */}
-            <div className="bg-slate-50 rounded-xl p-5 border border-gray-150 space-y-4">
-              <div className="text-xs font-bold text-gray-800 uppercase tracking-wide">
+            <div className="bg-slate-50 dark:bg-slate-800/60 rounded-xl p-5 border border-gray-150 dark:border-slate-800 space-y-4">
+              <div className="text-xs font-bold text-gray-800 dark:text-slate-100 uppercase tracking-wide">
                 How to set up Supabase Persistence:
               </div>
-              <ol className="list-decimal list-inside space-y-2.5 text-xs text-gray-500 leading-relaxed">
-                <li>Create a free account or project on <a href="https://supabase.com" target="_blank" rel="noreferrer" className="text-indigo-600 hover:underline inline-flex items-center gap-0.5 font-bold">Supabase <ExternalLink size={11} /></a>.</li>
+              <ol className="list-decimal list-inside space-y-2.5 text-xs text-gray-500 dark:text-slate-400 leading-relaxed">
+                <li>Create a free account or project on <a href="https://supabase.com" target="_blank" rel="noreferrer" className="text-indigo-600 dark:text-blue-400 hover:underline inline-flex items-center gap-0.5 font-bold">Supabase <ExternalLink size={11} /></a>.</li>
                 <li>Go to <strong>Project Settings</strong> &gt; <strong>API</strong> and find your Project URL and anon/public Key.</li>
                 <li>Add these keys to your AI Studio secrets / environment variables as:
-                  <div className="mt-1.5 font-mono text-[10px] bg-slate-100 p-1.5 px-2 rounded-lg text-slate-700 block whitespace-pre-wrap">
+                  <div className="mt-1.5 font-mono text-[10px] bg-slate-100 dark:bg-slate-800 p-1.5 px-2 rounded-lg text-slate-700 dark:text-slate-200 block whitespace-pre-wrap">
                     SUPABASE_URL=your_project_url<br/>
                     SUPABASE_KEY=your_anon_public_key
                   </div>
