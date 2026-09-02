@@ -223,6 +223,7 @@ export default function DSRDashboard({
   const [selectedProjectIds, setSelectedProjectIds] = useState<string[]>([]);
   const [isProjectDropdownOpen, setIsProjectDropdownOpen] = useState(false);
   const [projectSearchTerm, setProjectSearchTerm] = useState('');
+  const projectDropdownRef = useRef<HTMLDivElement>(null);
 
   // Resolved project names for the selected project IDs - used to let the
   // Update Ranking sheet filter by "Project Name" cell text, since that
@@ -235,16 +236,42 @@ export default function DSRDashboard({
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
   const [userSearchTerm, setUserSearchTerm] = useState('');
+  const userDropdownRef = useRef<HTMLDivElement>(null);
 
   const [regionFilter, setRegionFilter] = useState<string>('All');
 
   const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
   const [isLocationDropdownOpen, setIsLocationDropdownOpen] = useState(false);
   const [locationSearchTerm, setLocationSearchTerm] = useState('');
+  const locationDropdownRef = useRef<HTMLDivElement>(null);
 
   const [selectedPriorities, setSelectedPriorities] = useState<string[]>([]);
   const [isPriorityDropdownOpen, setIsPriorityDropdownOpen] = useState(false);
   const PRIORITY_OPTIONS = ['X1', 'X2', 'X3', 'X4', 'X5'];
+  const priorityDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Auto-close any open filter dropdown on outside click — same pattern as
+  // the global nav menu (mousedown on document, ignore clicks inside the
+  // dropdown's own wrapper).
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as Node;
+      if (projectDropdownRef.current && !projectDropdownRef.current.contains(target)) {
+        setIsProjectDropdownOpen(false);
+      }
+      if (locationDropdownRef.current && !locationDropdownRef.current.contains(target)) {
+        setIsLocationDropdownOpen(false);
+      }
+      if (priorityDropdownRef.current && !priorityDropdownRef.current.contains(target)) {
+        setIsPriorityDropdownOpen(false);
+      }
+      if (userDropdownRef.current && !userDropdownRef.current.contains(target)) {
+        setIsUserDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const [commonSearchTerm, setCommonSearchTerm] = useState('');
   const [keywordSearchTerm, setKeywordSearchTerm] = useState('');
@@ -1732,7 +1759,7 @@ export default function DSRDashboard({
           </div>
 
           {/* Block 3: Project — pill style, multi-select list with local search */}
-          <div className="relative">
+          <div className="relative" ref={projectDropdownRef}>
             <button
               type="button"
               onClick={() => {
@@ -1757,10 +1784,6 @@ export default function DSRDashboard({
 
             {isProjectDropdownOpen && (
               <>
-                <div 
-                  className="fixed inset-0 z-40" 
-                  onClick={() => setIsProjectDropdownOpen(false)} 
-                />
                 <div className="absolute left-0 mt-1.5 w-72 bg-white border border-gray-200 rounded-xl shadow-lg z-50 p-2.5 space-y-2 max-h-56 overflow-y-auto">
                     <div className="flex items-center justify-between text-[9px] pb-1 border-b border-gray-100 font-bold text-gray-400">
                       <span>PROJECTS</span>
@@ -1826,7 +1849,7 @@ export default function DSRDashboard({
           </div>
 
           {/* Block 4: Location — pill style, dynamic list based on the particular user's projects */}
-          <div className="relative">
+          <div className="relative" ref={locationDropdownRef}>
             <button
               type="button"
               onClick={() => {
@@ -1851,10 +1874,6 @@ export default function DSRDashboard({
 
             {isLocationDropdownOpen && (
               <>
-                <div 
-                  className="fixed inset-0 z-40" 
-                  onClick={() => setIsLocationDropdownOpen(false)} 
-                />
                 <div className="absolute left-0 mt-1.5 w-72 bg-white border border-gray-200 rounded-xl shadow-lg z-50 p-2.5 space-y-2 max-h-56 overflow-y-auto font-sans">
                     <div className="flex items-center justify-between text-[9px] pb-1 border-b border-gray-100 font-bold text-gray-400">
                       <span>LOCATIONS</span>
@@ -1920,7 +1939,7 @@ export default function DSRDashboard({
           </div>
 
           {/* Block: Priority — pill style, multi-select filter (applies across all sections) */}
-          <div className="relative">
+          <div className="relative" ref={priorityDropdownRef}>
             <button
               type="button"
               onClick={() => {
@@ -1945,10 +1964,6 @@ export default function DSRDashboard({
 
             {isPriorityDropdownOpen && (
               <>
-                <div
-                  className="fixed inset-0 z-40"
-                  onClick={() => setIsPriorityDropdownOpen(false)}
-                />
                 <div className="absolute left-0 mt-1.5 w-72 bg-white border border-gray-200 rounded-xl shadow-lg z-50 p-2.5 space-y-2 max-h-56 overflow-y-auto">
                     <div className="flex items-center justify-between text-[9px] pb-1 border-b border-gray-100 font-bold text-gray-400">
                       <span>PRIORITY</span>
@@ -2002,7 +2017,7 @@ export default function DSRDashboard({
 
           {/* Block 5: Filter by User/Users (Admin Only) — pill style */}
           {isAdmin && (
-            <div className="relative">
+            <div className="relative" ref={userDropdownRef}>
               <button
                 type="button"
                 onClick={() => {
@@ -2027,10 +2042,6 @@ export default function DSRDashboard({
 
               {isUserDropdownOpen && (
                 <>
-                  <div 
-                    className="fixed inset-0 z-40" 
-                    onClick={() => setIsUserDropdownOpen(false)} 
-                  />
                   <div className="absolute right-0 mt-1.5 w-72 max-w-[calc(100vw-2rem)] bg-white border border-gray-200 rounded-xl shadow-lg z-50 p-2.5 space-y-2 max-h-56 overflow-y-auto">
                       <div className="flex items-center justify-between text-[9px] pb-1 border-b border-gray-105 font-bold text-gray-400 font-sans">
                         <span>USERS</span>
