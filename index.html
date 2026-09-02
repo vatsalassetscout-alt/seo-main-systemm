@@ -11,10 +11,14 @@
       // cost and no effect on page-load performance.
       (function () {
         try {
+          // Default theme is dark unless the person has explicitly chosen
+          // light before (saved in localStorage).
           var saved = localStorage.getItem('theme');
-          var dark = saved ? saved === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+          var dark = saved ? saved === 'dark' : true;
           if (dark) document.documentElement.classList.add('dark');
-        } catch (e) {}
+        } catch (e) {
+          document.documentElement.classList.add('dark');
+        }
       })();
     </script>
   </head>
