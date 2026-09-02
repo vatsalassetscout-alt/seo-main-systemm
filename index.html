@@ -4,10 +4,22 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>SEO Management System</title>
+    <meta name="color-scheme" content="light dark" />
+    <script>
+      // Applied synchronously, before first paint, so there is never a flash
+      // of the wrong theme. This is a few bytes of inline JS with no network
+      // cost and no effect on page-load performance.
+      (function () {
+        try {
+          var saved = localStorage.getItem('theme');
+          var dark = saved ? saved === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+          if (dark) document.documentElement.classList.add('dark');
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
-
