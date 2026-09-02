@@ -44,7 +44,7 @@ const PRIORITY_BADGE: Record<string, string> = {
   X2: 'bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-100 dark:border-amber-500/20',
   X3: 'bg-blue-50 text-blue-700 border-blue-100',
   X4: 'bg-purple-50 text-purple-700 border-purple-100 dark:border-purple-500/20',
-  X5: 'bg-gray-50 dark:bg-slate-800/60 text-gray-700 dark:text-slate-200 border-gray-150 dark:border-slate-800',
+  X5: 'bg-gray-50 dark:bg-ink-800/60 text-gray-700 dark:text-slate-200 border-gray-150 dark:border-slate-800',
 };
 
 function todayStr(): string {
@@ -97,7 +97,7 @@ function heatmapClassesForDay(stat?: { total: number; pending: number }): { cell
 }
 
 const Badge = ({ priority }: { priority: string }) => (
-  <span className={`inline-flex items-center px-2 py-0.5 rounded border text-[10px] font-black uppercase tracking-wider ${PRIORITY_BADGE[priority] || 'bg-gray-50 dark:bg-slate-800/60 text-gray-500 dark:text-slate-400 border-gray-150 dark:border-slate-800'}`}>
+  <span className={`inline-flex items-center px-2 py-0.5 rounded border text-[10px] font-black uppercase tracking-wider ${PRIORITY_BADGE[priority] || 'bg-gray-50 dark:bg-ink-800/60 text-gray-500 dark:text-slate-400 border-gray-150 dark:border-slate-800'}`}>
     {priority || '—'}
   </span>
 );
@@ -125,8 +125,8 @@ const PriorityDistribution = ({ items }: { items: TaskAssignment[] }) => {
           title={`${tier}: ${counts[tier]}`}
           className={`inline-flex items-center gap-1 px-2 py-1 rounded border text-[11px] font-black uppercase tracking-wider ${
             counts[tier] > 0
-              ? PRIORITY_BADGE[tier] || 'bg-gray-50 dark:bg-slate-800/60 text-gray-600 dark:text-slate-300 border-gray-150 dark:border-slate-800'
-              : 'bg-gray-50 dark:bg-slate-800/60 text-gray-300 dark:text-slate-500 border-gray-100 dark:border-slate-800/60'
+              ? PRIORITY_BADGE[tier] || 'bg-gray-50 dark:bg-ink-800/60 text-gray-600 dark:text-slate-300 border-gray-150 dark:border-slate-800'
+              : 'bg-gray-50 dark:bg-ink-800/60 text-gray-300 dark:text-slate-500 border-gray-100 dark:border-slate-800/60'
           }`}
         >
           {tier}:
@@ -194,7 +194,7 @@ const PendingProjectList = ({
       </div>
       <div className="space-y-1">
         {sortPendingFirst(items).map((a) => (
-          <div key={a.id} className="flex items-center gap-3 px-2.5 py-2 rounded-xl hover:bg-gray-50 hover:dark:bg-slate-800/60 transition-colors">
+          <div key={a.id} className="flex items-center gap-3 px-2.5 py-2 rounded-xl hover:bg-gray-50 hover:dark:bg-ink-800/60 transition-colors">
             <span className="flex-1 min-w-0 truncate text-[15px] font-black text-gray-800 dark:text-slate-100">{a.projectName}</span>
             {getOwner && (
               <span className="w-24 shrink-0 truncate text-[11px] font-bold text-gray-500 dark:text-slate-400 text-right" title={getOwner(a)}>
@@ -781,7 +781,7 @@ export default function TaskLineup({
       )}
 
       {generateMsg && (
-        <div className="text-xs font-bold text-gray-600 dark:text-slate-300 bg-gray-50 dark:bg-slate-800/60 border border-gray-150 dark:border-slate-800 px-3 py-2 rounded-xl">
+        <div className="text-xs font-bold text-gray-600 dark:text-slate-300 bg-gray-50 dark:bg-ink-800/60 border border-gray-150 dark:border-slate-800 px-3 py-2 rounded-xl">
           {generateMsg}
         </div>
       )}
@@ -792,8 +792,8 @@ export default function TaskLineup({
           {/* Admin: "Check Pendings" drill-down — one button per user; pick
               someone to see their total + yesterday pending lists. */}
           {isAdmin && showCheckPendings && (
-            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-150 dark:border-slate-800 overflow-hidden shadow-xs">
-              <div className="px-5 py-3 bg-gray-50 dark:bg-slate-800/60 border-b border-gray-150 dark:border-slate-800">
+            <div className="bg-white dark:bg-ink-900 rounded-2xl border border-gray-150 dark:border-slate-800 overflow-hidden shadow-xs">
+              <div className="px-5 py-3 bg-gray-50 dark:bg-ink-800/60 border-b border-gray-150 dark:border-slate-800">
                 <p className="text-xs font-black text-gray-900 dark:text-slate-50">Check Pendings — by user</p>
                 <p className="text-[10px] font-bold text-gray-400 dark:text-slate-500 mt-0.5">Pick a user to see their total and yesterday's pending tasks.</p>
               </div>
@@ -810,7 +810,7 @@ export default function TaskLineup({
                       className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition cursor-pointer ${
                         selectedPendingEmail && selectedPendingEmail.trim().toLowerCase() === u.email.trim().toLowerCase()
                           ? 'bg-indigo-600 dark:bg-blue-600 text-white'
-                          : 'bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 hover:dark:bg-slate-700 text-gray-700 dark:text-slate-200'
+                          : 'bg-gray-100 dark:bg-ink-800 hover:bg-gray-200 hover:dark:bg-ink-700 text-gray-700 dark:text-slate-200'
                       }`}
                     >
                       {u.name} · {u.totalPendingCount} pending
@@ -844,8 +844,8 @@ export default function TaskLineup({
               card's own header, right-aligned, capped so a future date can't
               be picked. */}
           {!isAdmin && (
-            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-150 dark:border-slate-800 overflow-hidden shadow-xs">
-              <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5 bg-gray-50 dark:bg-slate-800/60 border-b border-gray-150 dark:border-slate-800">
+            <div className="bg-white dark:bg-ink-900 rounded-2xl border border-gray-150 dark:border-slate-800 overflow-hidden shadow-xs">
+              <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5 bg-gray-50 dark:bg-ink-800/60 border-b border-gray-150 dark:border-slate-800">
                 <p className="text-sm font-black text-gray-900 dark:text-slate-50">Today's Lineup</p>
                 <div className="flex items-center gap-3">
                   <PriorityDistribution items={myAssignments} />
@@ -910,8 +910,8 @@ export default function TaskLineup({
               Each row now also shows total tasks, yesterday pending, and
               total pending. */}
           {isAdmin && (
-            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-150 dark:border-slate-800 overflow-hidden shadow-xs">
-              <div className="px-5 py-3 bg-gray-50 dark:bg-slate-800/60 border-b border-gray-150 dark:border-slate-800">
+            <div className="bg-white dark:bg-ink-900 rounded-2xl border border-gray-150 dark:border-slate-800 overflow-hidden shadow-xs">
+              <div className="px-5 py-3 bg-gray-50 dark:bg-ink-800/60 border-b border-gray-150 dark:border-slate-800">
                 <p className="text-xs font-black text-gray-900 dark:text-slate-50"> Controls</p>
               </div>
               {allowedUsers.length === 0 ? (
@@ -938,7 +938,7 @@ export default function TaskLineup({
                           <button
                             onClick={() => togglePause(u.email, !paused)}
                             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition cursor-pointer ${
-                              paused ? 'bg-amber-100 text-amber-700 dark:text-amber-400 hover:bg-amber-200' : 'bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-slate-400 hover:bg-gray-200 hover:dark:bg-slate-700'
+                              paused ? 'bg-amber-100 text-amber-700 dark:text-amber-400 hover:bg-amber-200' : 'bg-gray-100 dark:bg-ink-800 text-gray-500 dark:text-slate-400 hover:bg-gray-200 hover:dark:bg-ink-700'
                             }`}
                           >
                             {paused ? <Play size={12} /> : <Pause size={12} />}
@@ -960,15 +960,15 @@ export default function TaskLineup({
               {loading ? (
                 <p className="text-xs font-bold text-gray-400 dark:text-slate-500">Loading lineup…</p>
               ) : groupedByUser.length === 0 ? (
-                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-150 dark:border-slate-800 p-8 text-center">
+                <div className="bg-white dark:bg-ink-900 rounded-2xl border border-gray-150 dark:border-slate-800 p-8 text-center">
                   <p className="text-sm font-bold text-gray-500 dark:text-slate-400">No lineup generated for this date yet.</p>
                 </div>
               ) : (
                 groupedByUser.map(([displayName, emailKey, list]) => {
                   const doneCount = list.filter(a => a.status === 'Done').length;
                   return (
-                    <div key={emailKey} className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-150 dark:border-slate-800 overflow-hidden shadow-xs">
-                      <div className="flex items-center justify-between px-5 py-3 bg-gray-50 dark:bg-slate-800/60 border-b border-gray-150 dark:border-slate-800 gap-3">
+                    <div key={emailKey} className="bg-white dark:bg-ink-900 rounded-2xl border border-gray-150 dark:border-slate-800 overflow-hidden shadow-xs">
+                      <div className="flex items-center justify-between px-5 py-3 bg-gray-50 dark:bg-ink-800/60 border-b border-gray-150 dark:border-slate-800 gap-3">
                         <div>
                           <p className="text-xs font-black text-gray-900 dark:text-slate-50">
                             {displayName}
@@ -1011,7 +1011,7 @@ export default function TaskLineup({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Left: Yesterday Pending — no Date column since every row here
                 is implicitly "yesterday". */}
-            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-150 dark:border-slate-800 p-5 shadow-xs min-h-[320px]">
+            <div className="bg-white dark:bg-ink-900 rounded-2xl border border-gray-150 dark:border-slate-800 p-5 shadow-xs min-h-[320px]">
               <p className="text-xs font-black text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-3">
                 Yesterday Pending ({historyYesterdayPending.length})
               </p>
@@ -1024,7 +1024,7 @@ export default function TaskLineup({
             </div>
             {/* Right: Total Pending — the signed-in user's own all-time
                 total, or, for admins, every user's pooled together. */}
-            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-150 dark:border-slate-800 p-5 shadow-xs min-h-[320px]">
+            <div className="bg-white dark:bg-ink-900 rounded-2xl border border-gray-150 dark:border-slate-800 p-5 shadow-xs min-h-[320px]">
               <p className="text-xs font-black text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-3">
                 Total Pending ({historyTotalPending.length})
               </p>
@@ -1040,14 +1040,14 @@ export default function TaskLineup({
               your own, for everyone else) and whether each was Submitted or
               Not Submitted. Available to every user, not just admins. */}
           {(
-            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-150 dark:border-slate-800 shadow-xs overflow-hidden">
-              <div className="p-4 bg-gray-50/50 dark:bg-slate-800/40 border-b border-gray-150 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="bg-white dark:bg-ink-900 rounded-2xl border border-gray-150 dark:border-slate-800 shadow-xs overflow-hidden">
+              <div className="p-4 bg-gray-50/50 dark:bg-ink-800/40 border-b border-gray-150 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <h3 className="text-xs font-black text-gray-900 dark:text-slate-50 uppercase tracking-wider flex items-center gap-1.5">
                   <CalendarDays size={14} className="text-indigo-600 dark:text-blue-400" />
                   Daily Assignment Status
                 </h3>
 
-                <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200/60 shadow-inner h-[32px] self-start sm:self-center">
+                <div className="flex items-center gap-1 bg-slate-100 dark:bg-ink-800 p-1 rounded-xl border border-slate-200/60 shadow-inner h-[32px] self-start sm:self-center">
                   <button
                     type="button"
                     onClick={() => {
@@ -1086,7 +1086,7 @@ export default function TaskLineup({
                 {/* Left: calendar grid, shaded as a green (all Submitted) →
                     red (all Pending) heatmap so the day's status is visible
                     at a glance without clicking in. */}
-                <div className="lg:col-span-7 bg-slate-50/50 dark:bg-slate-800/40 p-3.5 rounded-xl border border-slate-150/60 shadow-inner">
+                <div className="lg:col-span-7 bg-slate-50/50 dark:bg-ink-800/40 p-3.5 rounded-xl border border-slate-150/60 shadow-inner">
                   <div className="grid grid-cols-7 gap-1.5 mb-2 text-center text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
                     <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
                   </div>
@@ -1094,7 +1094,7 @@ export default function TaskLineup({
                     {historyCalMonthDays.blanks.map((_, idx) => (
                       <div
                         key={`hcal-blank-${idx}`}
-                        className="aspect-square bg-slate-50/30 dark:bg-slate-800/30 rounded-lg border border-dashed border-slate-200/20 opacity-20 select-none"
+                        className="aspect-square bg-slate-50/30 dark:bg-ink-800/30 rounded-lg border border-dashed border-slate-200/20 opacity-20 select-none"
                       />
                     ))}
                     {historyCalMonthDays.days.map((day) => {
@@ -1115,12 +1115,12 @@ export default function TaskLineup({
                           title={heat && stat ? `${stat.total - stat.pending} submitted · ${stat.pending} pending` : undefined}
                           className={`aspect-square rounded-lg flex items-center justify-center text-[11px] font-black transition-all duration-200 select-none border ${
                             isFuture
-                              ? 'bg-slate-50 dark:bg-slate-800/60 text-slate-300 dark:text-slate-500 border-slate-100 cursor-not-allowed'
+                              ? 'bg-slate-50 dark:bg-ink-800/60 text-slate-300 dark:text-slate-500 border-slate-100 cursor-not-allowed'
                               : heat
                               ? `${heat.cell} ${isSelected ? `ring-2 ${heat.ring} ring-offset-1 scale-105 shadow-xs` : 'hover:scale-105 hover:shadow-xs'} cursor-pointer`
                               : isSelected
                               ? 'bg-indigo-600 dark:bg-blue-600 border-indigo-600 dark:border-blue-500/50 text-white shadow-xs ring-2 ring-indigo-300 dark:ring-blue-500/30 ring-offset-1 scale-105 cursor-pointer'
-                              : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-indigo-50 hover:dark:bg-blue-500/10 hover:border-indigo-200 hover:dark:border-blue-500/25 cursor-pointer'
+                              : 'bg-white dark:bg-ink-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-indigo-50 hover:dark:bg-blue-500/10 hover:border-indigo-200 hover:dark:border-blue-500/25 cursor-pointer'
                           }`}
                         >
                           {day}
@@ -1148,13 +1148,13 @@ export default function TaskLineup({
                 {/* Right: all of that day's data, shown directly — no dropdown */}
                 <div className="lg:col-span-5 flex flex-col">
                   {!historyCalDay ? (
-                    <div className="flex-1 flex items-center justify-center text-center p-8 bg-slate-50/50 dark:bg-slate-800/40 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 min-h-[220px]">
+                    <div className="flex-1 flex items-center justify-center text-center p-8 bg-slate-50/50 dark:bg-ink-800/40 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 min-h-[220px]">
                       <p className="text-xs font-bold text-slate-400 dark:text-slate-500">Select a day from the calendar to view assignment status.</p>
                     </div>
                   ) : historyCalLoading ? (
                     <p className="text-xs font-bold text-gray-400 dark:text-slate-500 p-4">Loading…</p>
                   ) : historyCalAssignments.length === 0 ? (
-                    <div className="flex-1 flex items-center justify-center text-center p-8 bg-slate-50/50 dark:bg-slate-800/40 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 min-h-[220px]">
+                    <div className="flex-1 flex items-center justify-center text-center p-8 bg-slate-50/50 dark:bg-ink-800/40 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 min-h-[220px]">
                       <p className="text-xs font-bold text-slate-400 dark:text-slate-500">No assignments found for {historyCalDay}.</p>
                     </div>
                   ) : (
@@ -1163,7 +1163,7 @@ export default function TaskLineup({
                           into Submitted vs Pending so it's clear at a glance
                           without having to scroll/count the list below. */}
                       <div className="flex items-center gap-2 mb-3">
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-150 dark:border-slate-800 text-[11px] font-black text-slate-700 dark:text-slate-200">
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-ink-800/60 border border-slate-150 dark:border-slate-800 text-[11px] font-black text-slate-700 dark:text-slate-200">
                           {historyCalAssignments.length} Total
                         </span>
                         <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-100 dark:border-emerald-500/20 text-[11px] font-black text-emerald-700 dark:text-emerald-400">
@@ -1178,12 +1178,12 @@ export default function TaskLineup({
                         const submittedCount = items.filter((a) => a.status === 'Done').length;
                         const pendingCount = items.length - submittedCount;
                         return (
-                        <div key={userName} className="bg-white dark:bg-slate-900 rounded-xl border border-gray-150 dark:border-slate-800 overflow-hidden">
+                        <div key={userName} className="bg-white dark:bg-ink-900 rounded-xl border border-gray-150 dark:border-slate-800 overflow-hidden">
                           {isAdmin && (
-                            <div className="px-3.5 py-2 bg-gray-50 dark:bg-slate-800/60 border-b border-gray-150 dark:border-slate-800 flex items-center justify-between gap-2 flex-wrap">
+                            <div className="px-3.5 py-2 bg-gray-50 dark:bg-ink-800/60 border-b border-gray-150 dark:border-slate-800 flex items-center justify-between gap-2 flex-wrap">
                               <p className="text-[11px] font-black text-gray-900 dark:text-slate-50">{userName}</p>
                               <div className="flex items-center gap-1.5">
-                                <span className="inline-flex items-center px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-[10px] font-black text-slate-600 dark:text-slate-300">
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-ink-800 text-[10px] font-black text-slate-600 dark:text-slate-300">
                                   {items.length} Lineup
                                 </span>
                                 <span className="inline-flex items-center px-2 py-0.5 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 text-[10px] font-black text-emerald-700 dark:text-emerald-400">
