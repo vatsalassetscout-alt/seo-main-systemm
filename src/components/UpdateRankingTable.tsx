@@ -932,7 +932,7 @@ export default function UpdateRankingTable({
           </td>
         )}
         <td
-          className={`px-1 py-2.5 text-center font-bold text-slate-500 dark:text-slate-400 sticky border-r border-b border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-800 ${!colorModeOn ? 'border-l' : ''}`}
+          className={`px-1 py-2.5 text-center font-bold text-slate-500 dark:text-slate-400 sticky border-r border-b border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-ink-800 ${!colorModeOn ? 'border-l' : ''}`}
           style={{
             left: colorModeOn ? CHECKBOX_COL_WIDTH : 0,
             width: SR_NO_COL_WIDTH, minWidth: SR_NO_COL_WIDTH,
@@ -996,7 +996,7 @@ export default function UpdateRankingTable({
                   onPaste={(e) => handleCellPaste(e, row.id, col.id)}
                   placeholder="—"
                   style={{ color: col.textColor || undefined }}
-                  className="w-full text-xs font-bold text-gray-800 dark:text-slate-100 px-2.5 py-2.5 border border-transparent hover:border-gray-200 hover:dark:border-slate-800 focus:border-indigo-400 rounded-lg focus:outline-hidden bg-transparent focus:bg-white focus:dark:bg-slate-900 transition"
+                  className="w-full text-xs font-bold text-gray-800 dark:text-slate-100 px-2.5 py-2.5 border border-transparent hover:border-gray-200 hover:dark:border-slate-800 focus:border-indigo-400 rounded-lg focus:outline-hidden bg-transparent focus:bg-white focus:dark:bg-ink-900 transition"
                 />
               ) : (
                 <span className="block px-2.5 py-2.5 text-xs font-bold text-gray-800 dark:text-slate-100 truncate" style={{ color: col.textColor || undefined }}>
@@ -1015,7 +1015,7 @@ export default function UpdateRankingTable({
   return (
     <div>
       {/* Toolbar */}
-      <div className="p-4 bg-gray-50/50 dark:bg-slate-800/40 border-b border-gray-150 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="p-4 bg-gray-50/50 dark:bg-ink-800/40 border-b border-gray-150 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h3 className="text-xs font-black text-gray-900 dark:text-slate-50 uppercase tracking-wider">
             {isAdmin ? 'Manual Ranking' : 'Update Ranking'}
@@ -1038,7 +1038,7 @@ export default function UpdateRankingTable({
               <button
                 onClick={() => setUserPickerOpen(v => !v)}
                 className={`flex items-center gap-1.5 text-xs font-bold border rounded-xl px-2.5 py-2 cursor-pointer transition ${
-                  selectedUserEmail ? 'bg-indigo-600 dark:bg-blue-600 border-indigo-700 text-white' : 'bg-white dark:bg-slate-900 border-gray-200 dark:border-slate-800 hover:bg-gray-50 hover:dark:bg-slate-800/60 text-gray-700 dark:text-slate-200'
+                  selectedUserEmail ? 'bg-indigo-600 dark:bg-blue-600 border-indigo-700 text-white' : 'bg-white dark:bg-ink-900 border-gray-200 dark:border-slate-800 hover:bg-gray-50 hover:dark:bg-ink-800/60 text-gray-700 dark:text-slate-200'
                 }`}
               >
                 <Users size={12} />
@@ -1047,14 +1047,14 @@ export default function UpdateRankingTable({
               </button>
 
               {userPickerOpen && (
-                <div className="absolute right-0 top-full mt-1.5 w-64 max-w-[85vw] max-h-80 overflow-y-auto bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl shadow-xl z-50 p-3">
+                <div className="absolute right-0 top-full mt-1.5 w-64 max-w-[85vw] max-h-80 overflow-y-auto bg-white dark:bg-ink-900 border border-gray-200 dark:border-slate-800 rounded-xl shadow-xl z-50 p-3">
                   <p className="text-[10px] font-black text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-2">Viewing user's sheet</p>
                   <input
                     type="text"
                     value={userPickerSearch}
                     onChange={(e) => setUserPickerSearch(e.target.value)}
                     placeholder="Search user..."
-                    className="w-full mb-2 px-2 py-1.5 bg-gray-50 dark:bg-slate-800/60 border border-gray-200 dark:border-slate-800 rounded-lg text-[11px] font-bold focus:outline-hidden focus:ring-1 focus:ring-indigo-500 focus:dark:ring-blue-500/50"
+                    className="w-full mb-2 px-2 py-1.5 bg-gray-50 dark:bg-ink-800/60 border border-gray-200 dark:border-slate-800 rounded-lg text-[11px] font-bold focus:outline-hidden focus:ring-1 focus:ring-indigo-500 focus:dark:ring-blue-500/50"
                   />
                   <div className="flex flex-col gap-0.5 max-h-56 overflow-y-auto">
                     {filteredUserOptions.length === 0 && (
@@ -1067,7 +1067,7 @@ export default function UpdateRankingTable({
                           key={u.emails[0]}
                           onClick={() => { onSelectedUserChange?.(isSelected ? '' : u.emails[0]); setUserPickerOpen(false); setUserPickerSearch(''); }}
                           className={`text-left text-[11px] font-bold px-2 py-1.5 rounded-lg cursor-pointer transition ${
-                            isSelected ? 'bg-indigo-600 dark:bg-blue-600 text-white' : 'hover:bg-gray-50 hover:dark:bg-slate-800/60 text-gray-800 dark:text-slate-100'
+                            isSelected ? 'bg-indigo-600 dark:bg-blue-600 text-white' : 'hover:bg-gray-50 hover:dark:bg-ink-800/60 text-gray-800 dark:text-slate-100'
                           }`}
                         >
                           {u.name} <span className={`font-mono normal-case ${isSelected ? 'text-indigo-100' : 'text-gray-400 dark:text-slate-500'}`}>· {u.emails[0]}</span>
@@ -1098,7 +1098,7 @@ export default function UpdateRankingTable({
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search anywhere in the sheet..."
-              className="w-full text-xs pl-8 pr-3 py-2 border border-gray-200 dark:border-slate-800 rounded-xl focus:outline-hidden focus:ring-1 focus:ring-indigo-500 focus:dark:ring-blue-500/50 focus:border-indigo-500 focus:dark:border-blue-500/50 bg-white dark:bg-slate-900"
+              className="w-full text-xs pl-8 pr-3 py-2 border border-gray-200 dark:border-slate-800 rounded-xl focus:outline-hidden focus:ring-1 focus:ring-indigo-500 focus:dark:ring-blue-500/50 focus:border-indigo-500 focus:dark:border-blue-500/50 bg-white dark:bg-ink-900"
             />
           </div>
 
@@ -1107,7 +1107,7 @@ export default function UpdateRankingTable({
             <button
               onClick={() => setSortPanelOpen(v => !v)}
               className={`flex items-center gap-1.5 text-xs font-bold border rounded-xl px-2.5 py-2 cursor-pointer transition ${
-                sortColumnId ? 'bg-indigo-600 dark:bg-blue-600 border-indigo-700 text-white' : 'bg-white dark:bg-slate-900 border-gray-200 dark:border-slate-800 hover:bg-gray-50 hover:dark:bg-slate-800/60 text-gray-700 dark:text-slate-200'
+                sortColumnId ? 'bg-indigo-600 dark:bg-blue-600 border-indigo-700 text-white' : 'bg-white dark:bg-ink-900 border-gray-200 dark:border-slate-800 hover:bg-gray-50 hover:dark:bg-ink-800/60 text-gray-700 dark:text-slate-200'
               }`}
             >
               <ArrowUpDown size={12} />
@@ -1116,13 +1116,13 @@ export default function UpdateRankingTable({
             </button>
 
             {sortPanelOpen && (
-              <div className="absolute right-0 top-full mt-1.5 w-64 max-w-[85vw] max-h-80 overflow-y-auto bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl shadow-xl z-50 p-3">
+              <div className="absolute right-0 top-full mt-1.5 w-64 max-w-[85vw] max-h-80 overflow-y-auto bg-white dark:bg-ink-900 border border-gray-200 dark:border-slate-800 rounded-xl shadow-xl z-50 p-3">
                 <p className="text-[10px] font-black text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-2">Sort direction</p>
                 <div className="flex gap-2 mb-3">
                   <button
                     onClick={() => setSortDirection('desc')}
                     className={`flex-1 text-xs font-bold rounded-lg px-2 py-1.5 border cursor-pointer transition ${
-                      sortDirection === 'desc' ? 'bg-indigo-600 dark:bg-blue-600 text-white border-indigo-700' : 'bg-white dark:bg-slate-900 border-gray-200 dark:border-slate-800 hover:bg-gray-50 hover:dark:bg-slate-800/60'
+                      sortDirection === 'desc' ? 'bg-indigo-600 dark:bg-blue-600 text-white border-indigo-700' : 'bg-white dark:bg-ink-900 border-gray-200 dark:border-slate-800 hover:bg-gray-50 hover:dark:bg-ink-800/60'
                     }`}
                   >
                     High → Low
@@ -1130,7 +1130,7 @@ export default function UpdateRankingTable({
                   <button
                     onClick={() => setSortDirection('asc')}
                     className={`flex-1 text-xs font-bold rounded-lg px-2 py-1.5 border cursor-pointer transition ${
-                      sortDirection === 'asc' ? 'bg-indigo-600 dark:bg-blue-600 text-white border-indigo-700' : 'bg-white dark:bg-slate-900 border-gray-200 dark:border-slate-800 hover:bg-gray-50 hover:dark:bg-slate-800/60'
+                      sortDirection === 'asc' ? 'bg-indigo-600 dark:bg-blue-600 text-white border-indigo-700' : 'bg-white dark:bg-ink-900 border-gray-200 dark:border-slate-800 hover:bg-gray-50 hover:dark:bg-ink-800/60'
                     }`}
                   >
                     Low → High
@@ -1145,7 +1145,7 @@ export default function UpdateRankingTable({
                 ) : (
                   <div className="flex flex-col gap-1.5">
                     {grid.columns.map((col, colIdx) => (
-                      <label key={col.id} className="flex items-center gap-2 text-xs font-semibold text-gray-700 dark:text-slate-200 cursor-pointer hover:bg-gray-50 hover:dark:bg-slate-800/60 rounded-lg px-1.5 py-1">
+                      <label key={col.id} className="flex items-center gap-2 text-xs font-semibold text-gray-700 dark:text-slate-200 cursor-pointer hover:bg-gray-50 hover:dark:bg-ink-800/60 rounded-lg px-1.5 py-1">
                         <input
                           type="checkbox"
                           checked={sortColumnId === col.id}
@@ -1175,7 +1175,7 @@ export default function UpdateRankingTable({
             <button
               onClick={() => { setColorModeOn(v => !v); setSelectedRowIds({}); }}
               className={`flex items-center gap-1.5 text-xs font-bold border rounded-xl px-2.5 py-2 cursor-pointer transition ${
-                colorModeOn ? 'bg-indigo-600 dark:bg-blue-600 border-indigo-700 text-white' : 'bg-white dark:bg-slate-900 border-gray-200 dark:border-slate-800 hover:bg-gray-50 hover:dark:bg-slate-800/60 text-gray-700 dark:text-slate-200'
+                colorModeOn ? 'bg-indigo-600 dark:bg-blue-600 border-indigo-700 text-white' : 'bg-white dark:bg-ink-900 border-gray-200 dark:border-slate-800 hover:bg-gray-50 hover:dark:bg-ink-800/60 text-gray-700 dark:text-slate-200'
               }`}
             >
               <Palette size={12} />
@@ -1190,7 +1190,7 @@ export default function UpdateRankingTable({
               <button
                 onClick={() => setBlockPanelOpen(v => !v)}
                 className={`flex items-center gap-1.5 text-xs font-bold border rounded-xl px-2.5 py-2 cursor-pointer transition ${
-                  blockPanelOpen ? 'bg-indigo-600 dark:bg-blue-600 border-indigo-700 text-white' : 'bg-white dark:bg-slate-900 border-gray-200 dark:border-slate-800 hover:bg-gray-50 hover:dark:bg-slate-800/60 text-gray-700 dark:text-slate-200'
+                  blockPanelOpen ? 'bg-indigo-600 dark:bg-blue-600 border-indigo-700 text-white' : 'bg-white dark:bg-ink-900 border-gray-200 dark:border-slate-800 hover:bg-gray-50 hover:dark:bg-ink-800/60 text-gray-700 dark:text-slate-200'
                 }`}
               >
                 <Palette size={12} />
@@ -1199,7 +1199,7 @@ export default function UpdateRankingTable({
               </button>
 
               {blockPanelOpen && (
-                <div className="absolute right-0 top-full mt-1.5 w-64 max-w-[85vw] bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl shadow-xl z-50 p-3">
+                <div className="absolute right-0 top-full mt-1.5 w-64 max-w-[85vw] bg-white dark:bg-ink-900 border border-gray-200 dark:border-slate-800 rounded-xl shadow-xl z-50 p-3">
                   <p className="text-[10px] font-bold text-gray-500 dark:text-slate-400 mb-2">
                     {selBounds
                       ? `${selBounds.r1 - selBounds.r0 + 1} row${selBounds.r1 > selBounds.r0 ? 's' : ''} × ${selBounds.c1 - selBounds.c0 + 1} column${selBounds.c1 > selBounds.c0 ? 's' : ''} selected`
@@ -1249,7 +1249,7 @@ export default function UpdateRankingTable({
             <button
               onClick={startFreezePicker}
               title="Choose rows/columns to freeze"
-              className="flex items-center gap-1.5 text-xs font-bold border rounded-xl px-2.5 py-2 cursor-pointer transition bg-white dark:bg-slate-900 border-gray-200 dark:border-slate-800 hover:bg-gray-50 hover:dark:bg-slate-800/60 text-gray-700 dark:text-slate-200"
+              className="flex items-center gap-1.5 text-xs font-bold border rounded-xl px-2.5 py-2 cursor-pointer transition bg-white dark:bg-ink-900 border-gray-200 dark:border-slate-800 hover:bg-gray-50 hover:dark:bg-ink-800/60 text-gray-700 dark:text-slate-200"
             >
               <Pin size={12} />
               Freeze
@@ -1270,7 +1270,7 @@ export default function UpdateRankingTable({
               <button
                 onClick={cancelFreezePicker}
                 title="Cancel"
-                className="flex items-center gap-1 text-xs font-bold rounded-lg px-2 py-1.5 cursor-pointer transition bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 text-gray-600 dark:text-slate-300 hover:bg-gray-50 hover:dark:bg-slate-800/60"
+                className="flex items-center gap-1 text-xs font-bold rounded-lg px-2 py-1.5 cursor-pointer transition bg-white dark:bg-ink-900 border border-gray-200 dark:border-slate-800 text-gray-600 dark:text-slate-300 hover:bg-gray-50 hover:dark:bg-ink-800/60"
               >
                 <X size={12} />
                 Cancel
@@ -1322,7 +1322,7 @@ export default function UpdateRankingTable({
             <span className="text-[10px] font-bold text-indigo-800 dark:text-blue-300">{selectedCount} row{selectedCount > 1 ? 's' : ''} selected</span>
             <button
               onClick={clearColorFromSelected}
-              className="text-[10px] font-bold text-gray-600 dark:text-slate-300 hover:text-rose-600 hover:dark:text-rose-400 px-2 py-1 rounded-lg hover:bg-white hover:dark:bg-slate-900 transition cursor-pointer"
+              className="text-[10px] font-bold text-gray-600 dark:text-slate-300 hover:text-rose-600 hover:dark:text-rose-400 px-2 py-1 rounded-lg hover:bg-white hover:dark:bg-ink-900 transition cursor-pointer"
             >
               Clear color
             </button>
@@ -1347,7 +1347,7 @@ export default function UpdateRankingTable({
               />
               <button
                 onClick={() => applyColorToSelected(customColor)}
-                className="text-[10px] font-bold text-indigo-700 dark:text-blue-400 hover:text-indigo-900 hover:dark:text-blue-200 px-2 py-1 rounded-lg hover:bg-white hover:dark:bg-slate-900 transition cursor-pointer"
+                className="text-[10px] font-bold text-indigo-700 dark:text-blue-400 hover:text-indigo-900 hover:dark:text-blue-200 px-2 py-1 rounded-lg hover:bg-white hover:dark:bg-ink-900 transition cursor-pointer"
               >
                 Apply
               </button>
@@ -1357,7 +1357,7 @@ export default function UpdateRankingTable({
       )}
 
       {isAdmin && !selectedUserEmail ? (
-        <div className="p-12 text-center text-xs text-gray-500 dark:text-slate-400 font-bold bg-slate-50/40 dark:bg-slate-800/35 rounded-b-2xl border-t border-slate-150 dark:border-slate-800">
+        <div className="p-12 text-center text-xs text-gray-500 dark:text-slate-400 font-bold bg-slate-50/40 dark:bg-ink-800/35 rounded-b-2xl border-t border-slate-150 dark:border-slate-800">
           Pick a user from the dropdown above to view their sheet.
         </div>
       ) : isLoading ? (
@@ -1373,12 +1373,12 @@ export default function UpdateRankingTable({
           tabIndex={-1}
         >
           <table className="text-left text-xs border-separate w-full" style={{ tableLayout: 'fixed', borderSpacing: 0 }}>
-            <thead className="bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 font-bold text-[11px] sticky top-0 z-20">
+            <thead className="bg-slate-100 dark:bg-ink-800 text-slate-500 dark:text-slate-400 font-bold text-[11px] sticky top-0 z-20">
               <tr ref={headerRowElRef}>
-                {colorModeOn && <th className="px-2 py-2 sticky left-0 top-0 bg-slate-100 dark:bg-slate-800 z-40 border-l border-t border-r border-b border-slate-200 dark:border-slate-800"></th>}
+                {colorModeOn && <th className="px-2 py-2 sticky left-0 top-0 bg-slate-100 dark:bg-ink-800 z-40 border-l border-t border-r border-b border-slate-200 dark:border-slate-800"></th>}
                 {/* Plain row-number corner cell, same as a real spreadsheet's top-left corner block. */}
                 <th
-                  className={`px-2 py-2 text-center sticky top-0 bg-slate-100 dark:bg-slate-800 z-40 border-t border-r border-b border-slate-200 dark:border-slate-800 ${!colorModeOn ? 'border-l' : ''}`}
+                  className={`px-2 py-2 text-center sticky top-0 bg-slate-100 dark:bg-ink-800 z-40 border-t border-r border-b border-slate-200 dark:border-slate-800 ${!colorModeOn ? 'border-l' : ''}`}
                   style={{ left: colorModeOn ? CHECKBOX_COL_WIDTH : 0, width: SR_NO_COL_WIDTH, minWidth: SR_NO_COL_WIDTH }}
                 ></th>
 
@@ -1388,7 +1388,7 @@ export default function UpdateRankingTable({
                   return (
                     <th
                       key={col.id}
-                      className={`relative px-2.5 py-2 text-center sticky top-0 border-t border-r border-b border-slate-200 dark:border-slate-800 group/col ${isFrozenCol ? 'z-30' : 'z-20'} ${!col.headerColor ? 'bg-slate-100 dark:bg-slate-800' : ''}`}
+                      className={`relative px-2.5 py-2 text-center sticky top-0 border-t border-r border-b border-slate-200 dark:border-slate-800 group/col ${isFrozenCol ? 'z-30' : 'z-20'} ${!col.headerColor ? 'bg-slate-100 dark:bg-ink-800' : ''}`}
                       style={{
                         width: w, minWidth: w,
                         backgroundColor: col.headerColor || undefined,
@@ -1428,7 +1428,7 @@ export default function UpdateRankingTable({
 
                 {/* Filler column: soaks up remaining horizontal space so the
                     letter-header row extends to the right edge, like Sheets. */}
-                <th className="w-full bg-slate-100 dark:bg-slate-800 sticky top-0 z-20 border-t border-b border-slate-200 dark:border-slate-800"></th>
+                <th className="w-full bg-slate-100 dark:bg-ink-800 sticky top-0 z-20 border-t border-b border-slate-200 dark:border-slate-800"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-150 dark:divide-slate-800">
