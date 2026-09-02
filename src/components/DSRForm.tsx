@@ -408,7 +408,7 @@ export default function DSRForm({
                   onClick={onViewLogs}
                   className="px-6 py-3 border border-gray-200 dark:border-slate-800 hover:bg-gray-50 hover:dark:bg-slate-800/60 text-gray-700 dark:text-slate-200 font-bold rounded-xl text-xs transition cursor-pointer flex items-center justify-center gap-1.5 shadow-xs"
                 >
-                  <Files size={14} /> View Work Log History
+                  <Files size={14} /> View History
                 </button>
               )}
               {onViewTaskLineup && (
