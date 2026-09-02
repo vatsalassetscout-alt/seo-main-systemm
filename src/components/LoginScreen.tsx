@@ -6,6 +6,7 @@
 import React, { useState } from 'react';
 import { KeyRound, ShieldAlert, ArrowRight, UserCheck } from 'lucide-react';
 import { motion } from 'motion/react';
+import Logo from './Logo';
 
 interface LoginScreenProps {
   onLogin: (userId: string, role: 'user' | 'admin') => void;
@@ -71,12 +72,7 @@ export default function LoginScreen({
       >
         {/* Brand Banner */}
         <div className="text-center pb-2">
-          <img 
-            src="https://assetscout.in/assets/images/Assetscout%20Logo%20Black.webp" 
-            alt="Assetscout Logo" 
-            className="h-10 sm:h-12 w-auto object-contain block mx-auto dark-logo-invert"
-            referrerPolicy="no-referrer"
-          />
+          <Logo imgHeightClassName="h-10 sm:h-12" className="mx-auto" />
         </div>
 
         {/* Main login card */}
