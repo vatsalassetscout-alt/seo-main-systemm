@@ -21,7 +21,8 @@ import {
   Presentation,
   User,
   Link,
-  XCircle
+  XCircle,
+  ListChecks
 } from 'lucide-react';
 import { motion } from 'motion/react';
 
@@ -31,6 +32,7 @@ interface DSRFormProps {
   currentUserEmail: string;
   allowedUsers?: AppUser[];
   onViewLogs?: () => void;
+  onViewTaskLineup?: () => void;
   customSubmissionTypes?: CustomSubmissionType[];
   onSendAdminMessage?: (message: string) => void;
   preFill?: { projectId: string; date: string } | null;
@@ -43,6 +45,7 @@ export default function DSRForm({
   currentUserEmail,
   allowedUsers = [],
   onViewLogs,
+  onViewTaskLineup,
   customSubmissionTypes = [],
   onSendAdminMessage,
   preFill,
@@ -406,6 +409,15 @@ export default function DSRForm({
                   className="px-6 py-3 border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold rounded-xl text-xs transition cursor-pointer flex items-center justify-center gap-1.5 shadow-xs"
                 >
                   <Files size={14} /> View Work Log History
+                </button>
+              )}
+              {onViewTaskLineup && (
+                <button
+                  type="button"
+                  onClick={onViewTaskLineup}
+                  className="px-6 py-3 border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold rounded-xl text-xs transition cursor-pointer flex items-center justify-center gap-1.5 shadow-xs"
+                >
+                  <ListChecks size={14} /> Task Lineup
                 </button>
               )}
             </div>
