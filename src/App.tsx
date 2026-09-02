@@ -1100,10 +1100,10 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50/50 dark:bg-slate-800/40 text-gray-900 dark:text-slate-50 font-sans selection:bg-indigo-105 selection:text-indigo-900 selection:dark:text-blue-200">
+    <div className="min-h-screen bg-gray-50/50 dark:bg-ink-800/40 text-gray-900 dark:text-slate-50 font-sans selection:bg-indigo-105 selection:text-indigo-900 selection:dark:text-blue-200">
 
       {/* Main header block */}
-      <header className="sticky top-0 z-40 bg-white/90 dark:bg-slate-950/90 backdrop-blur-md border-b border-gray-150 dark:border-slate-800">
+      <header className="sticky top-0 z-40 bg-white/90 dark:bg-ink-950/90 backdrop-blur-md border-b border-gray-150 dark:border-slate-800">
         <div className="w-full px-3 sm:px-5 lg:px-8 xl:px-10">
           <div className="flex justify-between items-center h-16">
             
@@ -1121,7 +1121,7 @@ export default function App() {
                 className={`relative flex items-center justify-center h-10 w-10 rounded-xl border transition-colors duration-200 cursor-pointer overflow-hidden ${
                   isNavMenuOpen
                     ? 'bg-indigo-50 dark:bg-blue-500/10 border-indigo-200 dark:border-blue-500/25 text-indigo-700 dark:text-blue-400'
-                    : 'bg-white dark:bg-slate-900 border-gray-150 dark:border-slate-800 text-gray-600 dark:text-slate-300 hover:bg-slate-50 hover:dark:bg-slate-800/60 hover:text-indigo-600 hover:dark:text-blue-400'
+                    : 'bg-white dark:bg-ink-900 border-gray-150 dark:border-slate-800 text-gray-600 dark:text-slate-300 hover:bg-slate-50 hover:dark:bg-ink-800/60 hover:text-indigo-600 hover:dark:text-blue-400'
                 }`}
               >
                 <motion.span
@@ -1177,7 +1177,7 @@ export default function App() {
                         plain slide, and closes the same way. */}
                     <motion.div
                       key="nav-menu-panel"
-                      className="fixed top-20 left-4 z-50 w-[300px] max-h-[calc(100vh-6rem)] bg-white dark:bg-slate-900 rounded-[28px] ring-1 ring-black/5 shadow-2xl flex flex-col overflow-hidden"
+                      className="fixed top-20 left-4 z-50 w-[300px] max-h-[calc(100vh-6rem)] bg-white dark:bg-ink-900 rounded-[28px] ring-1 ring-black/5 shadow-2xl flex flex-col overflow-hidden"
                       style={{ transformOrigin: 'top left', willChange: 'transform, opacity' }}
                       initial={{ opacity: 0, scale: 0.9, y: -12 }}
                       animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -1201,7 +1201,7 @@ export default function App() {
                     </div>
 
                     {/* Monthly Progress card */}
-                    <div className="mx-3 mb-3 p-3.5 bg-white dark:bg-slate-900 border border-gray-150 dark:border-slate-800 rounded-2xl shadow-3xs shrink-0">
+                    <div className="mx-3 mb-3 p-3.5 bg-white dark:bg-ink-900 border border-gray-150 dark:border-slate-800 rounded-2xl shadow-3xs shrink-0">
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-[9.5px] font-black text-gray-800 dark:text-slate-100 uppercase tracking-wider">
                           Projects Covered
@@ -1211,7 +1211,7 @@ export default function App() {
                           <span className="text-indigo-600 dark:text-blue-400"> ({monthlyProgressStats.percent}%)</span>
                         </span>
                       </div>
-                      <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden mb-3">
+                      <div className="w-full h-1.5 bg-slate-100 dark:bg-ink-800 rounded-full overflow-hidden mb-3">
                         <motion.div
                           className="h-full bg-gradient-to-r from-indigo-500 dark:from-blue-500 to-indigo-600 dark:to-blue-600 rounded-full"
                           initial={{ width: 0 }}
@@ -1257,7 +1257,7 @@ export default function App() {
                         className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold cursor-pointer transition ${
                           activeTab === 'submit'
                             ? 'bg-indigo-50 dark:bg-blue-500/10 text-indigo-700 dark:text-blue-400'
-                            : 'text-gray-500 dark:text-slate-400 hover:text-gray-800 hover:dark:text-slate-100 hover:bg-gray-50 hover:dark:bg-slate-800/60'
+                            : 'text-gray-500 dark:text-slate-400 hover:text-gray-800 hover:dark:text-slate-100 hover:bg-gray-50 hover:dark:bg-ink-800/60'
                         }`}
                       >
                         <PenTool size={15} />
@@ -1272,7 +1272,7 @@ export default function App() {
                         className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold cursor-pointer transition ${
                           activeTab === 'logs'
                             ? 'bg-indigo-50 dark:bg-blue-500/10 text-indigo-700 dark:text-blue-400'
-                            : 'text-gray-500 dark:text-slate-400 hover:text-gray-800 hover:dark:text-slate-100 hover:bg-gray-50 hover:dark:bg-slate-800/60'
+                            : 'text-gray-500 dark:text-slate-400 hover:text-gray-800 hover:dark:text-slate-100 hover:bg-gray-50 hover:dark:bg-ink-800/60'
                         }`}
                       >
                         <Database size={15} />
@@ -1286,7 +1286,7 @@ export default function App() {
                       className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold cursor-pointer transition ${
                         activeTab === 'task-lineup'
                           ? 'bg-indigo-50 dark:bg-blue-500/10 text-indigo-700 dark:text-blue-400'
-                          : 'text-gray-500 dark:text-slate-400 hover:text-gray-800 hover:dark:text-slate-100 hover:bg-gray-50 hover:dark:bg-slate-800/60'
+                          : 'text-gray-500 dark:text-slate-400 hover:text-gray-800 hover:dark:text-slate-100 hover:bg-gray-50 hover:dark:bg-ink-800/60'
                       }`}
                     >
                       <Sparkles size={15} />
@@ -1306,7 +1306,7 @@ export default function App() {
                         className={`w-full flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold cursor-pointer transition ${
                           activeTab === 'dashboard'
                             ? 'bg-indigo-50 dark:bg-blue-500/10 text-indigo-700 dark:text-blue-400'
-                            : 'text-gray-500 dark:text-slate-400 hover:text-gray-800 hover:dark:text-slate-100 hover:bg-gray-50 hover:dark:bg-slate-800/60'
+                            : 'text-gray-500 dark:text-slate-400 hover:text-gray-800 hover:dark:text-slate-100 hover:bg-gray-50 hover:dark:bg-ink-800/60'
                         }`}
                       >
                         <span className="flex items-center gap-3">
@@ -1339,7 +1339,7 @@ export default function App() {
                               className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[11px] font-bold cursor-pointer transition ${
                                 activeTab === 'dashboard' && dashboardSubTab === sub.id
                                   ? 'bg-indigo-50 dark:bg-blue-500/10 text-indigo-700 dark:text-blue-400'
-                                  : 'text-gray-500 dark:text-slate-400 hover:text-gray-800 hover:dark:text-slate-100 hover:bg-gray-50 hover:dark:bg-slate-800/60'
+                                  : 'text-gray-500 dark:text-slate-400 hover:text-gray-800 hover:dark:text-slate-100 hover:bg-gray-50 hover:dark:bg-ink-800/60'
                               }`}
                             >
                               <sub.icon size={13} />
@@ -1358,7 +1358,7 @@ export default function App() {
                         className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold cursor-pointer transition ${
                           activeTab === 'reports'
                             ? 'bg-indigo-50 dark:bg-blue-500/10 text-indigo-700 dark:text-blue-400'
-                            : 'text-gray-500 dark:text-slate-400 hover:text-gray-800 hover:dark:text-slate-100 hover:bg-gray-50 hover:dark:bg-slate-800/60'
+                            : 'text-gray-500 dark:text-slate-400 hover:text-gray-800 hover:dark:text-slate-100 hover:bg-gray-50 hover:dark:bg-ink-800/60'
                         }`}
                       >
                         <FileBarChart size={15} />
@@ -1387,7 +1387,7 @@ export default function App() {
                         className={`flex items-center justify-center h-10 w-10 rounded-xl border transition cursor-pointer ${
                           activeTab === 'settings'
                             ? 'bg-indigo-50 dark:bg-blue-500/10 border-indigo-200 dark:border-blue-500/25 text-indigo-700 dark:text-blue-400'
-                            : 'bg-white dark:bg-slate-900 border-gray-150 dark:border-slate-800 text-gray-500 dark:text-slate-400 hover:bg-slate-50 hover:dark:bg-slate-800/60 hover:text-indigo-600 hover:dark:text-blue-400'
+                            : 'bg-white dark:bg-ink-900 border-gray-150 dark:border-slate-800 text-gray-500 dark:text-slate-400 hover:bg-slate-50 hover:dark:bg-ink-800/60 hover:text-indigo-600 hover:dark:text-blue-400'
                         }`}
                       >
                         <Settings size={17} />
@@ -1419,7 +1419,7 @@ export default function App() {
               <button
                 onClick={handleTriggerSync}
                 disabled={isSyncing}
-                className="p-2 border border-gray-150 dark:border-slate-800 hover:bg-slate-50 hover:dark:bg-slate-800/60 text-gray-500 dark:text-slate-400 hover:text-indigo-600 hover:dark:text-blue-400 rounded-xl transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                className="p-2 border border-gray-150 dark:border-slate-800 hover:bg-slate-50 hover:dark:bg-ink-800/60 text-gray-500 dark:text-slate-400 hover:text-indigo-600 hover:dark:text-blue-400 rounded-xl transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 title="Sync from Google Sheet & refresh"
               >
                 <RefreshCw size={20} className={isSyncing ? 'animate-spin' : ''} />
@@ -1429,7 +1429,7 @@ export default function App() {
               <div className="relative" ref={notificationsRef}>
                 <button
                   onClick={() => setShowNotifications(!showNotifications)}
-                  className={`p-2 border border-gray-150 dark:border-slate-800 hover:bg-slate-50 hover:dark:bg-slate-800/60 text-gray-500 dark:text-slate-400 hover:text-indigo-600 hover:dark:text-blue-400 rounded-xl transition cursor-pointer relative ${showNotifications ? 'bg-indigo-50/50 dark:bg-blue-500/10 text-indigo-600 dark:text-blue-400 border-indigo-200 dark:border-blue-500/25' : ''}`}
+                  className={`p-2 border border-gray-150 dark:border-slate-800 hover:bg-slate-50 hover:dark:bg-ink-800/60 text-gray-500 dark:text-slate-400 hover:text-indigo-600 hover:dark:text-blue-400 rounded-xl transition cursor-pointer relative ${showNotifications ? 'bg-indigo-50/50 dark:bg-blue-500/10 text-indigo-600 dark:text-blue-400 border-indigo-200 dark:border-blue-500/25' : ''}`}
                   title="Notifications & Alerts"
                 >
                   <Bell size={20} />
@@ -1441,7 +1441,7 @@ export default function App() {
                 </button>
 
                 {showNotifications && (
-                  <div className="absolute right-0 mt-2 sm:w-[460px] w-80 bg-white dark:bg-slate-900 border border-gray-150 dark:border-slate-800 rounded-2xl shadow-xl py-4 z-50 animate-fade-in divide-y divide-gray-100 dark:divide-slate-800/60 max-h-[500px] overflow-y-auto">
+                  <div className="absolute right-0 mt-2 sm:w-[460px] w-80 bg-white dark:bg-ink-900 border border-gray-150 dark:border-slate-800 rounded-2xl shadow-xl py-4 z-50 animate-fade-in divide-y divide-gray-100 dark:divide-slate-800/60 max-h-[500px] overflow-y-auto">
                     <div className="px-5 pb-3 flex justify-between items-center">
                       <span className="font-extrabold text-sm text-gray-900 dark:text-slate-50 uppercase tracking-wider flex items-center gap-1.5 font-sans">
                         <Bell size={16} className="text-indigo-600 dark:text-blue-400 animate-pulse" />
@@ -1449,7 +1449,7 @@ export default function App() {
                       </span>
                       <button
                         onClick={() => setShowNotifications(false)}
-                        className="p-1 hover:bg-gray-100 hover:dark:bg-slate-800 text-gray-400 dark:text-slate-500 hover:text-rose-600 hover:dark:text-rose-400 rounded-lg transition"
+                        className="p-1 hover:bg-gray-100 hover:dark:bg-ink-800 text-gray-400 dark:text-slate-500 hover:text-rose-600 hover:dark:text-rose-400 rounded-lg transition"
                         title="Close Notifications"
                       >
                         <X size={16} />
@@ -1469,7 +1469,7 @@ export default function App() {
                           return (
                             <div
                               key={alert.id}
-                              className={`px-5 py-4 text-left relative hover:bg-slate-50/50 hover:dark:bg-slate-800/40 transition-colors ${!alert.read ? 'bg-indigo-50/15 font-bold' : ''}`}
+                              className={`px-5 py-4 text-left relative hover:bg-slate-50/50 hover:dark:bg-ink-800/40 transition-colors ${!alert.read ? 'bg-indigo-50/15 font-bold' : ''}`}
                             >
                               <div className="flex justify-between items-start gap-3">
                                 <div className="space-y-1">
@@ -1499,7 +1499,7 @@ export default function App() {
                               </div>
 
                               <div className="mt-2 space-y-3">
-                                <p className="text-xs font-bold text-gray-800 dark:text-slate-100 leading-relaxed whitespace-pre-wrap bg-slate-50/50 dark:bg-slate-800/40 p-3 rounded-xl border border-gray-100 dark:border-slate-800/60">
+                                <p className="text-xs font-bold text-gray-800 dark:text-slate-100 leading-relaxed whitespace-pre-wrap bg-slate-50/50 dark:bg-ink-800/40 p-3 rounded-xl border border-gray-100 dark:border-slate-800/60">
                                   {alert.message}
                                 </p>
 
@@ -1568,7 +1568,7 @@ export default function App() {
               </div>
 
               {/* Profile card badge */}
-              <div className="hidden lg:flex items-center gap-2.5 px-3 py-1.5 bg-gray-50 dark:bg-slate-800/60 border border-gray-150 dark:border-slate-800 rounded-xl text-xs max-w-64">
+              <div className="hidden lg:flex items-center gap-2.5 px-3 py-1.5 bg-gray-50 dark:bg-ink-800/60 border border-gray-150 dark:border-slate-800 rounded-xl text-xs max-w-64">
                 {isAdmin ? (
                   <Shield size={13} className="text-indigo-600 dark:text-blue-400 shrink-0" />
                 ) : (
@@ -1637,7 +1637,7 @@ export default function App() {
         )}
         
               {/* Mobile quick tab Navigation */}
-        <div className="flex md:hidden bg-white dark:bg-slate-900 p-2 rounded-2xl border border-gray-150 dark:border-slate-800 mb-6 gap-1 justify-around shadow-xs">
+        <div className="flex md:hidden bg-white dark:bg-ink-900 p-2 rounded-2xl border border-gray-150 dark:border-slate-800 mb-6 gap-1 justify-around shadow-xs">
           {!isAdmin && (
             <button
               onClick={() => setActiveTab('submit')}
@@ -1868,7 +1868,7 @@ export default function App() {
               )}
 
               {activeTab === 'reports' && (
-                <div className="flex flex-col items-center justify-center text-center py-24 px-6 bg-white dark:bg-slate-900 border border-gray-150 dark:border-slate-800 rounded-2xl">
+                <div className="flex flex-col items-center justify-center text-center py-24 px-6 bg-white dark:bg-ink-900 border border-gray-150 dark:border-slate-800 rounded-2xl">
                   <FileBarChart size={34} className="text-indigo-300 mb-3" />
                   <h3 className="font-extrabold text-gray-800 dark:text-slate-100 text-sm">Reports</h3>
                   <p className="text-xs text-gray-400 dark:text-slate-500 font-medium mt-1 max-w-sm">
