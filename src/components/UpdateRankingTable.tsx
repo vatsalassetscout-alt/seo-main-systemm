@@ -920,7 +920,7 @@ export default function UpdateRankingTable({
       >
         {colorModeOn && (
           <td
-            className="px-2 py-2.5 sticky left-0 border-l border-r border-b border-slate-200"
+            className="px-2 py-2.5 sticky left-0 border-l border-r border-b border-slate-200 dark:border-slate-800"
             style={{ width: CHECKBOX_COL_WIDTH, minWidth: CHECKBOX_COL_WIDTH, backgroundColor: row.color || '#fff', ...rowStickyStyle, zIndex: isFrozenRow ? 25 : 10 }}
           >
             <input
@@ -932,7 +932,7 @@ export default function UpdateRankingTable({
           </td>
         )}
         <td
-          className={`px-1 py-2.5 text-center font-bold text-slate-500 sticky border-r border-b border-slate-200 bg-slate-100 ${!colorModeOn ? 'border-l' : ''}`}
+          className={`px-1 py-2.5 text-center font-bold text-slate-500 dark:text-slate-400 sticky border-r border-b border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-800 ${!colorModeOn ? 'border-l' : ''}`}
           style={{
             left: colorModeOn ? CHECKBOX_COL_WIDTH : 0,
             width: SR_NO_COL_WIDTH, minWidth: SR_NO_COL_WIDTH,
@@ -953,7 +953,7 @@ export default function UpdateRankingTable({
           {canEdit && (
             <button
               onClick={() => deleteRow(row.id)}
-              className="hidden group-hover/row:inline-flex items-center justify-center text-gray-400 hover:text-rose-600 cursor-pointer"
+              className="hidden group-hover/row:inline-flex items-center justify-center text-gray-400 dark:text-slate-500 hover:text-rose-600 hover:dark:text-rose-400 cursor-pointer"
               title="Delete row"
             >
               <Trash2 size={11} />
@@ -975,7 +975,7 @@ export default function UpdateRankingTable({
           return (
             <td
               key={col.id}
-              className={`p-0 border-r border-b border-slate-200 ${isFrozenCol ? 'sticky' : ''}`}
+              className={`p-0 border-r border-b border-slate-200 dark:border-slate-800 ${isFrozenCol ? 'sticky' : ''}`}
               style={{
                 width: w, minWidth: w,
                 backgroundColor: (isFrozenCol || isFrozenRow) ? (cellBg || '#fff') : cellBg,
@@ -996,10 +996,10 @@ export default function UpdateRankingTable({
                   onPaste={(e) => handleCellPaste(e, row.id, col.id)}
                   placeholder="—"
                   style={{ color: col.textColor || undefined }}
-                  className="w-full text-xs font-bold text-gray-800 px-2.5 py-2.5 border border-transparent hover:border-gray-200 focus:border-indigo-400 rounded-lg focus:outline-hidden bg-transparent focus:bg-white transition"
+                  className="w-full text-xs font-bold text-gray-800 dark:text-slate-100 px-2.5 py-2.5 border border-transparent hover:border-gray-200 hover:dark:border-slate-800 focus:border-indigo-400 rounded-lg focus:outline-hidden bg-transparent focus:bg-white focus:dark:bg-slate-900 transition"
                 />
               ) : (
-                <span className="block px-2.5 py-2.5 text-xs font-bold text-gray-800 truncate" style={{ color: col.textColor || undefined }}>
+                <span className="block px-2.5 py-2.5 text-xs font-bold text-gray-800 dark:text-slate-100 truncate" style={{ color: col.textColor || undefined }}>
                   {cellValue || '—'}
                 </span>
               )}
@@ -1007,7 +1007,7 @@ export default function UpdateRankingTable({
           );
         })}
 
-        <td className="w-full border-b border-slate-200" style={{ backgroundColor: isFrozenRow ? (row.color || '#fff') : (row.color || undefined), ...rowStickyStyle }}></td>
+        <td className="w-full border-b border-slate-200 dark:border-slate-800" style={{ backgroundColor: isFrozenRow ? (row.color || '#fff') : (row.color || undefined), ...rowStickyStyle }}></td>
       </tr>
     );
   };
@@ -1015,12 +1015,12 @@ export default function UpdateRankingTable({
   return (
     <div>
       {/* Toolbar */}
-      <div className="p-4 bg-gray-50/50 border-b border-gray-150 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="p-4 bg-gray-50/50 dark:bg-slate-800/40 border-b border-gray-150 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h3 className="text-xs font-black text-gray-900 uppercase tracking-wider">
+          <h3 className="text-xs font-black text-gray-900 dark:text-slate-50 uppercase tracking-wider">
             {isAdmin ? 'Manual Ranking' : 'Update Ranking'}
           </h3>
-          <p className="text-[10px] text-gray-500 font-semibold mt-0.5">
+          <p className="text-[10px] text-gray-500 dark:text-slate-400 font-semibold mt-0.5">
             {canEdit
               ? 'A free-form sheet, just like Google Sheets - type, paste, drag to select a range, Ctrl+A to select all, Ctrl+C to copy, Delete to clear a range.'
               : isAdmin
@@ -1038,7 +1038,7 @@ export default function UpdateRankingTable({
               <button
                 onClick={() => setUserPickerOpen(v => !v)}
                 className={`flex items-center gap-1.5 text-xs font-bold border rounded-xl px-2.5 py-2 cursor-pointer transition ${
-                  selectedUserEmail ? 'bg-indigo-600 border-indigo-700 text-white' : 'bg-white border-gray-200 hover:bg-gray-50 text-gray-700'
+                  selectedUserEmail ? 'bg-indigo-600 dark:bg-blue-600 border-indigo-700 text-white' : 'bg-white dark:bg-slate-900 border-gray-200 dark:border-slate-800 hover:bg-gray-50 hover:dark:bg-slate-800/60 text-gray-700 dark:text-slate-200'
                 }`}
               >
                 <Users size={12} />
@@ -1047,18 +1047,18 @@ export default function UpdateRankingTable({
               </button>
 
               {userPickerOpen && (
-                <div className="absolute right-0 top-full mt-1.5 w-64 max-w-[85vw] max-h-80 overflow-y-auto bg-white border border-gray-200 rounded-xl shadow-xl z-50 p-3">
-                  <p className="text-[10px] font-black text-gray-500 uppercase tracking-wider mb-2">Viewing user's sheet</p>
+                <div className="absolute right-0 top-full mt-1.5 w-64 max-w-[85vw] max-h-80 overflow-y-auto bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl shadow-xl z-50 p-3">
+                  <p className="text-[10px] font-black text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-2">Viewing user's sheet</p>
                   <input
                     type="text"
                     value={userPickerSearch}
                     onChange={(e) => setUserPickerSearch(e.target.value)}
                     placeholder="Search user..."
-                    className="w-full mb-2 px-2 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-[11px] font-bold focus:outline-hidden focus:ring-1 focus:ring-indigo-500"
+                    className="w-full mb-2 px-2 py-1.5 bg-gray-50 dark:bg-slate-800/60 border border-gray-200 dark:border-slate-800 rounded-lg text-[11px] font-bold focus:outline-hidden focus:ring-1 focus:ring-indigo-500 focus:dark:ring-blue-500/50"
                   />
                   <div className="flex flex-col gap-0.5 max-h-56 overflow-y-auto">
                     {filteredUserOptions.length === 0 && (
-                      <p className="text-[11px] text-gray-400 font-semibold px-1 py-1">No users found.</p>
+                      <p className="text-[11px] text-gray-400 dark:text-slate-500 font-semibold px-1 py-1">No users found.</p>
                     )}
                     {filteredUserOptions.map(u => {
                       const isSelected = u.emails.includes(selectedUserEmail);
@@ -1067,10 +1067,10 @@ export default function UpdateRankingTable({
                           key={u.emails[0]}
                           onClick={() => { onSelectedUserChange?.(isSelected ? '' : u.emails[0]); setUserPickerOpen(false); setUserPickerSearch(''); }}
                           className={`text-left text-[11px] font-bold px-2 py-1.5 rounded-lg cursor-pointer transition ${
-                            isSelected ? 'bg-indigo-600 text-white' : 'hover:bg-gray-50 text-gray-800'
+                            isSelected ? 'bg-indigo-600 dark:bg-blue-600 text-white' : 'hover:bg-gray-50 hover:dark:bg-slate-800/60 text-gray-800 dark:text-slate-100'
                           }`}
                         >
-                          {u.name} <span className={`font-mono normal-case ${isSelected ? 'text-indigo-100' : 'text-gray-400'}`}>· {u.emails[0]}</span>
+                          {u.name} <span className={`font-mono normal-case ${isSelected ? 'text-indigo-100' : 'text-gray-400 dark:text-slate-500'}`}>· {u.emails[0]}</span>
                         </button>
                       );
                     })}
@@ -1084,13 +1084,13 @@ export default function UpdateRankingTable({
               saving/saved/idle states per request; only a real save failure
               (which risks losing the edit) still surfaces to the user. */}
           {canEdit && saveState === 'error' && (
-            <div className="flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-600">
+            <div className="flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1.5 rounded-lg bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/25 text-rose-600 dark:text-rose-400">
               Save failed - check your connection
             </div>
           )}
 
           <div className="relative w-full sm:w-56">
-            <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-400">
+            <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-400 dark:text-slate-500">
               <Search size={13} />
             </span>
             <input
@@ -1098,7 +1098,7 @@ export default function UpdateRankingTable({
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search anywhere in the sheet..."
-              className="w-full text-xs pl-8 pr-3 py-2 border border-gray-200 rounded-xl focus:outline-hidden focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 bg-white"
+              className="w-full text-xs pl-8 pr-3 py-2 border border-gray-200 dark:border-slate-800 rounded-xl focus:outline-hidden focus:ring-1 focus:ring-indigo-500 focus:dark:ring-blue-500/50 focus:border-indigo-500 focus:dark:border-blue-500/50 bg-white dark:bg-slate-900"
             />
           </div>
 
@@ -1107,7 +1107,7 @@ export default function UpdateRankingTable({
             <button
               onClick={() => setSortPanelOpen(v => !v)}
               className={`flex items-center gap-1.5 text-xs font-bold border rounded-xl px-2.5 py-2 cursor-pointer transition ${
-                sortColumnId ? 'bg-indigo-600 border-indigo-700 text-white' : 'bg-white border-gray-200 hover:bg-gray-50 text-gray-700'
+                sortColumnId ? 'bg-indigo-600 dark:bg-blue-600 border-indigo-700 text-white' : 'bg-white dark:bg-slate-900 border-gray-200 dark:border-slate-800 hover:bg-gray-50 hover:dark:bg-slate-800/60 text-gray-700 dark:text-slate-200'
               }`}
             >
               <ArrowUpDown size={12} />
@@ -1116,13 +1116,13 @@ export default function UpdateRankingTable({
             </button>
 
             {sortPanelOpen && (
-              <div className="absolute right-0 top-full mt-1.5 w-64 max-w-[85vw] max-h-80 overflow-y-auto bg-white border border-gray-200 rounded-xl shadow-xl z-50 p-3">
-                <p className="text-[10px] font-black text-gray-500 uppercase tracking-wider mb-2">Sort direction</p>
+              <div className="absolute right-0 top-full mt-1.5 w-64 max-w-[85vw] max-h-80 overflow-y-auto bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl shadow-xl z-50 p-3">
+                <p className="text-[10px] font-black text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-2">Sort direction</p>
                 <div className="flex gap-2 mb-3">
                   <button
                     onClick={() => setSortDirection('desc')}
                     className={`flex-1 text-xs font-bold rounded-lg px-2 py-1.5 border cursor-pointer transition ${
-                      sortDirection === 'desc' ? 'bg-indigo-600 text-white border-indigo-700' : 'bg-white border-gray-200 hover:bg-gray-50'
+                      sortDirection === 'desc' ? 'bg-indigo-600 dark:bg-blue-600 text-white border-indigo-700' : 'bg-white dark:bg-slate-900 border-gray-200 dark:border-slate-800 hover:bg-gray-50 hover:dark:bg-slate-800/60'
                     }`}
                   >
                     High → Low
@@ -1130,22 +1130,22 @@ export default function UpdateRankingTable({
                   <button
                     onClick={() => setSortDirection('asc')}
                     className={`flex-1 text-xs font-bold rounded-lg px-2 py-1.5 border cursor-pointer transition ${
-                      sortDirection === 'asc' ? 'bg-indigo-600 text-white border-indigo-700' : 'bg-white border-gray-200 hover:bg-gray-50'
+                      sortDirection === 'asc' ? 'bg-indigo-600 dark:bg-blue-600 text-white border-indigo-700' : 'bg-white dark:bg-slate-900 border-gray-200 dark:border-slate-800 hover:bg-gray-50 hover:dark:bg-slate-800/60'
                     }`}
                   >
                     Low → High
                   </button>
                 </div>
 
-                <p className="text-[10px] font-black text-gray-500 uppercase tracking-wider mb-2">Apply to column</p>
+                <p className="text-[10px] font-black text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-2">Apply to column</p>
                 {grid.columns.length === 0 ? (
-                  <p className="text-[11px] text-gray-400 font-semibold">
+                  <p className="text-[11px] text-gray-400 dark:text-slate-500 font-semibold">
                     {canEdit ? 'Add a column first.' : 'No columns yet.'}
                   </p>
                 ) : (
                   <div className="flex flex-col gap-1.5">
                     {grid.columns.map((col, colIdx) => (
-                      <label key={col.id} className="flex items-center gap-2 text-xs font-semibold text-gray-700 cursor-pointer hover:bg-gray-50 rounded-lg px-1.5 py-1">
+                      <label key={col.id} className="flex items-center gap-2 text-xs font-semibold text-gray-700 dark:text-slate-200 cursor-pointer hover:bg-gray-50 hover:dark:bg-slate-800/60 rounded-lg px-1.5 py-1">
                         <input
                           type="checkbox"
                           checked={sortColumnId === col.id}
@@ -1161,7 +1161,7 @@ export default function UpdateRankingTable({
                 {sortColumnId && (
                   <button
                     onClick={() => { setSortColumnId(''); }}
-                    className="mt-2 text-[10px] font-bold text-gray-500 hover:text-rose-600 cursor-pointer"
+                    className="mt-2 text-[10px] font-bold text-gray-500 dark:text-slate-400 hover:text-rose-600 hover:dark:text-rose-400 cursor-pointer"
                   >
                     Clear sort
                   </button>
@@ -1175,7 +1175,7 @@ export default function UpdateRankingTable({
             <button
               onClick={() => { setColorModeOn(v => !v); setSelectedRowIds({}); }}
               className={`flex items-center gap-1.5 text-xs font-bold border rounded-xl px-2.5 py-2 cursor-pointer transition ${
-                colorModeOn ? 'bg-indigo-600 border-indigo-700 text-white' : 'bg-white border-gray-200 hover:bg-gray-50 text-gray-700'
+                colorModeOn ? 'bg-indigo-600 dark:bg-blue-600 border-indigo-700 text-white' : 'bg-white dark:bg-slate-900 border-gray-200 dark:border-slate-800 hover:bg-gray-50 hover:dark:bg-slate-800/60 text-gray-700 dark:text-slate-200'
               }`}
             >
               <Palette size={12} />
@@ -1190,7 +1190,7 @@ export default function UpdateRankingTable({
               <button
                 onClick={() => setBlockPanelOpen(v => !v)}
                 className={`flex items-center gap-1.5 text-xs font-bold border rounded-xl px-2.5 py-2 cursor-pointer transition ${
-                  blockPanelOpen ? 'bg-indigo-600 border-indigo-700 text-white' : 'bg-white border-gray-200 hover:bg-gray-50 text-gray-700'
+                  blockPanelOpen ? 'bg-indigo-600 dark:bg-blue-600 border-indigo-700 text-white' : 'bg-white dark:bg-slate-900 border-gray-200 dark:border-slate-800 hover:bg-gray-50 hover:dark:bg-slate-800/60 text-gray-700 dark:text-slate-200'
                 }`}
               >
                 <Palette size={12} />
@@ -1199,8 +1199,8 @@ export default function UpdateRankingTable({
               </button>
 
               {blockPanelOpen && (
-                <div className="absolute right-0 top-full mt-1.5 w-64 max-w-[85vw] bg-white border border-gray-200 rounded-xl shadow-xl z-50 p-3">
-                  <p className="text-[10px] font-bold text-gray-500 mb-2">
+                <div className="absolute right-0 top-full mt-1.5 w-64 max-w-[85vw] bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl shadow-xl z-50 p-3">
+                  <p className="text-[10px] font-bold text-gray-500 dark:text-slate-400 mb-2">
                     {selBounds
                       ? `${selBounds.r1 - selBounds.r0 + 1} row${selBounds.r1 > selBounds.r0 ? 's' : ''} × ${selBounds.c1 - selBounds.c0 + 1} column${selBounds.c1 > selBounds.c0 ? 's' : ''} selected`
                       : 'Click a cell (or drag to select a range), then pick a color'}
@@ -1212,7 +1212,7 @@ export default function UpdateRankingTable({
                         title={sw.label}
                         disabled={!selBounds}
                         onClick={() => { applyColorToSelectedCells(sw.value); setBlockPanelOpen(false); }}
-                        className={`w-6 h-6 rounded-full border-2 border-white shadow-2xs transition ${selBounds ? 'cursor-pointer hover:scale-110' : 'opacity-40 cursor-not-allowed'}`}
+                        className={`w-6 h-6 rounded-full border-2 border-white dark:border-slate-900 shadow-2xs transition ${selBounds ? 'cursor-pointer hover:scale-110' : 'opacity-40 cursor-not-allowed'}`}
                         style={{ backgroundColor: sw.value }}
                       />
                     ))}
@@ -1221,14 +1221,14 @@ export default function UpdateRankingTable({
                       disabled={!selBounds}
                       onChange={(e) => { applyColorToSelectedCells(e.target.value); setBlockPanelOpen(false); }}
                       title="Pick a custom color"
-                      className="w-6 h-6 rounded-full border-2 border-white shadow-2xs cursor-pointer overflow-hidden p-0 disabled:opacity-40 disabled:cursor-not-allowed"
+                      className="w-6 h-6 rounded-full border-2 border-white dark:border-slate-900 shadow-2xs cursor-pointer overflow-hidden p-0 disabled:opacity-40 disabled:cursor-not-allowed"
                     />
                   </div>
 
                   <button
                     disabled={!selBounds}
                     onClick={() => { applyColorToSelectedCells(undefined); setBlockPanelOpen(false); }}
-                    className="text-xs font-bold text-gray-500 hover:text-rose-600 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition"
+                    className="text-xs font-bold text-gray-500 dark:text-slate-400 hover:text-rose-600 hover:dark:text-rose-400 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition"
                   >
                     Clear color
                   </button>
@@ -1249,20 +1249,20 @@ export default function UpdateRankingTable({
             <button
               onClick={startFreezePicker}
               title="Choose rows/columns to freeze"
-              className="flex items-center gap-1.5 text-xs font-bold border rounded-xl px-2.5 py-2 cursor-pointer transition bg-white border-gray-200 hover:bg-gray-50 text-gray-700"
+              className="flex items-center gap-1.5 text-xs font-bold border rounded-xl px-2.5 py-2 cursor-pointer transition bg-white dark:bg-slate-900 border-gray-200 dark:border-slate-800 hover:bg-gray-50 hover:dark:bg-slate-800/60 text-gray-700 dark:text-slate-200"
             >
               <Pin size={12} />
               Freeze
             </button>
           ) : (
-            <div className="flex items-center gap-1.5 bg-indigo-50 border border-indigo-200 rounded-xl px-2.5 py-1.5">
-              <span className="text-[10px] font-bold text-indigo-700 pr-1 whitespace-nowrap">
+            <div className="flex items-center gap-1.5 bg-indigo-50 dark:bg-blue-500/10 border border-indigo-200 dark:border-blue-500/25 rounded-xl px-2.5 py-1.5">
+              <span className="text-[10px] font-bold text-indigo-700 dark:text-blue-400 pr-1 whitespace-nowrap">
                 Tick columns/rows to freeze
               </span>
               <button
                 onClick={applyFreezePicker}
                 title="Apply freeze"
-                className="flex items-center gap-1 text-xs font-bold rounded-lg px-2 py-1.5 cursor-pointer transition bg-indigo-600 text-white hover:bg-indigo-700"
+                className="flex items-center gap-1 text-xs font-bold rounded-lg px-2 py-1.5 cursor-pointer transition bg-indigo-600 dark:bg-blue-600 text-white hover:bg-indigo-700 hover:dark:bg-blue-500"
               >
                 <Check size={12} />
                 Apply
@@ -1270,7 +1270,7 @@ export default function UpdateRankingTable({
               <button
                 onClick={cancelFreezePicker}
                 title="Cancel"
-                className="flex items-center gap-1 text-xs font-bold rounded-lg px-2 py-1.5 cursor-pointer transition bg-white border border-gray-200 text-gray-600 hover:bg-gray-50"
+                className="flex items-center gap-1 text-xs font-bold rounded-lg px-2 py-1.5 cursor-pointer transition bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 text-gray-600 dark:text-slate-300 hover:bg-gray-50 hover:dark:bg-slate-800/60"
               >
                 <X size={12} />
                 Cancel
@@ -1282,7 +1282,7 @@ export default function UpdateRankingTable({
             <button
               onClick={() => { setFrozenCols(0); setFrozenRows(0); }}
               title="Unfreeze all"
-              className="flex items-center gap-1.5 text-xs font-bold border rounded-xl px-2.5 py-2 cursor-pointer transition bg-indigo-600 border-indigo-700 text-white hover:bg-indigo-700"
+              className="flex items-center gap-1.5 text-xs font-bold border rounded-xl px-2.5 py-2 cursor-pointer transition bg-indigo-600 dark:bg-blue-600 border-indigo-700 text-white hover:bg-indigo-700 hover:dark:bg-blue-500"
             >
               <ArrowUpDown size={12} />
               {`Frozen ${frozenCols}c/${frozenRows}r`}
@@ -1295,7 +1295,7 @@ export default function UpdateRankingTable({
             <button
               onClick={addRow}
               title="Add a new row"
-              className="flex items-center gap-1.5 text-xs font-bold border border-dashed border-indigo-300 text-indigo-600 rounded-xl px-2.5 py-2 cursor-pointer hover:bg-indigo-50 transition"
+              className="flex items-center gap-1.5 text-xs font-bold border border-dashed border-indigo-300 dark:border-blue-500/30 text-indigo-600 dark:text-blue-400 rounded-xl px-2.5 py-2 cursor-pointer hover:bg-indigo-50 hover:dark:bg-blue-500/10 transition"
             >
               <Plus size={12} /> Row
             </button>
@@ -1307,7 +1307,7 @@ export default function UpdateRankingTable({
             <button
               onClick={addColumn}
               title="Add a new column"
-              className="flex items-center gap-1.5 text-xs font-bold border border-dashed border-indigo-300 text-indigo-600 rounded-xl px-2.5 py-2 cursor-pointer hover:bg-indigo-50 transition"
+              className="flex items-center gap-1.5 text-xs font-bold border border-dashed border-indigo-300 dark:border-blue-500/30 text-indigo-600 dark:text-blue-400 rounded-xl px-2.5 py-2 cursor-pointer hover:bg-indigo-50 hover:dark:bg-blue-500/10 transition"
             >
               <Plus size={12} /> Column
             </button>
@@ -1317,12 +1317,12 @@ export default function UpdateRankingTable({
 
       {/* Color palette bar - shown once rows are checked in color mode */}
       {canEdit && colorModeOn && selectedCount > 0 && (
-        <div className="sticky top-0 z-40 mx-4 mt-3 p-3 bg-indigo-50 border border-indigo-150 rounded-xl shadow-md">
+        <div className="sticky top-0 z-40 mx-4 mt-3 p-3 bg-indigo-50 dark:bg-blue-500/10 border border-indigo-150 dark:border-blue-500/20 rounded-xl shadow-md">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[10px] font-bold text-indigo-800">{selectedCount} row{selectedCount > 1 ? 's' : ''} selected</span>
+            <span className="text-[10px] font-bold text-indigo-800 dark:text-blue-300">{selectedCount} row{selectedCount > 1 ? 's' : ''} selected</span>
             <button
               onClick={clearColorFromSelected}
-              className="text-[10px] font-bold text-gray-600 hover:text-rose-600 px-2 py-1 rounded-lg hover:bg-white transition cursor-pointer"
+              className="text-[10px] font-bold text-gray-600 dark:text-slate-300 hover:text-rose-600 hover:dark:text-rose-400 px-2 py-1 rounded-lg hover:bg-white hover:dark:bg-slate-900 transition cursor-pointer"
             >
               Clear color
             </button>
@@ -1333,21 +1333,21 @@ export default function UpdateRankingTable({
                 key={sw.value}
                 title={sw.label}
                 onClick={() => applyColorToSelected(sw.value)}
-                className="w-6 h-6 rounded-full border-2 border-white shadow-2xs cursor-pointer hover:scale-110 transition"
+                className="w-6 h-6 rounded-full border-2 border-white dark:border-slate-900 shadow-2xs cursor-pointer hover:scale-110 transition"
                 style={{ backgroundColor: sw.value }}
               />
             ))}
-            <div className="flex items-center gap-1 ml-1 pl-2 border-l border-indigo-200">
+            <div className="flex items-center gap-1 ml-1 pl-2 border-l border-indigo-200 dark:border-blue-500/25">
               <input
                 type="color"
                 value={customColor}
                 onChange={(e) => setCustomColor(e.target.value)}
                 title="Pick a custom color"
-                className="w-6 h-6 rounded-full border-2 border-white shadow-2xs cursor-pointer overflow-hidden p-0"
+                className="w-6 h-6 rounded-full border-2 border-white dark:border-slate-900 shadow-2xs cursor-pointer overflow-hidden p-0"
               />
               <button
                 onClick={() => applyColorToSelected(customColor)}
-                className="text-[10px] font-bold text-indigo-700 hover:text-indigo-900 px-2 py-1 rounded-lg hover:bg-white transition cursor-pointer"
+                className="text-[10px] font-bold text-indigo-700 dark:text-blue-400 hover:text-indigo-900 hover:dark:text-blue-200 px-2 py-1 rounded-lg hover:bg-white hover:dark:bg-slate-900 transition cursor-pointer"
               >
                 Apply
               </button>
@@ -1357,11 +1357,11 @@ export default function UpdateRankingTable({
       )}
 
       {isAdmin && !selectedUserEmail ? (
-        <div className="p-12 text-center text-xs text-gray-500 font-bold bg-slate-50/40 rounded-b-2xl border-t border-slate-150">
+        <div className="p-12 text-center text-xs text-gray-500 dark:text-slate-400 font-bold bg-slate-50/40 dark:bg-slate-800/35 rounded-b-2xl border-t border-slate-150 dark:border-slate-800">
           Pick a user from the dropdown above to view their sheet.
         </div>
       ) : isLoading ? (
-        <div className="p-12 text-center text-xs text-gray-500 font-bold">Loading sheet...</div>
+        <div className="p-12 text-center text-xs text-gray-500 dark:text-slate-400 font-bold">Loading sheet...</div>
       ) : (
         <div
           ref={sheetContainerRef}
@@ -1373,12 +1373,12 @@ export default function UpdateRankingTable({
           tabIndex={-1}
         >
           <table className="text-left text-xs border-separate w-full" style={{ tableLayout: 'fixed', borderSpacing: 0 }}>
-            <thead className="bg-slate-100 text-slate-500 font-bold text-[11px] sticky top-0 z-20">
+            <thead className="bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 font-bold text-[11px] sticky top-0 z-20">
               <tr ref={headerRowElRef}>
-                {colorModeOn && <th className="px-2 py-2 sticky left-0 top-0 bg-slate-100 z-40 border-l border-t border-r border-b border-slate-200"></th>}
+                {colorModeOn && <th className="px-2 py-2 sticky left-0 top-0 bg-slate-100 dark:bg-slate-800 z-40 border-l border-t border-r border-b border-slate-200 dark:border-slate-800"></th>}
                 {/* Plain row-number corner cell, same as a real spreadsheet's top-left corner block. */}
                 <th
-                  className={`px-2 py-2 text-center sticky top-0 bg-slate-100 z-40 border-t border-r border-b border-slate-200 ${!colorModeOn ? 'border-l' : ''}`}
+                  className={`px-2 py-2 text-center sticky top-0 bg-slate-100 dark:bg-slate-800 z-40 border-t border-r border-b border-slate-200 dark:border-slate-800 ${!colorModeOn ? 'border-l' : ''}`}
                   style={{ left: colorModeOn ? CHECKBOX_COL_WIDTH : 0, width: SR_NO_COL_WIDTH, minWidth: SR_NO_COL_WIDTH }}
                 ></th>
 
@@ -1388,7 +1388,7 @@ export default function UpdateRankingTable({
                   return (
                     <th
                       key={col.id}
-                      className={`relative px-2.5 py-2 text-center sticky top-0 border-t border-r border-b border-slate-200 group/col ${isFrozenCol ? 'z-30' : 'z-20'} ${!col.headerColor ? 'bg-slate-100' : ''}`}
+                      className={`relative px-2.5 py-2 text-center sticky top-0 border-t border-r border-b border-slate-200 dark:border-slate-800 group/col ${isFrozenCol ? 'z-30' : 'z-20'} ${!col.headerColor ? 'bg-slate-100 dark:bg-slate-800' : ''}`}
                       style={{
                         width: w, minWidth: w,
                         backgroundColor: col.headerColor || undefined,
@@ -1409,7 +1409,7 @@ export default function UpdateRankingTable({
                       {canEdit && (
                         <button
                           onClick={() => deleteColumn(col.id)}
-                          className="hidden group-hover/col:inline-flex items-center justify-center text-gray-400 hover:text-rose-600 cursor-pointer mx-auto"
+                          className="hidden group-hover/col:inline-flex items-center justify-center text-gray-400 dark:text-slate-500 hover:text-rose-600 hover:dark:text-rose-400 cursor-pointer mx-auto"
                           title="Delete column"
                         >
                           <Trash2 size={11} />
@@ -1428,13 +1428,13 @@ export default function UpdateRankingTable({
 
                 {/* Filler column: soaks up remaining horizontal space so the
                     letter-header row extends to the right edge, like Sheets. */}
-                <th className="w-full bg-slate-100 sticky top-0 z-20 border-t border-b border-slate-200"></th>
+                <th className="w-full bg-slate-100 dark:bg-slate-800 sticky top-0 z-20 border-t border-b border-slate-200 dark:border-slate-800"></th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-150">
+            <tbody className="divide-y divide-gray-150 dark:divide-slate-800">
               {visibleRows.length === 0 ? (
                 <tr>
-                  <td colSpan={totalTableCols} className="p-12 text-center text-xs text-gray-500 font-bold">
+                  <td colSpan={totalTableCols} className="p-12 text-center text-xs text-gray-500 dark:text-slate-400 font-bold">
                     {(searchTerm || globalSearchTerm || locationFilter.length > 0 || projectNameFilter.length > 0)
                       ? 'No rows match the current search/filters.'
                       : (canEdit ? 'No rows yet - click "+ Row" to start.' : 'No rows yet.')}
