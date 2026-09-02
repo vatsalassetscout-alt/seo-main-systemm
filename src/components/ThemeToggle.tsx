@@ -27,7 +27,7 @@ export default function ThemeToggle() {
       onClick={toggleTheme}
       aria-label={isDark ? 'Switch to light theme' : 'Switch to dark theme'}
       title={isDark ? 'Switch to light theme' : 'Switch to dark theme'}
-      className="relative flex items-center h-9 w-[60px] rounded-full border border-gray-150 dark:border-slate-800 bg-white dark:bg-slate-900 px-1 cursor-pointer transition-colors duration-300 shrink-0"
+      className="relative flex items-center h-9 w-[60px] rounded-full border border-gray-150 dark:border-slate-800 bg-white dark:bg-ink-900 px-1 cursor-pointer transition-colors duration-300 shrink-0"
     >
       {/* Track glow, brighter once dark mode is active */}
       <motion.span
@@ -47,7 +47,7 @@ export default function ThemeToggle() {
 
       {/* Sliding knob */}
       <motion.span
-        className="relative z-10 flex items-center justify-center h-7 w-7 rounded-full bg-white dark:bg-slate-950 shadow-md ring-1 ring-black/5 dark:ring-blue-500/30"
+        className="relative z-10 flex items-center justify-center h-7 w-7 rounded-full bg-white dark:bg-ink-950 shadow-md ring-1 ring-black/5 dark:ring-blue-500/30"
         animate={{ x: isDark ? 26 : 0 }}
         transition={{ type: 'spring', stiffness: 500, damping: 32 }}
       >
