@@ -16,6 +16,7 @@ import DSRDashboard from './components/DSRDashboard';
 import DSRSettings from './components/DSRSettings';
 import TaskLineup from './components/TaskLineup';
 import LoginScreen from './components/LoginScreen';
+import ThemeToggle from './components/ThemeToggle';
 import { initAuth, googleSignIn, getAccessToken, logout } from './lib/firebase';
 import { getUserDisplayName, registerNamesFromProjects, doesUserMatch } from './lib/userUtils';
 import { cleanDomain } from './lib/domain';
@@ -1072,7 +1073,11 @@ export default function App() {
         console.error("Failed to reset backend database:", err);
       }
 
+      // Preserve the UI theme preference across a data reset — this button
+      // wipes app data (logs, alerts, users), not display settings.
+      const savedTheme = localStorage.getItem('theme');
       localStorage.clear();
+      if (savedTheme) localStorage.setItem('theme', savedTheme);
       window.location.reload();
     }
   };
@@ -1092,10 +1097,10 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50/50 text-gray-900 font-sans selection:bg-indigo-105 selection:text-indigo-900">
+    <div className="min-h-screen bg-gray-50/50 dark:bg-slate-800/40 text-gray-900 dark:text-slate-50 font-sans selection:bg-indigo-105 selection:text-indigo-900 selection:dark:text-blue-200">
 
       {/* Main header block */}
-      <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-gray-150">
+      <header className="sticky top-0 z-40 bg-white/90 dark:bg-slate-950/90 backdrop-blur-md border-b border-gray-150 dark:border-slate-800">
         <div className="w-full px-3 sm:px-5 lg:px-8 xl:px-10">
           <div className="flex justify-between items-center h-16">
             
@@ -1112,8 +1117,8 @@ export default function App() {
                 aria-label="Open navigation menu"
                 className={`relative flex items-center justify-center h-10 w-10 rounded-xl border transition-colors duration-200 cursor-pointer overflow-hidden ${
                   isNavMenuOpen
-                    ? 'bg-indigo-50 border-indigo-200 text-indigo-700'
-                    : 'bg-white border-gray-150 text-gray-600 hover:bg-slate-50 hover:text-indigo-600'
+                    ? 'bg-indigo-50 dark:bg-blue-500/10 border-indigo-200 dark:border-blue-500/25 text-indigo-700 dark:text-blue-400'
+                    : 'bg-white dark:bg-slate-900 border-gray-150 dark:border-slate-800 text-gray-600 dark:text-slate-300 hover:bg-slate-50 hover:dark:bg-slate-800/60 hover:text-indigo-600 hover:dark:text-blue-400'
                 }`}
               >
                 <motion.span
@@ -1156,7 +1161,7 @@ export default function App() {
                     <motion.div
                       key="nav-menu-backdrop"
                       onClick={closeNavMenuNow}
-                      className="fixed inset-0 z-40 bg-gray-900/10 backdrop-blur-[1.5px]"
+                      className="fixed inset-0 z-40 bg-gray-900/10 dark:bg-black/40 backdrop-blur-[1.5px]"
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
@@ -1169,7 +1174,7 @@ export default function App() {
                         plain slide, and closes the same way. */}
                     <motion.div
                       key="nav-menu-panel"
-                      className="fixed top-20 left-4 z-50 w-[300px] max-h-[calc(100vh-6rem)] bg-white rounded-[28px] ring-1 ring-black/5 shadow-2xl flex flex-col overflow-hidden"
+                      className="fixed top-20 left-4 z-50 w-[300px] max-h-[calc(100vh-6rem)] bg-white dark:bg-slate-900 rounded-[28px] ring-1 ring-black/5 shadow-2xl flex flex-col overflow-hidden"
                       style={{ transformOrigin: 'top left', willChange: 'transform, opacity' }}
                       initial={{ opacity: 0, scale: 0.9, y: -12 }}
                       animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -1177,7 +1182,7 @@ export default function App() {
                       transition={{ type: 'spring', stiffness: 380, damping: 30, mass: 0.7 }}
                     >
                     {/* Accent header strip */}
-                    <div className="h-1.5 w-full bg-gradient-to-r from-indigo-500 via-violet-500 to-indigo-500 shrink-0" />
+                    <div className="h-1.5 w-full bg-gradient-to-r from-indigo-500 dark:from-blue-500 via-violet-500 dark:via-blue-400 to-indigo-500 dark:to-blue-500 shrink-0" />
 
                     {/* Panel header */}
                     <div className="flex items-center justify-between px-4 pt-3 pb-2.5 shrink-0">
@@ -1194,7 +1199,7 @@ export default function App() {
                       <button
                         type="button"
                         onClick={closeNavMenuNow}
-                        className="p-1.5 rounded-lg text-gray-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
+                        className="p-1.5 rounded-lg text-gray-400 dark:text-slate-500 hover:text-rose-600 hover:dark:text-rose-400 hover:bg-rose-50 hover:dark:bg-rose-500/10 transition cursor-pointer"
                         title="Close menu"
                       >
                         <X size={15} />
@@ -1202,47 +1207,47 @@ export default function App() {
                     </div>
 
                     {/* Monthly Progress card */}
-                    <div className="mx-3 mb-3 p-3.5 bg-white border border-gray-150 rounded-2xl shadow-3xs shrink-0">
+                    <div className="mx-3 mb-3 p-3.5 bg-white dark:bg-slate-900 border border-gray-150 dark:border-slate-800 rounded-2xl shadow-3xs shrink-0">
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-[9.5px] font-black text-gray-800 uppercase tracking-wider">
+                        <span className="text-[9.5px] font-black text-gray-800 dark:text-slate-100 uppercase tracking-wider">
                           Projects Covered
                         </span>
-                        <span className="text-[11px] font-black text-gray-900 font-mono whitespace-nowrap">
+                        <span className="text-[11px] font-black text-gray-900 dark:text-slate-50 font-mono whitespace-nowrap">
                           {monthlyProgressStats.covered} / {monthlyProgressStats.total}
-                          <span className="text-indigo-600"> ({monthlyProgressStats.percent}%)</span>
+                          <span className="text-indigo-600 dark:text-blue-400"> ({monthlyProgressStats.percent}%)</span>
                         </span>
                       </div>
-                      <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden mb-3">
+                      <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden mb-3">
                         <motion.div
-                          className="h-full bg-gradient-to-r from-indigo-500 to-indigo-600 rounded-full"
+                          className="h-full bg-gradient-to-r from-indigo-500 dark:from-blue-500 to-indigo-600 dark:to-blue-600 rounded-full"
                           initial={{ width: 0 }}
                           animate={{ width: `${monthlyProgressStats.percent}%` }}
                           transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
                         />
                       </div>
                       <div className="space-y-1.5">
-                        <div className="flex items-center justify-between text-[11px] font-semibold text-gray-600">
+                        <div className="flex items-center justify-between text-[11px] font-semibold text-gray-600 dark:text-slate-300">
                           <span className="flex items-center gap-1.5">
                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
                             Worked
                           </span>
-                          <span className="font-mono font-bold text-gray-800">{monthlyProgressStats.worked}</span>
+                          <span className="font-mono font-bold text-gray-800 dark:text-slate-100">{monthlyProgressStats.worked}</span>
                         </div>
-                        <div className="flex items-center justify-between text-[11px] font-semibold text-gray-600">
+                        <div className="flex items-center justify-between text-[11px] font-semibold text-gray-600 dark:text-slate-300">
                           <span className="flex items-center gap-1.5">
                             <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
                             Not Worked
                           </span>
-                          <span className="font-mono font-bold text-gray-800">{monthlyProgressStats.notWorked}</span>
+                          <span className="font-mono font-bold text-gray-800 dark:text-slate-100">{monthlyProgressStats.notWorked}</span>
                         </div>
-                        <div className="flex items-center justify-between text-[11px] font-semibold text-gray-600">
+                        <div className="flex items-center justify-between text-[11px] font-semibold text-gray-600 dark:text-slate-300">
                           <span className="flex items-center gap-1.5">
                             <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0" />
                             Remaining
                           </span>
-                          <span className="font-mono font-bold text-gray-800">{monthlyProgressStats.remaining}</span>
+                          <span className="font-mono font-bold text-gray-800 dark:text-slate-100">{monthlyProgressStats.remaining}</span>
                         </div>
-                        <div className="flex items-center justify-between text-[11px] font-black text-gray-900 pt-1.5 border-t border-gray-100">
+                        <div className="flex items-center justify-between text-[11px] font-black text-gray-900 dark:text-slate-50 pt-1.5 border-t border-gray-100 dark:border-slate-800/60">
                           <span>Total Projects</span>
                           <span className="font-mono">{monthlyProgressStats.total}</span>
                         </div>
@@ -1257,8 +1262,8 @@ export default function App() {
                         onClick={() => { setActiveTab('submit'); closeNavMenuNow(); }}
                         className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold cursor-pointer transition ${
                           activeTab === 'submit'
-                            ? 'bg-indigo-50 text-indigo-700'
-                            : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'
+                            ? 'bg-indigo-50 dark:bg-blue-500/10 text-indigo-700 dark:text-blue-400'
+                            : 'text-gray-500 dark:text-slate-400 hover:text-gray-800 hover:dark:text-slate-100 hover:bg-gray-50 hover:dark:bg-slate-800/60'
                         }`}
                       >
                         <PenTool size={15} />
@@ -1272,8 +1277,8 @@ export default function App() {
                         onClick={() => { setActiveTab('logs'); closeNavMenuNow(); }}
                         className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold cursor-pointer transition ${
                           activeTab === 'logs'
-                            ? 'bg-indigo-50 text-indigo-700'
-                            : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'
+                            ? 'bg-indigo-50 dark:bg-blue-500/10 text-indigo-700 dark:text-blue-400'
+                            : 'text-gray-500 dark:text-slate-400 hover:text-gray-800 hover:dark:text-slate-100 hover:bg-gray-50 hover:dark:bg-slate-800/60'
                         }`}
                       >
                         <Database size={15} />
@@ -1286,8 +1291,8 @@ export default function App() {
                       onClick={() => { setActiveTab('task-lineup'); closeNavMenuNow(); }}
                       className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold cursor-pointer transition ${
                         activeTab === 'task-lineup'
-                          ? 'bg-indigo-50 text-indigo-700'
-                          : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'
+                          ? 'bg-indigo-50 dark:bg-blue-500/10 text-indigo-700 dark:text-blue-400'
+                          : 'text-gray-500 dark:text-slate-400 hover:text-gray-800 hover:dark:text-slate-100 hover:bg-gray-50 hover:dark:bg-slate-800/60'
                       }`}
                     >
                       <Sparkles size={15} />
@@ -1306,8 +1311,8 @@ export default function App() {
                         }}
                         className={`w-full flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold cursor-pointer transition ${
                           activeTab === 'dashboard'
-                            ? 'bg-indigo-50 text-indigo-700'
-                            : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'
+                            ? 'bg-indigo-50 dark:bg-blue-500/10 text-indigo-700 dark:text-blue-400'
+                            : 'text-gray-500 dark:text-slate-400 hover:text-gray-800 hover:dark:text-slate-100 hover:bg-gray-50 hover:dark:bg-slate-800/60'
                         }`}
                       >
                         <span className="flex items-center gap-3">
@@ -1321,7 +1326,7 @@ export default function App() {
                       </button>
 
                       {isOverviewExpanded && (
-                        <div className="mt-1 ml-4 pl-3 border-l border-gray-150 space-y-0.5">
+                        <div className="mt-1 ml-4 pl-3 border-l border-gray-150 dark:border-slate-800 space-y-0.5">
                           {[
                             { id: 'project_table' as const, label: 'Project Table', icon: FileSpreadsheet },
                             { id: 'activity' as const, label: isAdmin ? 'Team Activity' : 'Activity', icon: Bell },
@@ -1339,8 +1344,8 @@ export default function App() {
                               }}
                               className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[11px] font-bold cursor-pointer transition ${
                                 activeTab === 'dashboard' && dashboardSubTab === sub.id
-                                  ? 'bg-indigo-50 text-indigo-700'
-                                  : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'
+                                  ? 'bg-indigo-50 dark:bg-blue-500/10 text-indigo-700 dark:text-blue-400'
+                                  : 'text-gray-500 dark:text-slate-400 hover:text-gray-800 hover:dark:text-slate-100 hover:bg-gray-50 hover:dark:bg-slate-800/60'
                               }`}
                             >
                               <sub.icon size={13} />
@@ -1358,8 +1363,8 @@ export default function App() {
                         onClick={() => { setActiveTab('reports'); closeNavMenuNow(); }}
                         className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold cursor-pointer transition ${
                           activeTab === 'reports'
-                            ? 'bg-indigo-50 text-indigo-700'
-                            : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'
+                            ? 'bg-indigo-50 dark:bg-blue-500/10 text-indigo-700 dark:text-blue-400'
+                            : 'text-gray-500 dark:text-slate-400 hover:text-gray-800 hover:dark:text-slate-100 hover:bg-gray-50 hover:dark:bg-slate-800/60'
                         }`}
                       >
                         <FileBarChart size={15} />
@@ -1369,7 +1374,7 @@ export default function App() {
                   </nav>
 
                   {/* Panel footer: admin settings icon + logout, pinned to the bottom */}
-                  <div className="shrink-0 border-t border-gray-150 px-3 py-3 flex items-center gap-2">
+                  <div className="shrink-0 border-t border-gray-150 dark:border-slate-800 px-3 py-3 flex items-center gap-2">
                     {isAdmin && (
                       <button
                         id="tab-settings"
@@ -1377,8 +1382,8 @@ export default function App() {
                         title="Admin Settings"
                         className={`flex items-center justify-center h-10 w-10 rounded-xl border transition cursor-pointer ${
                           activeTab === 'settings'
-                            ? 'bg-indigo-50 border-indigo-200 text-indigo-700'
-                            : 'bg-white border-gray-150 text-gray-500 hover:bg-slate-50 hover:text-indigo-600'
+                            ? 'bg-indigo-50 dark:bg-blue-500/10 border-indigo-200 dark:border-blue-500/25 text-indigo-700 dark:text-blue-400'
+                            : 'bg-white dark:bg-slate-900 border-gray-150 dark:border-slate-800 text-gray-500 dark:text-slate-400 hover:bg-slate-50 hover:dark:bg-slate-800/60 hover:text-indigo-600 hover:dark:text-blue-400'
                         }`}
                       >
                         <Settings size={17} />
@@ -1387,7 +1392,7 @@ export default function App() {
                     <button
                       onClick={handleLogout}
                       title="Switch Account / Sign Out"
-                      className="flex-1 flex items-center justify-center gap-2 h-10 rounded-xl border border-gray-150 text-gray-500 hover:bg-rose-50 hover:text-rose-600 transition cursor-pointer text-xs font-bold"
+                      className="flex-1 flex items-center justify-center gap-2 h-10 rounded-xl border border-gray-150 dark:border-slate-800 text-gray-500 dark:text-slate-400 hover:bg-rose-50 hover:dark:bg-rose-500/10 hover:text-rose-600 hover:dark:text-rose-400 transition cursor-pointer text-xs font-bold"
                     >
                       <LogOut size={15} />
                       Logout
@@ -1416,11 +1421,14 @@ export default function App() {
 
             {/* Right Side: Account Actions & Logouts */}
             <div className="flex items-center gap-3">
+              {/* Light / Dark theme switch */}
+              <ThemeToggle />
+
               {/* Manual Refresh Button */}
               <button
                 onClick={handleTriggerSync}
                 disabled={isSyncing}
-                className="p-2 border border-gray-150 hover:bg-slate-50 text-gray-500 hover:text-indigo-600 rounded-xl transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                className="p-2 border border-gray-150 dark:border-slate-800 hover:bg-slate-50 hover:dark:bg-slate-800/60 text-gray-500 dark:text-slate-400 hover:text-indigo-600 hover:dark:text-blue-400 rounded-xl transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 title="Sync from Google Sheet & refresh"
               >
                 <RefreshCw size={20} className={isSyncing ? 'animate-spin' : ''} />
@@ -1430,36 +1438,36 @@ export default function App() {
               <div className="relative" ref={notificationsRef}>
                 <button
                   onClick={() => setShowNotifications(!showNotifications)}
-                  className={`p-2 border border-gray-150 hover:bg-slate-50 text-gray-500 hover:text-indigo-600 rounded-xl transition cursor-pointer relative ${showNotifications ? 'bg-indigo-50/50 text-indigo-600 border-indigo-200' : ''}`}
+                  className={`p-2 border border-gray-150 dark:border-slate-800 hover:bg-slate-50 hover:dark:bg-slate-800/60 text-gray-500 dark:text-slate-400 hover:text-indigo-600 hover:dark:text-blue-400 rounded-xl transition cursor-pointer relative ${showNotifications ? 'bg-indigo-50/50 dark:bg-blue-500/10 text-indigo-600 dark:text-blue-400 border-indigo-200 dark:border-blue-500/25' : ''}`}
                   title="Notifications & Alerts"
                 >
                   <Bell size={20} />
                   {unreadCount > 0 && (
-                    <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[9px] font-black text-white ring-2 ring-white">
+                    <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[9px] font-black text-white ring-2 ring-white dark:ring-slate-900">
                       {unreadCount}
                     </span>
                   )}
                 </button>
 
                 {showNotifications && (
-                  <div className="absolute right-0 mt-2 sm:w-[460px] w-80 bg-white border border-gray-150 rounded-2xl shadow-xl py-4 z-50 animate-fade-in divide-y divide-gray-100 max-h-[500px] overflow-y-auto">
+                  <div className="absolute right-0 mt-2 sm:w-[460px] w-80 bg-white dark:bg-slate-900 border border-gray-150 dark:border-slate-800 rounded-2xl shadow-xl py-4 z-50 animate-fade-in divide-y divide-gray-100 dark:divide-slate-800/60 max-h-[500px] overflow-y-auto">
                     <div className="px-5 pb-3 flex justify-between items-center">
-                      <span className="font-extrabold text-sm text-gray-900 uppercase tracking-wider flex items-center gap-1.5 font-sans">
-                        <Bell size={16} className="text-indigo-600 animate-pulse" />
+                      <span className="font-extrabold text-sm text-gray-900 dark:text-slate-50 uppercase tracking-wider flex items-center gap-1.5 font-sans">
+                        <Bell size={16} className="text-indigo-600 dark:text-blue-400 animate-pulse" />
                         {isAdmin ? 'All Users\u2019 Alerts & Tasks' : 'Your Alerts & Tasks'}
                       </span>
                       <button
                         onClick={() => setShowNotifications(false)}
-                        className="p-1 hover:bg-gray-100 text-gray-400 hover:text-rose-600 rounded-lg transition"
+                        className="p-1 hover:bg-gray-100 hover:dark:bg-slate-800 text-gray-400 dark:text-slate-500 hover:text-rose-600 hover:dark:text-rose-400 rounded-lg transition"
                         title="Close Notifications"
                       >
                         <X size={16} />
                       </button>
                     </div>
 
-                    <div className="py-2 divide-y divide-gray-100">
+                    <div className="py-2 divide-y divide-gray-100 dark:divide-slate-800/60">
                       {visibleAlerts.length === 0 ? (
-                        <div className="px-5 py-8 text-center text-xs text-gray-400 font-medium font-mono italic">
+                        <div className="px-5 py-8 text-center text-xs text-gray-400 dark:text-slate-500 font-medium font-mono italic">
                           No alerts or messages logged here yet.
                         </div>
                       ) : (
@@ -1470,12 +1478,12 @@ export default function App() {
                           return (
                             <div
                               key={alert.id}
-                              className={`px-5 py-4 text-left relative hover:bg-slate-50/50 transition-colors ${!alert.read ? 'bg-indigo-50/15 font-bold' : ''}`}
+                              className={`px-5 py-4 text-left relative hover:bg-slate-50/50 hover:dark:bg-slate-800/40 transition-colors ${!alert.read ? 'bg-indigo-50/15 font-bold' : ''}`}
                             >
                               <div className="flex justify-between items-start gap-3">
                                 <div className="space-y-1">
                                   {isUserMsg ? (
-                                    <span className="inline-block bg-emerald-50 text-emerald-800 font-black px-2 py-0.5 rounded-lg text-[9px] uppercase tracking-wider border border-emerald-100 shadow-3xs">
+                                    <span className="inline-block bg-emerald-50 dark:bg-emerald-500/10 text-emerald-800 font-black px-2 py-0.5 rounded-lg text-[9px] uppercase tracking-wider border border-emerald-100 dark:border-emerald-500/20 shadow-3xs">
                                        User Note
                                     </span>
                                   ) : isRemark ? (
@@ -1483,7 +1491,7 @@ export default function App() {
                                        Message from Admin
                                     </span>
                                   ) : (
-                                    <span className="inline-block bg-amber-50 text-amber-900 font-black px-2.5 py-0.5 rounded-lg text-[10px] uppercase tracking-wider border border-amber-200 shadow-3xs">
+                                    <span className="inline-block bg-amber-50 dark:bg-amber-500/10 text-amber-900 dark:text-amber-300 font-black px-2.5 py-0.5 rounded-lg text-[10px] uppercase tracking-wider border border-amber-200 shadow-3xs">
                                       Action Required: {alert.projectName}
                                     </span>
                                   )}
@@ -1491,7 +1499,7 @@ export default function App() {
                                 {isAdmin && (
                                   <button
                                     onClick={() => handleClearAlert(alert.id)}
-                                    className="text-gray-400 hover:text-rose-600 text-lg p-0.5 leading-none font-bold"
+                                    className="text-gray-400 dark:text-slate-500 hover:text-rose-600 hover:dark:text-rose-400 text-lg p-0.5 leading-none font-bold"
                                     title="Dismiss Alert"
                                   >
                                     &times;
@@ -1500,13 +1508,13 @@ export default function App() {
                               </div>
 
                               <div className="mt-2 space-y-3">
-                                <p className="text-xs font-bold text-gray-800 leading-relaxed whitespace-pre-wrap bg-slate-50/50 p-3 rounded-xl border border-gray-100">
+                                <p className="text-xs font-bold text-gray-800 dark:text-slate-100 leading-relaxed whitespace-pre-wrap bg-slate-50/50 dark:bg-slate-800/40 p-3 rounded-xl border border-gray-100 dark:border-slate-800/60">
                                   {alert.message}
                                 </p>
 
                                 {isAssignment && (
                                   <div className="flex items-center justify-between gap-4 pt-1">
-                                    <span className="text-[9px] text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-2 py-0.5 font-bold font-mono uppercase">
+                                    <span className="text-[9px] text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10 border border-amber-100 dark:border-amber-500/20 rounded-lg px-2 py-0.5 font-bold font-mono uppercase">
                                       Due: {alert.date}
                                     </span>
                                     <button
@@ -1548,7 +1556,7 @@ export default function App() {
                                 )}
                               </div>
 
-                              <div className="flex justify-between items-center mt-3 text-[11px] text-gray-500 font-bold font-mono uppercase border-t border-gray-100/50 pt-2">
+                              <div className="flex justify-between items-center mt-3 text-[11px] text-gray-500 dark:text-slate-400 font-bold font-mono uppercase border-t border-gray-100/50 pt-2">
                                 <span>
                                   {isAdmin
                                     ? `User: ${getUserDisplayName(alert.userEmail, allowedUsers) || alert.userEmail || 'Unknown'}`
@@ -1557,7 +1565,7 @@ export default function App() {
                                 <span className="text-[10px]">{new Date(alert.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
                               </div>
                               {!alert.read && (
-                                <span className="absolute left-1.5 top-1/2 -translate-y-1/2 w-1.5 h-1.5 bg-indigo-600 rounded-full"></span>
+                                <span className="absolute left-1.5 top-1/2 -translate-y-1/2 w-1.5 h-1.5 bg-indigo-600 dark:bg-blue-600 rounded-full"></span>
                               )}
                             </div>
                           );
@@ -1569,17 +1577,17 @@ export default function App() {
               </div>
 
               {/* Profile card badge */}
-              <div className="hidden lg:flex items-center gap-2.5 px-3 py-1.5 bg-gray-50 border border-gray-150 rounded-xl text-xs max-w-64">
+              <div className="hidden lg:flex items-center gap-2.5 px-3 py-1.5 bg-gray-50 dark:bg-slate-800/60 border border-gray-150 dark:border-slate-800 rounded-xl text-xs max-w-64">
                 {isAdmin ? (
-                  <Shield size={13} className="text-indigo-600 shrink-0" />
+                  <Shield size={13} className="text-indigo-600 dark:text-blue-400 shrink-0" />
                 ) : (
-                  <User size={13} className="text-gray-550 shrink-0" />
+                  <User size={13} className="text-gray-550 dark:text-slate-300 shrink-0" />
                 )}
                 <div className="overflow-hidden leading-none text-left">
-                  <span className="block font-bold text-gray-800 truncate" title={currentUserEmail || ''}>
+                  <span className="block font-bold text-gray-800 dark:text-slate-100 truncate" title={currentUserEmail || ''}>
                     {isAdmin ? 'ADMIN' : getUserDisplayName(currentUserEmail, allowedUsers)}
                   </span>
-                  <span className="text-[9px] text-gray-400 font-mono mt-0.5 block uppercase tracking-wider">
+                  <span className="text-[9px] text-gray-400 dark:text-slate-500 font-mono mt-0.5 block uppercase tracking-wider">
                     {isAdmin ? 'Administrator' : 'Reporter Profile'}
                   </span>
                 </div>
@@ -1599,19 +1607,19 @@ export default function App() {
             {activeAssignmentAlerts.map((alert) => (
               <div 
                 key={alert.id}
-                className="bg-amber-500/10 text-amber-900 border border-amber-500/20 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 font-sans shadow-2xs relative overflow-hidden"
+                className="bg-amber-500/10 text-amber-900 dark:text-amber-300 border border-amber-500/20 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 font-sans shadow-2xs relative overflow-hidden"
               >
                 <div className="flex items-start gap-3">
                   <span className="text-xl shrink-0 mt-0.5">🚨</span>
                   <div className="text-left">
-                    <h4 className="font-extrabold text-sm text-amber-900 tracking-tight">
+                    <h4 className="font-extrabold text-sm text-amber-900 dark:text-amber-300 tracking-tight">
                       Action Required: {alert.projectName} {alert.projectDomain ? `(${cleanDomain(alert.projectDomain)})` : ''}
                     </h4>
                     <p className="text-xs text-amber-950 font-bold mt-1">
-                      Work on this project for <span className="font-mono text-amber-900 bg-amber-100 border border-amber-250 px-1.5 py-0.5 rounded font-black">{alert.date}</span>
+                      Work on this project for <span className="font-mono text-amber-900 dark:text-amber-300 bg-amber-100 border border-amber-250 px-1.5 py-0.5 rounded font-black">{alert.date}</span>
                     </p>
                     {alert.message && alert.message !== `Admin has requested that you submit a Work Log for ${alert.projectName} for the reporting date of ${alert.date}.` && (
-                      <p className="text-[11px] text-amber-700 font-semibold italic mt-0.5">
+                      <p className="text-[11px] text-amber-700 dark:text-amber-400 font-semibold italic mt-0.5">
                         &ldquo;{alert.message}&rdquo;
                       </p>
                     )}
@@ -1638,12 +1646,12 @@ export default function App() {
         )}
         
               {/* Mobile quick tab Navigation */}
-        <div className="flex md:hidden bg-white p-2 rounded-2xl border border-gray-150 mb-6 gap-1 justify-around shadow-xs">
+        <div className="flex md:hidden bg-white dark:bg-slate-900 p-2 rounded-2xl border border-gray-150 dark:border-slate-800 mb-6 gap-1 justify-around shadow-xs">
           {!isAdmin && (
             <button
               onClick={() => setActiveTab('submit')}
               className={`flex flex-col items-center gap-1 py-2 px-1 rounded-xl text-[10px] font-bold w-1/4 transition cursor-pointer ${
-                activeTab === 'submit' ? 'text-indigo-600 bg-indigo-50/50' : 'text-gray-400 hover:text-gray-700'
+                activeTab === 'submit' ? 'text-indigo-600 dark:text-blue-400 bg-indigo-50/50 dark:bg-blue-500/10' : 'text-gray-400 dark:text-slate-500 hover:text-gray-700 hover:dark:text-slate-200'
               }`}
             >
               <PenTool size={15} />
@@ -1655,7 +1663,7 @@ export default function App() {
             <button
               onClick={() => setActiveTab('logs')}
               className={`flex flex-col items-center gap-1 py-1.5 px-1 rounded-xl text-[10px] font-bold w-1/4 transition cursor-pointer ${
-                activeTab === 'logs' ? 'text-indigo-600 bg-indigo-50/50' : 'text-gray-400 hover:text-gray-700'
+                activeTab === 'logs' ? 'text-indigo-600 dark:text-blue-400 bg-indigo-50/50 dark:bg-blue-500/10' : 'text-gray-400 dark:text-slate-500 hover:text-gray-700 hover:dark:text-slate-200'
               }`}
             >
               <Database size={15} />
@@ -1666,7 +1674,7 @@ export default function App() {
           <button
             onClick={() => setActiveTab('task-lineup')}
             className={`flex flex-col items-center gap-1 py-1.5 px-1 rounded-xl text-[10px] font-bold w-1/4 transition cursor-pointer ${
-              activeTab === 'task-lineup' ? 'text-indigo-600 bg-indigo-50/50' : 'text-gray-400 hover:text-gray-700'
+              activeTab === 'task-lineup' ? 'text-indigo-600 dark:text-blue-400 bg-indigo-50/50 dark:bg-blue-500/10' : 'text-gray-400 dark:text-slate-500 hover:text-gray-700 hover:dark:text-slate-200'
             }`}
           >
             <Sparkles size={15} />
@@ -1676,7 +1684,7 @@ export default function App() {
           <button
             onClick={() => setActiveTab('dashboard')}
             className={`flex flex-col items-center gap-1 py-1.5 px-1 rounded-xl text-[10px] font-bold w-1/4 transition cursor-pointer ${
-              activeTab === 'dashboard' ? 'text-indigo-600 bg-indigo-50/50' : 'text-gray-400 hover:text-gray-700'
+              activeTab === 'dashboard' ? 'text-indigo-600 dark:text-blue-400 bg-indigo-50/50 dark:bg-blue-500/10' : 'text-gray-400 dark:text-slate-500 hover:text-gray-700 hover:dark:text-slate-200'
             }`}
           >
             <LayoutGrid size={15} />
@@ -1687,7 +1695,7 @@ export default function App() {
             <button
               onClick={() => setActiveTab('settings')}
               className={`flex flex-col items-center gap-1 py-1.5 px-1 rounded-xl text-[10px] font-bold w-1/4 transition cursor-pointer ${
-                activeTab === 'settings' ? 'text-indigo-600 bg-indigo-50/50' : 'text-gray-400 hover:text-gray-700'
+                activeTab === 'settings' ? 'text-indigo-600 dark:text-blue-400 bg-indigo-50/50 dark:bg-blue-500/10' : 'text-gray-400 dark:text-slate-500 hover:text-gray-700 hover:dark:text-slate-200'
               }`}
             >
               <Sliders size={15} />
@@ -1698,9 +1706,9 @@ export default function App() {
 
         {/* Dynamic header descriptions */}
         {activeTab !== 'dashboard' && activeTab !== 'task-lineup' && (
-          <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-150 pb-6">
+          <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-150 dark:border-slate-800 pb-6">
             <div className="space-y-1">
-              <h1 className="text-xl font-black text-gray-900 tracking-tight sm:text-2xl flex items-center gap-2">
+              <h1 className="text-xl font-black text-gray-900 dark:text-slate-50 tracking-tight sm:text-2xl flex items-center gap-2">
                 {activeTab === 'submit' && (
                   <>
                     {isAdmin ? (
@@ -1709,18 +1717,18 @@ export default function App() {
                       <button
                         type="button"
                         onClick={() => setActiveTab('submit')}
-                        className="text-xl font-black text-gray-900 tracking-tight sm:text-2xl cursor-pointer"
+                        className="text-xl font-black text-gray-900 dark:text-slate-50 tracking-tight sm:text-2xl cursor-pointer"
                       >
                         Submission
                       </button>
                     )}
                     {!isAdmin && (
                       <>
-                        <span className="text-gray-400">|</span>
+                        <span className="text-gray-400 dark:text-slate-500">|</span>
                         <button
                           type="button"
                           onClick={() => setActiveTab('logs')}
-                          className="text-xl font-black text-gray-400 tracking-tight sm:text-2xl hover:text-indigo-600 transition cursor-pointer"
+                          className="text-xl font-black text-gray-400 dark:text-slate-500 tracking-tight sm:text-2xl hover:text-indigo-600 hover:dark:text-blue-400 transition cursor-pointer"
                         >
                           History
                         </button>
@@ -1737,15 +1745,15 @@ export default function App() {
                         <button
                           type="button"
                           onClick={() => setActiveTab('submit')}
-                          className="text-xl font-black text-gray-400 tracking-tight sm:text-2xl hover:text-indigo-600 transition cursor-pointer"
+                          className="text-xl font-black text-gray-400 dark:text-slate-500 tracking-tight sm:text-2xl hover:text-indigo-600 hover:dark:text-blue-400 transition cursor-pointer"
                         >
                           Submission
                         </button>
-                        <span className="text-gray-400">|</span>
+                        <span className="text-gray-400 dark:text-slate-500">|</span>
                         <button
                           type="button"
                           onClick={() => setActiveTab('logs')}
-                          className="text-xl font-black text-gray-900 tracking-tight sm:text-2xl cursor-pointer"
+                          className="text-xl font-black text-gray-900 dark:text-slate-50 tracking-tight sm:text-2xl cursor-pointer"
                         >
                           History
                         </button>
@@ -1760,7 +1768,7 @@ export default function App() {
 
             <div className="flex items-center gap-2 text-xs">
               {activeTab === 'logs' && (
-                <span className="bg-indigo-50 border border-indigo-200/60 text-indigo-700 px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5 shadow-2xs">
+                <span className="bg-indigo-50 dark:bg-blue-500/10 border border-indigo-200/60 text-indigo-700 dark:text-blue-400 px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5 shadow-2xs">
                   ⚡ Total Logs: <strong>{filteredLogsCount !== null ? filteredLogsCount : 0} logs</strong>
                 </span>
               )}
@@ -1869,10 +1877,10 @@ export default function App() {
               )}
 
               {activeTab === 'reports' && (
-                <div className="flex flex-col items-center justify-center text-center py-24 px-6 bg-white border border-gray-150 rounded-2xl">
+                <div className="flex flex-col items-center justify-center text-center py-24 px-6 bg-white dark:bg-slate-900 border border-gray-150 dark:border-slate-800 rounded-2xl">
                   <FileBarChart size={34} className="text-indigo-300 mb-3" />
-                  <h3 className="font-extrabold text-gray-800 text-sm">Reports</h3>
-                  <p className="text-xs text-gray-400 font-medium mt-1 max-w-sm">
+                  <h3 className="font-extrabold text-gray-800 dark:text-slate-100 text-sm">Reports</h3>
+                  <p className="text-xs text-gray-400 dark:text-slate-500 font-medium mt-1 max-w-sm">
                     This section is set up and ready — reporting content will live here.
                   </p>
                 </div>
