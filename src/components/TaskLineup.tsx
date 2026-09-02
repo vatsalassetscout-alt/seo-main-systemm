@@ -40,11 +40,11 @@ interface UserPendingSummary {
 }
 
 const PRIORITY_BADGE: Record<string, string> = {
-  X1: 'bg-red-50 text-red-700 border-red-100',
-  X2: 'bg-amber-50 text-amber-700 border-amber-100',
+  X1: 'bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-400 border-red-100',
+  X2: 'bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-100 dark:border-amber-500/20',
   X3: 'bg-blue-50 text-blue-700 border-blue-100',
-  X4: 'bg-purple-50 text-purple-700 border-purple-100',
-  X5: 'bg-gray-50 text-gray-700 border-gray-150',
+  X4: 'bg-purple-50 text-purple-700 border-purple-100 dark:border-purple-500/20',
+  X5: 'bg-gray-50 dark:bg-slate-800/60 text-gray-700 dark:text-slate-200 border-gray-150 dark:border-slate-800',
 };
 
 function todayStr(): string {
@@ -88,16 +88,16 @@ function sortPendingFirst(list: TaskAssignment[]): TaskAssignment[] {
 function heatmapClassesForDay(stat?: { total: number; pending: number }): { cell: string; ring: string; dot: string } | null {
   if (!stat || stat.total === 0) return null;
   const pendingRatio = stat.pending / stat.total;
-  if (pendingRatio === 0) return { cell: 'bg-green-500 border-green-600 text-white', ring: 'ring-green-300', dot: 'bg-green-500 border-green-600' };
-  if (pendingRatio <= 0.25) return { cell: 'bg-green-300 border-green-400 text-green-900', ring: 'ring-green-200', dot: 'bg-green-300 border-green-400' };
-  if (pendingRatio <= 0.5) return { cell: 'bg-yellow-300 border-yellow-400 text-yellow-900', ring: 'ring-yellow-200', dot: 'bg-yellow-300 border-yellow-400' };
-  if (pendingRatio <= 0.75) return { cell: 'bg-orange-300 border-orange-400 text-orange-900', ring: 'ring-orange-200', dot: 'bg-orange-300 border-orange-400' };
-  if (pendingRatio < 1) return { cell: 'bg-red-300 border-red-400 text-red-900', ring: 'ring-red-200', dot: 'bg-red-300 border-red-400' };
-  return { cell: 'bg-red-500 border-red-600 text-white', ring: 'ring-red-300', dot: 'bg-red-500 border-red-600' };
+  if (pendingRatio === 0) return { cell: 'bg-green-500 border-green-600 text-white', ring: 'ring-green-300 dark:ring-emerald-500/35', dot: 'bg-green-500 border-green-600' };
+  if (pendingRatio <= 0.25) return { cell: 'bg-green-300 border-green-400 text-green-900', ring: 'ring-green-200 dark:ring-emerald-500/25', dot: 'bg-green-300 border-green-400' };
+  if (pendingRatio <= 0.5) return { cell: 'bg-yellow-300 border-yellow-400 text-yellow-900', ring: 'ring-yellow-200 dark:ring-amber-500/30', dot: 'bg-yellow-300 border-yellow-400' };
+  if (pendingRatio <= 0.75) return { cell: 'bg-orange-300 border-orange-400 text-orange-900', ring: 'ring-orange-200 dark:ring-orange-500/25', dot: 'bg-orange-300 border-orange-400' };
+  if (pendingRatio < 1) return { cell: 'bg-red-300 border-red-400 text-red-900', ring: 'ring-red-200 dark:ring-red-500/25', dot: 'bg-red-300 border-red-400' };
+  return { cell: 'bg-red-500 border-red-600 text-white', ring: 'ring-red-300 dark:ring-red-500/35', dot: 'bg-red-500 border-red-600' };
 }
 
 const Badge = ({ priority }: { priority: string }) => (
-  <span className={`inline-flex items-center px-2 py-0.5 rounded border text-[10px] font-black uppercase tracking-wider ${PRIORITY_BADGE[priority] || 'bg-gray-50 text-gray-500 border-gray-150'}`}>
+  <span className={`inline-flex items-center px-2 py-0.5 rounded border text-[10px] font-black uppercase tracking-wider ${PRIORITY_BADGE[priority] || 'bg-gray-50 dark:bg-slate-800/60 text-gray-500 dark:text-slate-400 border-gray-150 dark:border-slate-800'}`}>
     {priority || '—'}
   </span>
 );
@@ -125,8 +125,8 @@ const PriorityDistribution = ({ items }: { items: TaskAssignment[] }) => {
           title={`${tier}: ${counts[tier]}`}
           className={`inline-flex items-center gap-1 px-2 py-1 rounded border text-[11px] font-black uppercase tracking-wider ${
             counts[tier] > 0
-              ? PRIORITY_BADGE[tier] || 'bg-gray-50 text-gray-600 border-gray-150'
-              : 'bg-gray-50 text-gray-300 border-gray-100'
+              ? PRIORITY_BADGE[tier] || 'bg-gray-50 dark:bg-slate-800/60 text-gray-600 dark:text-slate-300 border-gray-150 dark:border-slate-800'
+              : 'bg-gray-50 dark:bg-slate-800/60 text-gray-300 dark:text-slate-500 border-gray-100 dark:border-slate-800/60'
           }`}
         >
           {tier}:
@@ -143,15 +143,15 @@ const PriorityDistribution = ({ items }: { items: TaskAssignment[] }) => {
 // can tell at a glance why it isn't moving.
 const StatusBadge = ({ status, isPaused }: { status: string; isPaused?: boolean }) => (
   status === 'Done' ? (
-    <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-700">
+    <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-700 dark:text-emerald-400">
       <CheckCircle2 size={13} /> Submitted
     </span>
   ) : isPaused ? (
-    <span className="inline-flex items-center gap-1 text-xs font-bold text-gray-500">
+    <span className="inline-flex items-center gap-1 text-xs font-bold text-gray-500 dark:text-slate-400">
       <Pause size={13} /> Paused
     </span>
   ) : (
-    <span className="inline-flex items-center gap-1 text-xs font-bold text-amber-700">
+    <span className="inline-flex items-center gap-1 text-xs font-bold text-amber-700 dark:text-amber-400">
       <Clock size={13} /> Pending
     </span>
   )
@@ -179,25 +179,25 @@ const PendingProjectList = ({
   showDate?: boolean;
 }) => (
   items.length === 0 ? (
-    <p className="text-xs font-semibold text-gray-400">Nothing pending — all caught up.</p>
+    <p className="text-xs font-semibold text-gray-400 dark:text-slate-500">Nothing pending — all caught up.</p>
   ) : (
     <div className="max-h-80 overflow-y-auto pr-1">
-      <div className="flex items-center gap-3 px-2.5 pb-2 mb-1.5 border-b border-gray-100">
-        <span className="flex-1 min-w-0 text-[10px] font-black text-gray-400 uppercase tracking-wider">Project</span>
+      <div className="flex items-center gap-3 px-2.5 pb-2 mb-1.5 border-b border-gray-100 dark:border-slate-800/60">
+        <span className="flex-1 min-w-0 text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-wider">Project</span>
         {getOwner && (
-          <span className="w-24 shrink-0 text-[10px] font-black text-gray-400 uppercase tracking-wider text-right">User</span>
+          <span className="w-24 shrink-0 text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-wider text-right">User</span>
         )}
-        <span className="w-12 shrink-0 text-[10px] font-black text-gray-400 uppercase tracking-wider text-center">Priority</span>
+        <span className="w-12 shrink-0 text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-wider text-center">Priority</span>
         {showDate && (
-          <span className="w-[84px] shrink-0 text-[10px] font-black text-gray-400 uppercase tracking-wider text-right">Date</span>
+          <span className="w-[84px] shrink-0 text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-wider text-right">Date</span>
         )}
       </div>
       <div className="space-y-1">
         {sortPendingFirst(items).map((a) => (
-          <div key={a.id} className="flex items-center gap-3 px-2.5 py-2 rounded-xl hover:bg-gray-50 transition-colors">
-            <span className="flex-1 min-w-0 truncate text-[15px] font-black text-gray-800">{a.projectName}</span>
+          <div key={a.id} className="flex items-center gap-3 px-2.5 py-2 rounded-xl hover:bg-gray-50 hover:dark:bg-slate-800/60 transition-colors">
+            <span className="flex-1 min-w-0 truncate text-[15px] font-black text-gray-800 dark:text-slate-100">{a.projectName}</span>
             {getOwner && (
-              <span className="w-24 shrink-0 truncate text-[11px] font-bold text-gray-500 text-right" title={getOwner(a)}>
+              <span className="w-24 shrink-0 truncate text-[11px] font-bold text-gray-500 dark:text-slate-400 text-right" title={getOwner(a)}>
                 {getOwner(a)}
               </span>
             )}
@@ -205,7 +205,7 @@ const PendingProjectList = ({
               <Badge priority={a.priority} />
             </div>
             {showDate && (
-              <span className="w-[84px] shrink-0 text-[15px] font-black text-gray-800 text-right whitespace-nowrap">
+              <span className="w-[84px] shrink-0 text-[15px] font-black text-gray-800 dark:text-slate-100 text-right whitespace-nowrap">
                 {a.date}
               </span>
             )}
@@ -213,7 +213,7 @@ const PendingProjectList = ({
               <button
                 type="button"
                 onClick={() => onLogWork(a)}
-                className="flex items-center gap-1 px-2 py-1 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-black rounded-lg transition cursor-pointer shrink-0"
+                className="flex items-center gap-1 px-2 py-1 bg-indigo-600 dark:bg-blue-600 hover:bg-indigo-700 hover:dark:bg-blue-500 text-white text-[10px] font-black rounded-lg transition cursor-pointer shrink-0"
               >
                 <PenTool size={11} />
                 Log Work
@@ -676,7 +676,7 @@ export default function TaskLineup({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-150 pb-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-150 dark:border-slate-800 pb-6">
         {/* Page-level heading toggle — same "Submission | History" treatment
             used on the Work Log tab, available to admin and non-admin alike. */}
         <h1 className="text-xl font-black tracking-tight sm:text-2xl flex items-center gap-2">
@@ -684,17 +684,17 @@ export default function TaskLineup({
             type="button"
             onClick={() => setView('lineup')}
             className={`text-xl font-black tracking-tight sm:text-2xl transition cursor-pointer ${
-              view === 'lineup' ? 'text-gray-900' : 'text-gray-400 hover:text-indigo-600'
+              view === 'lineup' ? 'text-gray-900 dark:text-slate-50' : 'text-gray-400 dark:text-slate-500 hover:text-indigo-600 hover:dark:text-blue-400'
             }`}
           >
             Task Lineup
           </button>
-          <span className="text-gray-400">|</span>
+          <span className="text-gray-400 dark:text-slate-500">|</span>
           <button
             type="button"
             onClick={() => setView('history')}
             className={`text-xl font-black tracking-tight sm:text-2xl transition cursor-pointer ${
-              view === 'history' ? 'text-gray-900' : 'text-gray-400 hover:text-indigo-600'
+              view === 'history' ? 'text-gray-900 dark:text-slate-50' : 'text-gray-400 dark:text-slate-500 hover:text-indigo-600 hover:dark:text-blue-400'
             }`}
           >
             History
@@ -708,7 +708,7 @@ export default function TaskLineup({
                 <button
                   onClick={handleStartEngine}
                   disabled={engineBusy}
-                  className="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-bold rounded-xl transition cursor-pointer"
+                  className="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 dark:bg-blue-600 hover:bg-indigo-700 hover:dark:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-bold rounded-xl transition cursor-pointer"
                 >
                   <Play size={13} />
                   Start Cycle
@@ -718,7 +718,7 @@ export default function TaskLineup({
                   onClick={handleToggleEnginePause}
                   disabled={engineBusy}
                   className={`flex items-center gap-1.5 px-4 py-2 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-bold rounded-xl transition cursor-pointer ${
-                    enginePaused ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700' : 'bg-amber-50 hover:bg-amber-100 text-amber-700'
+                    enginePaused ? 'bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-100 text-emerald-700 dark:text-emerald-400' : 'bg-amber-50 dark:bg-amber-500/10 hover:bg-amber-100 text-amber-700 dark:text-amber-400'
                   }`}
                   title="The cycle runs every day on its own. Pause it only for long vacations."
                 >
@@ -729,7 +729,7 @@ export default function TaskLineup({
               <button
                 onClick={handleDelete}
                 disabled={deleting || generating}
-                className="flex items-center gap-1.5 px-3 py-2 bg-red-50 hover:bg-red-100 disabled:opacity-40 disabled:cursor-not-allowed text-red-700 text-xs font-bold rounded-xl transition cursor-pointer"
+                className="flex items-center gap-1.5 px-3 py-2 bg-red-50 dark:bg-red-500/10 hover:bg-red-100 disabled:opacity-40 disabled:cursor-not-allowed text-red-700 dark:text-red-400 text-xs font-bold rounded-xl transition cursor-pointer"
                 title="Full reset: deletes every assignment for every user on every date and stops the cycle (Start Cycle required again)"
               >
                 <Trash2 size={13} />
@@ -739,7 +739,7 @@ export default function TaskLineup({
                 <button
                   onClick={() => setShowCheckPendings(v => !v)}
                   className={`flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-xl transition cursor-pointer ${
-                    showCheckPendings ? 'bg-indigo-600 text-white' : 'bg-indigo-50 hover:bg-indigo-100 text-indigo-700'
+                    showCheckPendings ? 'bg-indigo-600 dark:bg-blue-600 text-white' : 'bg-indigo-50 dark:bg-blue-500/10 hover:bg-indigo-100 hover:dark:bg-blue-500/15 text-indigo-700 dark:text-blue-400'
                   }`}
                   title="Check every user's total and yesterday's pending tasks"
                 >
@@ -750,18 +750,18 @@ export default function TaskLineup({
               )}
               {view === 'lineup' && (
                 <div className="flex items-center gap-1.5 pl-1">
-                  <CalendarDays size={14} className="text-gray-400" />
+                  <CalendarDays size={14} className="text-gray-400 dark:text-slate-500" />
                   <input
                     type="date"
                     value={date}
                     max={maxDate}
                     onChange={(e) => setDate(e.target.value)}
-                    className="px-2.5 py-2 text-xs font-bold border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                    className="px-2.5 py-2 text-xs font-bold border border-gray-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:dark:ring-blue-500/25"
                   />
                   {date && (
                     <button
                       onClick={() => setDate('')}
-                      className="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 cursor-pointer"
+                      className="text-[11px] font-bold text-indigo-600 dark:text-blue-400 hover:text-indigo-800 hover:dark:text-blue-300 cursor-pointer"
                     >
                       Clear
                     </button>
@@ -774,14 +774,14 @@ export default function TaskLineup({
       </div>
 
       {isSunday && view === 'lineup' && (
-        <div className="flex items-center gap-2 bg-amber-50 border border-amber-100 text-amber-800 text-xs font-bold px-3 py-2 rounded-xl">
+        <div className="flex items-center gap-2 bg-amber-50 dark:bg-amber-500/10 border border-amber-100 dark:border-amber-500/20 text-amber-800 dark:text-amber-300 text-xs font-bold px-3 py-2 rounded-xl">
           <AlertTriangle size={14} />
           Sundays are a rest day — the lineup engine doesn't generate assignments for this date.
         </div>
       )}
 
       {generateMsg && (
-        <div className="text-xs font-bold text-gray-600 bg-gray-50 border border-gray-150 px-3 py-2 rounded-xl">
+        <div className="text-xs font-bold text-gray-600 dark:text-slate-300 bg-gray-50 dark:bg-slate-800/60 border border-gray-150 dark:border-slate-800 px-3 py-2 rounded-xl">
           {generateMsg}
         </div>
       )}
@@ -792,16 +792,16 @@ export default function TaskLineup({
           {/* Admin: "Check Pendings" drill-down — one button per user; pick
               someone to see their total + yesterday pending lists. */}
           {isAdmin && showCheckPendings && (
-            <div className="bg-white rounded-2xl border border-gray-150 overflow-hidden shadow-xs">
-              <div className="px-5 py-3 bg-gray-50 border-b border-gray-150">
-                <p className="text-xs font-black text-gray-900">Check Pendings — by user</p>
-                <p className="text-[10px] font-bold text-gray-400 mt-0.5">Pick a user to see their total and yesterday's pending tasks.</p>
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-150 dark:border-slate-800 overflow-hidden shadow-xs">
+              <div className="px-5 py-3 bg-gray-50 dark:bg-slate-800/60 border-b border-gray-150 dark:border-slate-800">
+                <p className="text-xs font-black text-gray-900 dark:text-slate-50">Check Pendings — by user</p>
+                <p className="text-[10px] font-bold text-gray-400 dark:text-slate-500 mt-0.5">Pick a user to see their total and yesterday's pending tasks.</p>
               </div>
-              <div className="p-4 flex flex-wrap gap-2 border-b border-gray-100">
+              <div className="p-4 flex flex-wrap gap-2 border-b border-gray-100 dark:border-slate-800/60">
                 {pendingAllLoading ? (
-                  <p className="text-xs font-bold text-gray-400 px-1">Loading users…</p>
+                  <p className="text-xs font-bold text-gray-400 dark:text-slate-500 px-1">Loading users…</p>
                 ) : pendingAllUsers.length === 0 ? (
-                  <p className="text-xs font-bold text-gray-400 px-1">No users configured yet.</p>
+                  <p className="text-xs font-bold text-gray-400 dark:text-slate-500 px-1">No users configured yet.</p>
                 ) : (
                   [...pendingAllUsers].sort((a, b) => numericIdCompare(a.email, b.email)).map(u => (
                     <button
@@ -809,8 +809,8 @@ export default function TaskLineup({
                       onClick={() => setSelectedPendingEmail(u.email)}
                       className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition cursor-pointer ${
                         selectedPendingEmail && selectedPendingEmail.trim().toLowerCase() === u.email.trim().toLowerCase()
-                          ? 'bg-indigo-600 text-white'
-                          : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                          ? 'bg-indigo-600 dark:bg-blue-600 text-white'
+                          : 'bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 hover:dark:bg-slate-700 text-gray-700 dark:text-slate-200'
                       }`}
                     >
                       {u.name} · {u.totalPendingCount} pending
@@ -821,19 +821,19 @@ export default function TaskLineup({
               {selectedPendingSummary && (
                 <div className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">
+                    <p className="text-[11px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-2">
                       {selectedPendingSummary.name} — Yesterday Pending ({selectedPendingSummary.yesterdayPendingCount})
                     </p>
                     <PendingProjectList items={selectedPendingSummary.yesterdayPending} />
                   </div>
                   <div>
-                    <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">
+                    <p className="text-[11px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-2">
                       {selectedPendingSummary.name} — Total Pending ({selectedPendingSummary.totalPendingCount})
                     </p>
                     <PendingProjectList items={selectedPendingSummary.totalPending} />
                   </div>
-                  <div className="sm:col-span-2 text-[11px] text-gray-400 font-semibold">
-                    Total tasks ever assigned to {selectedPendingSummary.name}: <span className="text-gray-600 font-bold">{selectedPendingSummary.totalTasks}</span>
+                  <div className="sm:col-span-2 text-[11px] text-gray-400 dark:text-slate-500 font-semibold">
+                    Total tasks ever assigned to {selectedPendingSummary.name}: <span className="text-gray-600 dark:text-slate-300 font-bold">{selectedPendingSummary.totalTasks}</span>
                   </div>
                 </div>
               )}
@@ -844,24 +844,24 @@ export default function TaskLineup({
               card's own header, right-aligned, capped so a future date can't
               be picked. */}
           {!isAdmin && (
-            <div className="bg-white rounded-2xl border border-gray-150 overflow-hidden shadow-xs">
-              <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5 bg-gray-50 border-b border-gray-150">
-                <p className="text-sm font-black text-gray-900">Today's Lineup</p>
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-150 dark:border-slate-800 overflow-hidden shadow-xs">
+              <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5 bg-gray-50 dark:bg-slate-800/60 border-b border-gray-150 dark:border-slate-800">
+                <p className="text-sm font-black text-gray-900 dark:text-slate-50">Today's Lineup</p>
                 <div className="flex items-center gap-3">
                   <PriorityDistribution items={myAssignments} />
                   <div className="flex items-center gap-2">
-                    <CalendarDays size={13} className="text-gray-400" />
+                    <CalendarDays size={13} className="text-gray-400 dark:text-slate-500" />
                     <input
                       type="date"
                       value={date}
                       max={maxDate}
                       onChange={(e) => setDate(e.target.value)}
-                      className="px-2.5 py-1.5 text-xs font-bold border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                      className="px-2.5 py-1.5 text-xs font-bold border border-gray-200 dark:border-slate-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:dark:ring-blue-500/25"
                     />
                     {date && (
                       <button
                         onClick={() => setDate('')}
-                        className="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 cursor-pointer"
+                        className="text-[11px] font-bold text-indigo-600 dark:text-blue-400 hover:text-indigo-800 hover:dark:text-blue-300 cursor-pointer"
                       >
                         Today
                       </button>
@@ -870,16 +870,16 @@ export default function TaskLineup({
                 </div>
               </div>
               {loading ? (
-                <p className="px-5 py-6 text-xs font-bold text-gray-400">Loading…</p>
+                <p className="px-5 py-6 text-xs font-bold text-gray-400 dark:text-slate-500">Loading…</p>
               ) : myAssignments.length === 0 ? (
-                <p className="px-5 py-6 text-xs font-bold text-gray-400">No tasks assigned to you for this date yet.</p>
+                <p className="px-5 py-6 text-xs font-bold text-gray-400 dark:text-slate-500">No tasks assigned to you for this date yet.</p>
               ) : (
-                <div className="divide-y divide-gray-100">
+                <div className="divide-y divide-gray-100 dark:divide-slate-800/60">
                   {myAssignments.map((a, idx) => (
                     <div key={a.id} className="flex items-center justify-between px-5 py-3.5">
                       <div className="flex items-center gap-3">
-                        <span className="text-xs font-mono font-bold text-gray-400 w-5 shrink-0">{idx + 1}.</span>
-                        <span className="text-sm font-bold text-gray-700">{a.projectName}</span>
+                        <span className="text-xs font-mono font-bold text-gray-400 dark:text-slate-500 w-5 shrink-0">{idx + 1}.</span>
+                        <span className="text-sm font-bold text-gray-700 dark:text-slate-200">{a.projectName}</span>
                         <Badge priority={a.priority} />
                       </div>
                       <div className="flex items-center gap-3">
@@ -887,7 +887,7 @@ export default function TaskLineup({
                         {a.status === 'Pending' && (
                           <button
                             onClick={() => onJumpToWorkLog(a.projectId, a.date)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-black rounded-lg transition cursor-pointer"
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 dark:bg-blue-600 hover:bg-indigo-700 hover:dark:bg-blue-500 text-white text-[11px] font-black rounded-lg transition cursor-pointer"
                           >
                             <PenTool size={12} />
                             Log Work
@@ -910,35 +910,35 @@ export default function TaskLineup({
               Each row now also shows total tasks, yesterday pending, and
               total pending. */}
           {isAdmin && (
-            <div className="bg-white rounded-2xl border border-gray-150 overflow-hidden shadow-xs">
-              <div className="px-5 py-3 bg-gray-50 border-b border-gray-150">
-                <p className="text-xs font-black text-gray-900"> Controls</p>
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-150 dark:border-slate-800 overflow-hidden shadow-xs">
+              <div className="px-5 py-3 bg-gray-50 dark:bg-slate-800/60 border-b border-gray-150 dark:border-slate-800">
+                <p className="text-xs font-black text-gray-900 dark:text-slate-50"> Controls</p>
               </div>
               {allowedUsers.length === 0 ? (
-                <p className="px-5 py-4 text-xs font-bold text-gray-400">No users configured yet.</p>
+                <p className="px-5 py-4 text-xs font-bold text-gray-400 dark:text-slate-500">No users configured yet.</p>
               ) : (
-                <div className="divide-y divide-gray-100">
+                <div className="divide-y divide-gray-100 dark:divide-slate-800/60">
                   {[...allowedUsers].sort((a, b) => numericIdCompare(a.email, b.email)).map((u) => {
                     const paused = !!u.paused;
                     const stats = pendingStatsByEmail.get(u.email.trim().toLowerCase());
                     return (
                       <div key={u.email} className="flex items-center justify-between px-5 py-2.5 gap-3">
                         <div className="min-w-0">
-                          <p className="text-xs font-bold text-gray-800 truncate">{u.name}</p>
-                          <p className="text-[10px] text-gray-400 font-semibold truncate">{u.email}</p>
+                          <p className="text-xs font-bold text-gray-800 dark:text-slate-100 truncate">{u.name}</p>
+                          <p className="text-[10px] text-gray-400 dark:text-slate-500 font-semibold truncate">{u.email}</p>
                         </div>
                         <div className="flex items-center gap-4 shrink-0">
                           {stats && (
-                            <div className="hidden md:flex items-center gap-3 text-[10px] font-bold text-gray-500">
-                              <span title="Total tasks ever assigned">Total: <span className="text-gray-800">{stats.totalTasks}</span></span>
-                              <span title="Still pending from yesterday">Yesterday: <span className="text-amber-700">{stats.yesterdayPendingCount}</span></span>
-                              <span title="All-time pending">Pending: <span className="text-red-700">{stats.totalPendingCount}</span></span>
+                            <div className="hidden md:flex items-center gap-3 text-[10px] font-bold text-gray-500 dark:text-slate-400">
+                              <span title="Total tasks ever assigned">Total: <span className="text-gray-800 dark:text-slate-100">{stats.totalTasks}</span></span>
+                              <span title="Still pending from yesterday">Yesterday: <span className="text-amber-700 dark:text-amber-400">{stats.yesterdayPendingCount}</span></span>
+                              <span title="All-time pending">Pending: <span className="text-red-700 dark:text-red-400">{stats.totalPendingCount}</span></span>
                             </div>
                           )}
                           <button
                             onClick={() => togglePause(u.email, !paused)}
                             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition cursor-pointer ${
-                              paused ? 'bg-amber-100 text-amber-700 hover:bg-amber-200' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                              paused ? 'bg-amber-100 text-amber-700 dark:text-amber-400 hover:bg-amber-200' : 'bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-slate-400 hover:bg-gray-200 hover:dark:bg-slate-700'
                             }`}
                           >
                             {paused ? <Play size={12} /> : <Pause size={12} />}
@@ -958,36 +958,36 @@ export default function TaskLineup({
           {isAdmin && (
             <div className="space-y-4">
               {loading ? (
-                <p className="text-xs font-bold text-gray-400">Loading lineup…</p>
+                <p className="text-xs font-bold text-gray-400 dark:text-slate-500">Loading lineup…</p>
               ) : groupedByUser.length === 0 ? (
-                <div className="bg-white rounded-2xl border border-gray-150 p-8 text-center">
-                  <p className="text-sm font-bold text-gray-500">No lineup generated for this date yet.</p>
+                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-150 dark:border-slate-800 p-8 text-center">
+                  <p className="text-sm font-bold text-gray-500 dark:text-slate-400">No lineup generated for this date yet.</p>
                 </div>
               ) : (
                 groupedByUser.map(([displayName, emailKey, list]) => {
                   const doneCount = list.filter(a => a.status === 'Done').length;
                   return (
-                    <div key={emailKey} className="bg-white rounded-2xl border border-gray-150 overflow-hidden shadow-xs">
-                      <div className="flex items-center justify-between px-5 py-3 bg-gray-50 border-b border-gray-150 gap-3">
+                    <div key={emailKey} className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-150 dark:border-slate-800 overflow-hidden shadow-xs">
+                      <div className="flex items-center justify-between px-5 py-3 bg-gray-50 dark:bg-slate-800/60 border-b border-gray-150 dark:border-slate-800 gap-3">
                         <div>
-                          <p className="text-xs font-black text-gray-900">
+                          <p className="text-xs font-black text-gray-900 dark:text-slate-50">
                             {displayName}
                             {/* ID shown alongside the name so two people who
                                 happen to share the same display name (a real,
                                 legitimate case — not a bug) are always
                                 distinguishable at a glance in the admin view. */}
-                            <span className="ml-1.5 font-mono font-bold text-gray-400 normal-case">· {emailKey}</span>
+                            <span className="ml-1.5 font-mono font-bold text-gray-400 dark:text-slate-500 normal-case">· {emailKey}</span>
                           </p>
-                          <p className="text-[10px] font-bold text-gray-400">{doneCount}/{list.length} completed today</p>
+                          <p className="text-[10px] font-bold text-gray-400 dark:text-slate-500">{doneCount}/{list.length} completed today</p>
                         </div>
                         <PriorityDistribution items={list} />
                       </div>
-                      <div className="divide-y divide-gray-100">
+                      <div className="divide-y divide-gray-100 dark:divide-slate-800/60">
                         {list.map((a, idx) => (
                           <div key={a.id} className="flex items-center justify-between px-5 py-2.5">
                             <div className="flex items-center gap-3">
-                              <span className="text-xs font-mono font-bold text-gray-400 w-5 shrink-0">{idx + 1}.</span>
-                              <span className="text-sm font-bold text-gray-700">{a.projectName}</span>
+                              <span className="text-xs font-mono font-bold text-gray-400 dark:text-slate-500 w-5 shrink-0">{idx + 1}.</span>
+                              <span className="text-sm font-bold text-gray-700 dark:text-slate-200">{a.projectName}</span>
                             </div>
                             <div className="flex items-center gap-3">
                               <Badge priority={a.priority} />
@@ -1011,8 +1011,8 @@ export default function TaskLineup({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Left: Yesterday Pending — no Date column since every row here
                 is implicitly "yesterday". */}
-            <div className="bg-white rounded-2xl border border-gray-150 p-5 shadow-xs min-h-[320px]">
-              <p className="text-xs font-black text-gray-500 uppercase tracking-wider mb-3">
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-150 dark:border-slate-800 p-5 shadow-xs min-h-[320px]">
+              <p className="text-xs font-black text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-3">
                 Yesterday Pending ({historyYesterdayPending.length})
               </p>
               <PendingProjectList
@@ -1024,8 +1024,8 @@ export default function TaskLineup({
             </div>
             {/* Right: Total Pending — the signed-in user's own all-time
                 total, or, for admins, every user's pooled together. */}
-            <div className="bg-white rounded-2xl border border-gray-150 p-5 shadow-xs min-h-[320px]">
-              <p className="text-xs font-black text-gray-500 uppercase tracking-wider mb-3">
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-150 dark:border-slate-800 p-5 shadow-xs min-h-[320px]">
+              <p className="text-xs font-black text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-3">
                 Total Pending ({historyTotalPending.length})
               </p>
               <PendingProjectList
@@ -1040,14 +1040,14 @@ export default function TaskLineup({
               your own, for everyone else) and whether each was Submitted or
               Not Submitted. Available to every user, not just admins. */}
           {(
-            <div className="bg-white rounded-2xl border border-gray-150 shadow-xs overflow-hidden">
-              <div className="p-4 bg-gray-50/50 border-b border-gray-150 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <h3 className="text-xs font-black text-gray-900 uppercase tracking-wider flex items-center gap-1.5">
-                  <CalendarDays size={14} className="text-indigo-600" />
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-150 dark:border-slate-800 shadow-xs overflow-hidden">
+              <div className="p-4 bg-gray-50/50 dark:bg-slate-800/40 border-b border-gray-150 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <h3 className="text-xs font-black text-gray-900 dark:text-slate-50 uppercase tracking-wider flex items-center gap-1.5">
+                  <CalendarDays size={14} className="text-indigo-600 dark:text-blue-400" />
                   Daily Assignment Status
                 </h3>
 
-                <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200/60 shadow-inner h-[32px] self-start sm:self-center">
+                <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200/60 shadow-inner h-[32px] self-start sm:self-center">
                   <button
                     type="button"
                     onClick={() => {
@@ -1058,11 +1058,11 @@ export default function TaskLineup({
                         setHistoryCalMonth((m) => m - 1);
                       }
                     }}
-                    className="px-2 py-1 text-slate-500 hover:text-indigo-600 transition-colors cursor-pointer"
+                    className="px-2 py-1 text-slate-500 dark:text-slate-400 hover:text-indigo-600 hover:dark:text-blue-400 transition-colors cursor-pointer"
                   >
                     <ChevronDown className="rotate-90" size={13} />
                   </button>
-                  <span className="font-extrabold text-[11px] uppercase tracking-wider text-slate-700 min-w-[110px] text-center select-none">
+                  <span className="font-extrabold text-[11px] uppercase tracking-wider text-slate-700 dark:text-slate-200 min-w-[110px] text-center select-none">
                     {MONTH_NAMES[historyCalMonth]} {historyCalYear}
                   </span>
                   <button
@@ -1075,7 +1075,7 @@ export default function TaskLineup({
                         setHistoryCalMonth((m) => m + 1);
                       }
                     }}
-                    className="px-2 py-1 text-slate-500 hover:text-indigo-600 transition-colors cursor-pointer"
+                    className="px-2 py-1 text-slate-500 dark:text-slate-400 hover:text-indigo-600 hover:dark:text-blue-400 transition-colors cursor-pointer"
                   >
                     <ChevronUp className="rotate-90" size={13} />
                   </button>
@@ -1086,15 +1086,15 @@ export default function TaskLineup({
                 {/* Left: calendar grid, shaded as a green (all Submitted) →
                     red (all Pending) heatmap so the day's status is visible
                     at a glance without clicking in. */}
-                <div className="lg:col-span-7 bg-slate-50/50 p-3.5 rounded-xl border border-slate-150/60 shadow-inner">
-                  <div className="grid grid-cols-7 gap-1.5 mb-2 text-center text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                <div className="lg:col-span-7 bg-slate-50/50 dark:bg-slate-800/40 p-3.5 rounded-xl border border-slate-150/60 shadow-inner">
+                  <div className="grid grid-cols-7 gap-1.5 mb-2 text-center text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
                     <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
                   </div>
                   <div className="grid grid-cols-7 gap-1.5">
                     {historyCalMonthDays.blanks.map((_, idx) => (
                       <div
                         key={`hcal-blank-${idx}`}
-                        className="aspect-square bg-slate-50/30 rounded-lg border border-dashed border-slate-200/20 opacity-20 select-none"
+                        className="aspect-square bg-slate-50/30 dark:bg-slate-800/30 rounded-lg border border-dashed border-slate-200/20 opacity-20 select-none"
                       />
                     ))}
                     {historyCalMonthDays.days.map((day) => {
@@ -1115,12 +1115,12 @@ export default function TaskLineup({
                           title={heat && stat ? `${stat.total - stat.pending} submitted · ${stat.pending} pending` : undefined}
                           className={`aspect-square rounded-lg flex items-center justify-center text-[11px] font-black transition-all duration-200 select-none border ${
                             isFuture
-                              ? 'bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed'
+                              ? 'bg-slate-50 dark:bg-slate-800/60 text-slate-300 dark:text-slate-500 border-slate-100 cursor-not-allowed'
                               : heat
                               ? `${heat.cell} ${isSelected ? `ring-2 ${heat.ring} ring-offset-1 scale-105 shadow-xs` : 'hover:scale-105 hover:shadow-xs'} cursor-pointer`
                               : isSelected
-                              ? 'bg-indigo-600 border-indigo-600 text-white shadow-xs ring-2 ring-indigo-300 ring-offset-1 scale-105 cursor-pointer'
-                              : 'bg-white border-slate-200 text-slate-600 hover:bg-indigo-50 hover:border-indigo-200 cursor-pointer'
+                              ? 'bg-indigo-600 dark:bg-blue-600 border-indigo-600 dark:border-blue-500/50 text-white shadow-xs ring-2 ring-indigo-300 dark:ring-blue-500/30 ring-offset-1 scale-105 cursor-pointer'
+                              : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-indigo-50 hover:dark:bg-blue-500/10 hover:border-indigo-200 hover:dark:border-blue-500/25 cursor-pointer'
                           }`}
                         >
                           {day}
@@ -1138,9 +1138,9 @@ export default function TaskLineup({
                       <div className="w-3 h-3 rounded bg-red-300 border border-red-400" title="Almost all pending" />
                       <div className="w-3 h-3 rounded bg-red-500 border border-red-600" title="All pending" />
                     </div>
-                    <span className="text-[9px] font-black text-red-700 uppercase tracking-wider">All Pending</span>
+                    <span className="text-[9px] font-black text-red-700 dark:text-red-400 uppercase tracking-wider">All Pending</span>
                   </div>
-                  <p className="mt-2.5 text-[9px] font-bold text-slate-400 uppercase tracking-wider">
+                  <p className="mt-2.5 text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
                     Click any day to see every user's assigned projects and submission status.
                   </p>
                 </div>
@@ -1148,14 +1148,14 @@ export default function TaskLineup({
                 {/* Right: all of that day's data, shown directly — no dropdown */}
                 <div className="lg:col-span-5 flex flex-col">
                   {!historyCalDay ? (
-                    <div className="flex-1 flex items-center justify-center text-center p-8 bg-slate-50/50 rounded-2xl border border-dashed border-slate-200 min-h-[220px]">
-                      <p className="text-xs font-bold text-slate-400">Select a day from the calendar to view assignment status.</p>
+                    <div className="flex-1 flex items-center justify-center text-center p-8 bg-slate-50/50 dark:bg-slate-800/40 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 min-h-[220px]">
+                      <p className="text-xs font-bold text-slate-400 dark:text-slate-500">Select a day from the calendar to view assignment status.</p>
                     </div>
                   ) : historyCalLoading ? (
-                    <p className="text-xs font-bold text-gray-400 p-4">Loading…</p>
+                    <p className="text-xs font-bold text-gray-400 dark:text-slate-500 p-4">Loading…</p>
                   ) : historyCalAssignments.length === 0 ? (
-                    <div className="flex-1 flex items-center justify-center text-center p-8 bg-slate-50/50 rounded-2xl border border-dashed border-slate-200 min-h-[220px]">
-                      <p className="text-xs font-bold text-slate-400">No assignments found for {historyCalDay}.</p>
+                    <div className="flex-1 flex items-center justify-center text-center p-8 bg-slate-50/50 dark:bg-slate-800/40 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 min-h-[220px]">
+                      <p className="text-xs font-bold text-slate-400 dark:text-slate-500">No assignments found for {historyCalDay}.</p>
                     </div>
                   ) : (
                     <>
@@ -1163,13 +1163,13 @@ export default function TaskLineup({
                           into Submitted vs Pending so it's clear at a glance
                           without having to scroll/count the list below. */}
                       <div className="flex items-center gap-2 mb-3">
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-150 text-[11px] font-black text-slate-700">
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-150 dark:border-slate-800 text-[11px] font-black text-slate-700 dark:text-slate-200">
                           {historyCalAssignments.length} Total
                         </span>
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-100 text-[11px] font-black text-emerald-700">
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-100 dark:border-emerald-500/20 text-[11px] font-black text-emerald-700 dark:text-emerald-400">
                           <CheckCircle2 size={12} /> {historyCalAssignments.filter(a => a.status === 'Done').length} Submitted
                         </span>
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-50 border border-red-100 text-[11px] font-black text-red-600">
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-50 dark:bg-red-500/10 border border-red-100 text-[11px] font-black text-red-600 dark:text-red-400">
                           <Clock size={12} /> {historyCalAssignments.filter(a => a.status !== 'Done').length} Pending
                         </span>
                       </div>
@@ -1178,44 +1178,44 @@ export default function TaskLineup({
                         const submittedCount = items.filter((a) => a.status === 'Done').length;
                         const pendingCount = items.length - submittedCount;
                         return (
-                        <div key={userName} className="bg-white rounded-xl border border-gray-150 overflow-hidden">
+                        <div key={userName} className="bg-white dark:bg-slate-900 rounded-xl border border-gray-150 dark:border-slate-800 overflow-hidden">
                           {isAdmin && (
-                            <div className="px-3.5 py-2 bg-gray-50 border-b border-gray-150 flex items-center justify-between gap-2 flex-wrap">
-                              <p className="text-[11px] font-black text-gray-900">{userName}</p>
+                            <div className="px-3.5 py-2 bg-gray-50 dark:bg-slate-800/60 border-b border-gray-150 dark:border-slate-800 flex items-center justify-between gap-2 flex-wrap">
+                              <p className="text-[11px] font-black text-gray-900 dark:text-slate-50">{userName}</p>
                               <div className="flex items-center gap-1.5">
-                                <span className="inline-flex items-center px-2 py-0.5 rounded-lg bg-slate-100 text-[10px] font-black text-slate-600">
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-[10px] font-black text-slate-600 dark:text-slate-300">
                                   {items.length} Lineup
                                 </span>
-                                <span className="inline-flex items-center px-2 py-0.5 rounded-lg bg-emerald-50 text-[10px] font-black text-emerald-700">
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 text-[10px] font-black text-emerald-700 dark:text-emerald-400">
                                   {submittedCount} Submitted
                                 </span>
-                                <span className="inline-flex items-center px-2 py-0.5 rounded-lg bg-red-50 text-[10px] font-black text-red-600">
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-lg bg-red-50 dark:bg-red-500/10 text-[10px] font-black text-red-600 dark:text-red-400">
                                   {pendingCount} Pending
                                 </span>
                               </div>
                             </div>
                           )}
-                          <div className="divide-y divide-gray-100">
+                          <div className="divide-y divide-gray-100 dark:divide-slate-800/60">
                             {items.map((a) => (
                               <div key={a.id} className="flex items-center justify-between px-3.5 py-2">
                                 <span className="flex items-center gap-2 min-w-0 pr-2">
                                   <Badge priority={a.priority} />
-                                  <span className="text-xs font-bold text-gray-700 truncate">{a.projectName}</span>
+                                  <span className="text-xs font-bold text-gray-700 dark:text-slate-200 truncate">{a.projectName}</span>
                                 </span>
                                 {a.status === 'Done' ? (
-                                  <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 shrink-0">
+                                  <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 dark:text-emerald-400 shrink-0">
                                     <CheckCircle2 size={12} /> Submitted
                                   </span>
                                 ) : (
                                   <span className="inline-flex items-center gap-2 shrink-0">
-                                    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-red-600">
+                                    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-red-600 dark:text-red-400">
                                       <Clock size={12} /> Not Submitted
                                     </span>
                                     {!isAdmin && (
                                       <button
                                         type="button"
                                         onClick={() => onJumpToWorkLog(a.projectId, a.date)}
-                                        className="flex items-center gap-1 px-2 py-1 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-black rounded-lg transition cursor-pointer"
+                                        className="flex items-center gap-1 px-2 py-1 bg-indigo-600 dark:bg-blue-600 hover:bg-indigo-700 hover:dark:bg-blue-500 text-white text-[10px] font-black rounded-lg transition cursor-pointer"
                                       >
                                         <PenTool size={11} />
                                         Log Work
