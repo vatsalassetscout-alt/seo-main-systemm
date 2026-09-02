@@ -217,8 +217,8 @@ export default function UserManagementPanel({
           animate={{ opacity: 1, y: 0 }}
           className={`p-4 rounded-xl text-xs font-bold flex items-center gap-2 shadow-xs ${
             statusMsg.type === 'success'
-              ? 'bg-emerald-55 text-emerald-900 border border-emerald-100'
-              : 'bg-rose-50 text-rose-900 border border-rose-100'
+              ? 'bg-emerald-55 text-emerald-900 border border-emerald-100 dark:border-emerald-500/20'
+              : 'bg-rose-50 dark:bg-rose-500/10 text-rose-900 border border-rose-100'
           }`}
         >
           <span>{statusMsg.type === 'success' ? '🟢' : '🔴'}</span>
@@ -226,13 +226,13 @@ export default function UserManagementPanel({
         </motion.div>
       )}
 
-      <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+      <div className="flex items-center justify-between border-b border-gray-100 dark:border-slate-800/60 pb-4">
         <div>
-          <h4 className="font-extrabold text-gray-900 text-sm flex items-center gap-2">
-            <UsersIcon size={16} className="text-indigo-600" />
+          <h4 className="font-extrabold text-gray-900 dark:text-slate-50 text-sm flex items-center gap-2">
+            <UsersIcon size={16} className="text-indigo-600 dark:text-blue-400" />
             User Control
           </h4>
-          <p className="text-xs text-gray-400">
+          <p className="text-xs text-gray-400 dark:text-slate-500">
             Every user — existing (from assigned projects) and newly added — shows up here. Add, rename, or delete accounts.
           </p>
         </div>
@@ -241,17 +241,17 @@ export default function UserManagementPanel({
             setRegisterSeed(null);
             setShowAddUser(true);
           }}
-          className="flex items-center gap-1.5 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs transition shadow-xs cursor-pointer"
+          className="flex items-center gap-1.5 px-4 py-2.5 bg-indigo-600 dark:bg-blue-600 hover:bg-indigo-700 hover:dark:bg-blue-500 text-white font-bold rounded-xl text-xs transition shadow-xs cursor-pointer"
         >
           <UserPlus size={14} />
           Add User
         </button>
       </div>
 
-      <div className="overflow-x-auto border border-gray-150 rounded-2xl bg-white max-h-[32rem] overflow-y-auto">
+      <div className="overflow-x-auto border border-gray-150 dark:border-slate-800 rounded-2xl bg-white dark:bg-slate-900 max-h-[32rem] overflow-y-auto">
         <table className="w-full text-left border-collapse">
           <thead className="sticky top-0 bg-gray-50/95 backdrop-blur-sm">
-            <tr className="border-b border-gray-150 text-[9px] font-bold text-gray-400 uppercase tracking-widest">
+            <tr className="border-b border-gray-150 dark:border-slate-800 text-[9px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-widest">
               <th className="py-3 px-4">Name</th>
               <th className="py-3 px-4">User ID (Login)</th>
               <th className="py-3 px-4">Role</th>
@@ -259,10 +259,10 @@ export default function UserManagementPanel({
               <th className="py-3 px-4 text-center">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-105">
+          <tbody className="divide-y divide-gray-105 dark:divide-slate-800/60">
             {loadingUsers && (
               <tr>
-                <td colSpan={5} className="py-8 text-center text-xs text-gray-400 font-semibold">
+                <td colSpan={5} className="py-8 text-center text-xs text-gray-400 dark:text-slate-500 font-semibold">
                   <Loader2 size={16} className="inline animate-spin mr-2" />
                   Loading users…
                 </td>
@@ -270,19 +270,19 @@ export default function UserManagementPanel({
             )}
             {!loadingUsers && mergedUsers.length === 0 && (
               <tr>
-                <td colSpan={5} className="py-8 text-center text-xs text-gray-400 font-semibold">
+                <td colSpan={5} className="py-8 text-center text-xs text-gray-400 dark:text-slate-500 font-semibold">
                   No users yet. Click "Add User" to create one.
                 </td>
               </tr>
             )}
             {mergedUsers.map((u) => (
               <tr key={u.email} className="hover:bg-slate-50/45 transition text-xs">
-                <td className="py-3 px-4 font-extrabold text-gray-900">{u.name}</td>
-                <td className="py-3 px-4 font-mono font-semibold text-gray-500">{u.email}</td>
+                <td className="py-3 px-4 font-extrabold text-gray-900 dark:text-slate-50">{u.name}</td>
+                <td className="py-3 px-4 font-mono font-semibold text-gray-500 dark:text-slate-400">{u.email}</td>
                 <td className="py-3 px-4">
                   <span
                     className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wide ${
-                      u.role === 'admin' ? 'bg-violet-50 text-violet-700' : 'bg-gray-100 text-gray-500'
+                      u.role === 'admin' ? 'bg-violet-50 text-violet-700' : 'bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-slate-400'
                     }`}
                   >
                     {u.role || 'user'}
@@ -290,11 +290,11 @@ export default function UserManagementPanel({
                 </td>
                 <td className="py-3 px-4">
                   {u.derived ? (
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wide bg-amber-50 text-amber-700">
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wide bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400">
                       Existing (unregistered)
                     </span>
                   ) : (
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wide bg-emerald-50 text-emerald-700">
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wide bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400">
                       Registered
                     </span>
                   )}
@@ -308,7 +308,7 @@ export default function UserManagementPanel({
                           setShowAddUser(true);
                         }}
                         title="Register this user with a passkey"
-                        className="px-2.5 py-1.5 text-[10px] font-black uppercase tracking-wide text-indigo-600 hover:text-white hover:bg-indigo-600 border border-indigo-200 rounded-lg transition cursor-pointer"
+                        className="px-2.5 py-1.5 text-[10px] font-black uppercase tracking-wide text-indigo-600 dark:text-blue-400 hover:text-white hover:bg-indigo-600 hover:dark:bg-blue-600 border border-indigo-200 dark:border-blue-500/25 rounded-lg transition cursor-pointer"
                       >
                         Register
                       </button>
@@ -316,7 +316,7 @@ export default function UserManagementPanel({
                       <button
                         onClick={() => setRenamingUser(u)}
                         title="Rename / change ID / passkey"
-                        className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition cursor-pointer"
+                        className="p-2 text-gray-400 dark:text-slate-500 hover:text-indigo-600 hover:dark:text-blue-400 hover:bg-indigo-50 hover:dark:bg-blue-500/10 rounded-lg transition cursor-pointer"
                       >
                         <KeyRound size={14} />
                       </button>
@@ -324,7 +324,7 @@ export default function UserManagementPanel({
                     <button
                       onClick={() => handleDeleteUser(u)}
                       title="Delete user"
-                      className="p-2 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer"
+                      className="p-2 text-gray-400 dark:text-slate-500 hover:text-rose-600 hover:dark:text-rose-400 hover:bg-rose-50 hover:dark:bg-rose-500/10 rounded-lg transition cursor-pointer"
                     >
                       <Trash2 size={14} />
                     </button>
@@ -393,56 +393,56 @@ export function AddUserModal({
       <motion.div
         initial={{ opacity: 0, y: 20, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
-        className="bg-white rounded-3xl border border-gray-150 shadow-lg w-full max-w-sm"
+        className="bg-white dark:bg-slate-900 rounded-3xl border border-gray-150 dark:border-slate-800 shadow-lg w-full max-w-sm"
       >
-        <div className="flex items-center justify-between p-6 border-b border-gray-100">
-          <h3 className="font-extrabold text-gray-900 text-sm">{initialUserId ? 'Register User' : 'Add User'}</h3>
-          <button onClick={onClose} className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-50 rounded-lg cursor-pointer">
+        <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-slate-800/60">
+          <h3 className="font-extrabold text-gray-900 dark:text-slate-50 text-sm">{initialUserId ? 'Register User' : 'Add User'}</h3>
+          <button onClick={onClose} className="p-1.5 text-gray-400 dark:text-slate-500 hover:text-gray-700 hover:dark:text-slate-200 hover:bg-gray-50 hover:dark:bg-slate-800/60 rounded-lg cursor-pointer">
             <X size={16} />
           </button>
         </div>
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {initialUserId && (
-            <p className="text-xs text-gray-400 -mt-1">
+            <p className="text-xs text-gray-400 dark:text-slate-500 -mt-1">
               This user is already assigned to a project. Set a passkey to turn them into a full login account.
             </p>
           )}
           <div className="space-y-1.5">
-            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">User ID (used to log in) *</label>
+            <label className="block text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-widest">User ID (used to log in) *</label>
             <input
               value={userId}
               onChange={(e) => setUserId(e.target.value)}
               required
               placeholder="e.g. 7412"
-              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 focus:border-indigo-650 rounded-xl text-xs font-semibold font-mono focus:outline-none focus:ring-1 focus:ring-indigo-650 transition"
+              className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800/60 border border-gray-200 dark:border-slate-800 focus:border-indigo-650 focus:dark:border-blue-500/50 rounded-xl text-xs font-semibold font-mono focus:outline-none focus:ring-1 focus:ring-indigo-650 focus:dark:ring-blue-500/50 transition"
             />
           </div>
           <div className="space-y-1.5">
-            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Display Name *</label>
+            <label className="block text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-widest">Display Name *</label>
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
               placeholder="e.g. Rohit Sharma"
-              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 focus:border-indigo-650 rounded-xl text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-indigo-650 transition"
+              className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800/60 border border-gray-200 dark:border-slate-800 focus:border-indigo-650 focus:dark:border-blue-500/50 rounded-xl text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-indigo-650 focus:dark:ring-blue-500/50 transition"
             />
           </div>
           <div className="space-y-1.5">
-            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Passkey (optional)</label>
+            <label className="block text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-widest">Passkey (optional)</label>
             <input
               value={passkey}
               onChange={(e) => setPasskey(e.target.value)}
               type="text"
               placeholder="e.g. 4821 — leave blank to skip"
-              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 focus:border-indigo-650 rounded-xl text-xs font-semibold font-mono focus:outline-none focus:ring-1 focus:ring-indigo-650 transition"
+              className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800/60 border border-gray-200 dark:border-slate-800 focus:border-indigo-650 focus:dark:border-blue-500/50 rounded-xl text-xs font-semibold font-mono focus:outline-none focus:ring-1 focus:ring-indigo-650 focus:dark:ring-blue-500/50 transition"
             />
           </div>
           <div className="space-y-1.5">
-            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Role</label>
+            <label className="block text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-widest">Role</label>
             <select
               value={role}
               onChange={(e) => setRole(e.target.value as 'user' | 'admin')}
-              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 focus:border-indigo-650 rounded-xl text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-indigo-650 transition"
+              className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800/60 border border-gray-200 dark:border-slate-800 focus:border-indigo-650 focus:dark:border-blue-500/50 rounded-xl text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-indigo-650 focus:dark:ring-blue-500/50 transition"
             >
               <option value="user">User</option>
               <option value="admin">Admin</option>
@@ -451,7 +451,7 @@ export function AddUserModal({
           <button
             type="submit"
             disabled={busy}
-            className="w-full px-5 py-3.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white font-bold rounded-xl text-xs transition shadow-sm cursor-pointer"
+            className="w-full px-5 py-3.5 bg-indigo-600 dark:bg-blue-600 hover:bg-indigo-700 hover:dark:bg-blue-500 disabled:opacity-60 text-white font-bold rounded-xl text-xs transition shadow-sm cursor-pointer"
           >
             {busy ? 'Saving…' : initialUserId ? 'Register User' : 'Add User'}
           </button>
@@ -490,52 +490,52 @@ export function RenameUserModal({
       <motion.div
         initial={{ opacity: 0, y: 20, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
-        className="bg-white rounded-3xl border border-gray-150 shadow-lg w-full max-w-sm"
+        className="bg-white dark:bg-slate-900 rounded-3xl border border-gray-150 dark:border-slate-800 shadow-lg w-full max-w-sm"
       >
-        <div className="flex items-center justify-between p-6 border-b border-gray-100">
-          <h3 className="font-extrabold text-gray-900 text-sm">Edit "{user.name}"</h3>
-          <button onClick={onClose} className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-50 rounded-lg cursor-pointer">
+        <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-slate-800/60">
+          <h3 className="font-extrabold text-gray-900 dark:text-slate-50 text-sm">Edit "{user.name}"</h3>
+          <button onClick={onClose} className="p-1.5 text-gray-400 dark:text-slate-500 hover:text-gray-700 hover:dark:text-slate-200 hover:bg-gray-50 hover:dark:bg-slate-800/60 rounded-lg cursor-pointer">
             <X size={16} />
           </button>
         </div>
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div className="space-y-1.5">
-            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Current User ID</label>
-            <div className="px-4 py-3 bg-gray-50 border border-gray-150 rounded-xl text-xs font-mono font-bold text-gray-400">
+            <label className="block text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-widest">Current User ID</label>
+            <div className="px-4 py-3 bg-gray-50 dark:bg-slate-800/60 border border-gray-150 dark:border-slate-800 rounded-xl text-xs font-mono font-bold text-gray-400 dark:text-slate-500">
               {user.email}
             </div>
           </div>
           <div className="space-y-1.5">
-            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">New User ID (login)</label>
+            <label className="block text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-widest">New User ID (login)</label>
             <input
               value={newUserId}
               onChange={(e) => setNewUserId(e.target.value)}
               required
-              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 focus:border-indigo-650 rounded-xl text-xs font-semibold font-mono focus:outline-none focus:ring-1 focus:ring-indigo-650 transition"
+              className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800/60 border border-gray-200 dark:border-slate-800 focus:border-indigo-650 focus:dark:border-blue-500/50 rounded-xl text-xs font-semibold font-mono focus:outline-none focus:ring-1 focus:ring-indigo-650 focus:dark:ring-blue-500/50 transition"
             />
           </div>
           <div className="space-y-1.5">
-            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">New Display Name</label>
+            <label className="block text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-widest">New Display Name</label>
             <input
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               required
-              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 focus:border-indigo-650 rounded-xl text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-indigo-650 transition"
+              className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800/60 border border-gray-200 dark:border-slate-800 focus:border-indigo-650 focus:dark:border-blue-500/50 rounded-xl text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-indigo-650 focus:dark:ring-blue-500/50 transition"
             />
           </div>
           <div className="space-y-1.5">
-            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">New Passkey</label>
+            <label className="block text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-widest">New Passkey</label>
             <input
               value={newPasskey}
               onChange={(e) => setNewPasskey(e.target.value)}
               placeholder="Leave blank to keep current passkey"
-              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 focus:border-indigo-650 rounded-xl text-xs font-semibold font-mono focus:outline-none focus:ring-1 focus:ring-indigo-650 transition"
+              className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800/60 border border-gray-200 dark:border-slate-800 focus:border-indigo-650 focus:dark:border-blue-500/50 rounded-xl text-xs font-semibold font-mono focus:outline-none focus:ring-1 focus:ring-indigo-650 focus:dark:ring-blue-500/50 transition"
             />
           </div>
           <button
             type="submit"
             disabled={busy}
-            className="w-full px-5 py-3.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white font-bold rounded-xl text-xs transition shadow-sm cursor-pointer"
+            className="w-full px-5 py-3.5 bg-indigo-600 dark:bg-blue-600 hover:bg-indigo-700 hover:dark:bg-blue-500 disabled:opacity-60 text-white font-bold rounded-xl text-xs transition shadow-sm cursor-pointer"
           >
             {busy ? 'Saving…' : 'Save Changes'}
           </button>
