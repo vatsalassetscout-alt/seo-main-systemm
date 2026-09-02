@@ -379,26 +379,26 @@ export default function DSRForm({
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="bg-white p-8 rounded-3xl border border-gray-150 shadow-md text-center space-y-6 max-w-xl mx-auto py-12"
+          className="bg-white dark:bg-slate-900 p-8 rounded-3xl border border-gray-150 dark:border-slate-800 shadow-md text-center space-y-6 max-w-xl mx-auto py-12"
         >
-          <div className="inline-flex w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 items-center justify-center">
-            <CheckCircle2 size={32} className="animate-pulse text-emerald-600" />
+          <div className="inline-flex w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 dark:text-emerald-400 items-center justify-center">
+            <CheckCircle2 size={32} className="animate-pulse text-emerald-600 dark:text-emerald-400" />
           </div>
           <div className="space-y-2">
-            <h2 className="text-xl font-bold text-gray-900">Work Log Submitted Successfully!</h2>
-            <p className="text-xs text-gray-500">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-slate-50">Work Log Submitted Successfully!</h2>
+            <p className="text-xs text-gray-500 dark:text-slate-400">
               Your Work Log report has been compiled and recorded under <strong>{getUserDisplayName(currentUserEmail, allowedUsers)}</strong>.
             </p>
           </div>
-          <div className="border-t border-gray-100 pt-8 space-y-5">
-            <p className="text-sm font-semibold text-gray-700">
+          <div className="border-t border-gray-100 dark:border-slate-800/60 pt-8 space-y-5">
+            <p className="text-sm font-semibold text-gray-700 dark:text-slate-200">
               Would you like to log another entry?
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <button
                 type="button"
                 onClick={handleResetForm}
-                className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs transition cursor-pointer flex items-center justify-center gap-1.5 shadow-xs"
+                className="px-6 py-3 bg-indigo-600 dark:bg-blue-600 hover:bg-indigo-700 hover:dark:bg-blue-500 text-white font-bold rounded-xl text-xs transition cursor-pointer flex items-center justify-center gap-1.5 shadow-xs"
               >
                 <Plus size={14} /> Log Another Entry
               </button>
@@ -406,7 +406,7 @@ export default function DSRForm({
                 <button
                   type="button"
                   onClick={onViewLogs}
-                  className="px-6 py-3 border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold rounded-xl text-xs transition cursor-pointer flex items-center justify-center gap-1.5 shadow-xs"
+                  className="px-6 py-3 border border-gray-200 dark:border-slate-800 hover:bg-gray-50 hover:dark:bg-slate-800/60 text-gray-700 dark:text-slate-200 font-bold rounded-xl text-xs transition cursor-pointer flex items-center justify-center gap-1.5 shadow-xs"
                 >
                   <Files size={14} /> View Work Log History
                 </button>
@@ -415,7 +415,7 @@ export default function DSRForm({
                 <button
                   type="button"
                   onClick={onViewTaskLineup}
-                  className="px-6 py-3 border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold rounded-xl text-xs transition cursor-pointer flex items-center justify-center gap-1.5 shadow-xs"
+                  className="px-6 py-3 border border-gray-200 dark:border-slate-800 hover:bg-gray-50 hover:dark:bg-slate-800/60 text-gray-700 dark:text-slate-200 font-bold rounded-xl text-xs transition cursor-pointer flex items-center justify-center gap-1.5 shadow-xs"
                 >
                   <ListChecks size={14} /> Task Lineup
                 </button>
@@ -432,21 +432,21 @@ export default function DSRForm({
               {worksList.map((work, idx) => (
                 <div
                   key={idx}
-                  className="bg-white rounded-3xl border border-gray-150 shadow-xs relative group"
+                  className="bg-white dark:bg-slate-900 rounded-3xl border border-gray-150 dark:border-slate-800 shadow-xs relative group"
                 >
                   {/* Block Header Tab */}
-                  <div className="bg-gray-50/50 px-6 py-4 border-b border-gray-100 rounded-t-3xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="bg-gray-50/50 dark:bg-slate-800/40 px-6 py-4 border-b border-gray-100 dark:border-slate-800/60 rounded-t-3xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div className="flex items-center gap-3">
-                      <span className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-700 font-extrabold text-xs flex items-center justify-center">
+                      <span className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-blue-500/10 text-indigo-700 dark:text-blue-400 font-extrabold text-xs flex items-center justify-center">
                         ✓
                       </span>
                       <div>
-                        <h4 className="font-bold text-gray-900 text-sm">Work Log</h4>
+                        <h4 className="font-bold text-gray-900 dark:text-slate-50 text-sm">Work Log</h4>
                       </div>
                     </div>
 
                     {/* Date Selection Box Aligned on the Right Side of the same line inside the big block header */}
-                    <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-gray-150 shadow-3xs">
+                    <div className="flex items-center gap-2 bg-white dark:bg-slate-900 px-3 py-1.5 rounded-xl border border-gray-150 dark:border-slate-800 shadow-3xs">
                       <input
                         id="reporting-date"
                         type="date"
@@ -454,7 +454,7 @@ export default function DSRForm({
                         value={selectedDate}
                         max={new Date().toISOString().split('T')[0]}
                         onChange={(e) => setSelectedDate(e.target.value)}
-                        className="px-2.5 py-1 bg-gray-50 border border-gray-200 rounded-lg text-gray-955 font-bold focus:outline-none focus:ring-1 focus:ring-indigo-600 transition text-[11px] cursor-pointer hover:bg-gray-100"
+                        className="px-2.5 py-1 bg-gray-50 dark:bg-slate-800/60 border border-gray-200 dark:border-slate-800 rounded-lg text-gray-955 dark:text-slate-50 font-bold focus:outline-none focus:ring-1 focus:ring-indigo-600 focus:dark:ring-blue-500/50 transition text-[11px] cursor-pointer hover:bg-gray-100 hover:dark:bg-slate-800"
                       />
                     </div>
                   </div>
@@ -465,8 +465,8 @@ export default function DSRForm({
                     <div className="space-y-4">
                       {/* Select Project block - full width at top */}
                       <div className="space-y-2">
-                        <label className="block text-xs font-bold text-indigo-750 uppercase tracking-wider flex items-center gap-2">
-                          <Layers size={14} className="text-indigo-600" />
+                        <label className="block text-xs font-bold text-indigo-750 dark:text-blue-400 uppercase tracking-wider flex items-center gap-2">
+                          <Layers size={14} className="text-indigo-600 dark:text-blue-400" />
                           Domain
                         </label>
                         
@@ -483,10 +483,10 @@ export default function DSRForm({
                               setIsDropdownOpen(!isDropdownOpen);
                               setDropdownSearch('');
                             }}
-                            className={`w-full px-4 py-3 border rounded-xl font-bold flex items-center justify-between text-sm transition focus:ring-2 focus:ring-indigo-600 focus:outline-none ${
+                            className={`w-full px-4 py-3 border rounded-xl font-bold flex items-center justify-between text-sm transition focus:ring-2 focus:ring-indigo-600 focus:dark:ring-blue-500/50 focus:outline-none ${
                               extraNoteFilled
-                                ? 'bg-gray-100 border-gray-150 text-gray-400 cursor-not-allowed'
-                                : 'bg-gray-50 hover:bg-gray-100 border-gray-200 text-gray-955 cursor-pointer animate-pulse-once'
+                                ? 'bg-gray-100 dark:bg-slate-800 border-gray-150 dark:border-slate-800 text-gray-400 dark:text-slate-500 cursor-not-allowed'
+                                : 'bg-gray-50 dark:bg-slate-800/60 hover:bg-gray-100 hover:dark:bg-slate-800 border-gray-200 dark:border-slate-800 text-gray-955 dark:text-slate-50 cursor-pointer animate-pulse-once'
                             }`}
                           >
                             <span className="truncate">
@@ -494,7 +494,7 @@ export default function DSRForm({
                                projects.find((p) => p.id === work.projectId)?.name || 
                                (extraNoteFilled ? 'Clear Work Note to select a Domain' : 'Select a Domain')}
                             </span>
-                            <span className="text-gray-400 shrink-0 select-none text-[10px] ml-2">▼</span>
+                            <span className="text-gray-400 dark:text-slate-500 shrink-0 select-none text-[10px] ml-2">▼</span>
                           </button>
                             );
                           })()}
@@ -508,7 +508,7 @@ export default function DSRForm({
                               />
                               
                               {/* Dropdown Options Box */}
-                              <div className="absolute left-0 right-0 mt-1.5 p-2 bg-white border border-gray-150 rounded-2xl shadow-lg z-50 max-h-68 flex flex-col animate-scale-in">
+                              <div className="absolute left-0 right-0 mt-1.5 p-2 bg-white dark:bg-slate-900 border border-gray-150 dark:border-slate-800 rounded-2xl shadow-lg z-50 max-h-68 flex flex-col animate-scale-in">
                                 {/* Search bar input container */}
                                 <div className="relative m-1 mb-2">
                                   <span className="absolute left-3 top-2.5 text-gray-450 text-xs">🔍</span>
@@ -517,7 +517,7 @@ export default function DSRForm({
                                     placeholder="Search domain or project..."
                                     value={dropdownSearch}
                                     onChange={(e) => setDropdownSearch(e.target.value)}
-                                    className="w-full pl-8 pr-3 py-2 bg-slate-50 border border-gray-200 focus:border-indigo-505 rounded-xl text-xs text-gray-955 font-medium focus:outline-none focus:ring-1 focus:ring-indigo-505"
+                                    className="w-full pl-8 pr-3 py-2 bg-slate-50 dark:bg-slate-800/60 border border-gray-200 dark:border-slate-800 focus:border-indigo-505 rounded-xl text-xs text-gray-955 dark:text-slate-50 font-medium focus:outline-none focus:ring-1 focus:ring-indigo-505 focus:dark:ring-blue-500/50"
                                     autoFocus
                                   />
                                 </div>
@@ -547,7 +547,7 @@ export default function DSRForm({
 
                                     if (uniqueFiltered.length === 0) {
                                       return (
-                                        <div className="p-3 text-center text-xs text-gray-400 select-none font-medium">
+                                        <div className="p-3 text-center text-xs text-gray-400 dark:text-slate-500 select-none font-medium">
                                           No matching domains found
                                         </div>
                                       );
@@ -566,12 +566,12 @@ export default function DSRForm({
                                           }}
                                           className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition flex items-center justify-between cursor-pointer ${
                                             isSelected
-                                              ? 'bg-indigo-50 text-indigo-700'
-                                              : 'hover:bg-slate-50 text-gray-800'
+                                              ? 'bg-indigo-50 dark:bg-blue-500/10 text-indigo-700 dark:text-blue-400'
+                                              : 'hover:bg-slate-50 hover:dark:bg-slate-800/60 text-gray-800 dark:text-slate-100'
                                           }`}
                                         >
                                           <span className="truncate">{cleanDomain(p.domain) || p.name}</span>
-                                          {isSelected && <span className="text-indigo-650 shrink-0 font-extrabold text-[10px]">✓</span>}
+                                          {isSelected && <span className="text-indigo-650 dark:text-blue-400 shrink-0 font-extrabold text-[10px]">✓</span>}
                                         </button>
                                       );
                                     });
@@ -585,8 +585,8 @@ export default function DSRForm({
 
                       {work.projectId && (
                         <div className="space-y-2">
-                          <span className="block text-[10px] font-black text-slate-500 uppercase tracking-wider">
-                            Work Status <span className="text-rose-500">*</span>
+                          <span className="block text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                            Work Status <span className="text-rose-500 dark:text-rose-400">*</span>
                           </span>
                           <div className="flex flex-row gap-3">
                             <button
@@ -594,8 +594,8 @@ export default function DSRForm({
                               onClick={() => handleSetWorkStatus(idx, 'worked')}
                               className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl border text-xs font-bold transition cursor-pointer select-none ${
                                 work.workStatus === 'worked'
-                                  ? 'border-gray-800 bg-gray-100 text-gray-800 ring-1 ring-gray-800'
-                                  : 'border-gray-200 bg-white hover:bg-gray-50 text-gray-700'
+                                  ? 'border-gray-800 bg-gray-100 dark:bg-slate-800 text-gray-800 dark:text-slate-100 ring-1 ring-gray-800 dark:ring-slate-950'
+                                  : 'border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-gray-50 hover:dark:bg-slate-800/60 text-gray-700 dark:text-slate-200'
                               }`}
                             >
                               <CheckCircle2 size={14} className="shrink-0" />
@@ -606,8 +606,8 @@ export default function DSRForm({
                               onClick={() => handleSetWorkStatus(idx, 'not_worked')}
                               className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl border text-xs font-bold transition cursor-pointer select-none ${
                                 work.workStatus === 'not_worked'
-                                  ? 'border-gray-800 bg-gray-100 text-gray-800 ring-1 ring-gray-800'
-                                  : 'border-gray-200 bg-white hover:bg-gray-50 text-gray-700'
+                                  ? 'border-gray-800 bg-gray-100 dark:bg-slate-800 text-gray-800 dark:text-slate-100 ring-1 ring-gray-800 dark:ring-slate-950'
+                                  : 'border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-gray-50 hover:dark:bg-slate-800/60 text-gray-700 dark:text-slate-200'
                               }`}
                             >
                               <XCircle size={14} className="shrink-0" />
@@ -621,11 +621,11 @@ export default function DSRForm({
                     {/* Section: Work Type — only shown once "Worked" is chosen; nothing here for Not Worked */}
                     {work.workStatus === 'worked' && (
                     <div className="space-y-6">
-                      <div className="flex items-center gap-2 border-b border-gray-150 pb-3">
-                        <div className="w-6 h-6 rounded-md bg-indigo-50 text-indigo-700 flex items-center justify-center">
+                      <div className="flex items-center gap-2 border-b border-gray-150 dark:border-slate-800 pb-3">
+                        <div className="w-6 h-6 rounded-md bg-indigo-50 dark:bg-blue-500/10 text-indigo-700 dark:text-blue-400 flex items-center justify-center">
                           <PenTool size={12} className="shrink-0" />
                         </div>
-                        <h5 className="text-xs font-black text-gray-700 uppercase tracking-wider">Select Work Type</h5>
+                        <h5 className="text-xs font-black text-gray-700 dark:text-slate-200 uppercase tracking-wider">Select Work Type</h5>
                       </div>                      {/* Work Types Toggle List - Stacked Vertically with Inline Dynamic Panels */}
                       <div className="flex flex-col gap-6">
                         
@@ -635,8 +635,8 @@ export default function DSRForm({
                           <label
                             className={`relative flex items-start gap-3.5 p-4.5 rounded-2xl border cursor-pointer select-none transition ${
                               (work.workTypes || []).includes('seo_backlink')
-                                ? 'border-indigo-600 bg-indigo-50/20 ring-1 ring-indigo-600'
-                                : 'border-gray-200 bg-white hover:bg-gray-50'
+                                ? 'border-indigo-600 dark:border-blue-500/50 bg-indigo-50/20 ring-1 ring-indigo-600 dark:ring-blue-500/50'
+                                : 'border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-gray-50 hover:dark:bg-slate-800/60'
                             }`}
                           >
                             <input
@@ -649,11 +649,11 @@ export default function DSRForm({
                                   : [...current, 'seo_backlink'];
                                 handleUpdateWorkBlock(idx, { workTypes: next });
                               }}
-                              className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 mt-1 cursor-pointer"
+                              className="w-4 h-4 rounded border-gray-300 dark:border-slate-700 text-indigo-600 dark:text-blue-400 focus:ring-indigo-500 focus:dark:ring-blue-500/50 mt-1 cursor-pointer"
                             />
                             <div className="space-y-0.5">
-                              <span className="block text-xs font-bold text-gray-900">SEO Backlink Submission</span>
-                              <span className="block text-[10px] text-gray-400 font-medium">Log submission counts for listings, blogs, PDFs, and images.</span>
+                              <span className="block text-xs font-bold text-gray-900 dark:text-slate-50">SEO Backlink Submission</span>
+                              <span className="block text-[10px] text-gray-400 dark:text-slate-500 font-medium">Log submission counts for listings, blogs, PDFs, and images.</span>
                             </div>
                           </label>
 
@@ -664,9 +664,9 @@ export default function DSRForm({
                             if (kws.length === 0) return null;
 
                             return (
-                              <div id="keywords-selector-container" className="space-y-2 p-4 bg-slate-50/50 rounded-2xl border border-gray-150 shadow-3xs">
-                                <span className="block text-[10px] font-black text-slate-500 uppercase tracking-wider">
-                                  Select Keywords <span className="text-rose-500">*</span>
+                              <div id="keywords-selector-container" className="space-y-2 p-4 bg-slate-50/50 dark:bg-slate-800/40 rounded-2xl border border-gray-150 dark:border-slate-800 shadow-3xs">
+                                <span className="block text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                                  Select Keywords <span className="text-rose-500 dark:text-rose-400">*</span>
                                 </span>
                                 <div className="flex flex-wrap gap-2">
                                   {kws.map((kw) => {
@@ -689,8 +689,8 @@ export default function DSRForm({
                                         }}
                                         className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-bold transition select-none cursor-pointer ${
                                           selected
-                                            ? 'bg-amber-100 text-amber-900 border-amber-300'
-                                            : 'bg-white hover:bg-slate-100 border-gray-200 text-gray-700'
+                                            ? 'bg-amber-100 text-amber-900 dark:text-amber-300 border-amber-300'
+                                            : 'bg-white dark:bg-slate-900 hover:bg-slate-100 hover:dark:bg-slate-800 border-gray-200 dark:border-slate-800 text-gray-700 dark:text-slate-200'
                                         }`}
                                       >
                                         {selected ? (
@@ -698,7 +698,7 @@ export default function DSRForm({
                                             {selectionNumber}
                                           </span>
                                         ) : (
-                                          <span className="text-[10px] text-gray-400">#</span>
+                                          <span className="text-[10px] text-gray-400 dark:text-slate-500">#</span>
                                         )}
                                         <span className="truncate leading-none select-none">{kw}</span>
                                       </button>
@@ -714,16 +714,16 @@ export default function DSRForm({
                             <motion.div
                               initial={{ opacity: 0, scale: 0.98 }}
                               animate={{ opacity: 1, scale: 1 }}
-                              className="border border-indigo-100 bg-indigo-50/10 rounded-2xl p-5 space-y-4"
+                              className="border border-indigo-100 dark:border-blue-500/20 bg-indigo-50/10 rounded-2xl p-5 space-y-4"
                             >
                               <span className="block text-[10px] font-extrabold text-indigo-950 uppercase tracking-widest">
                                  SEO Submission Quantities
                               </span>
                                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                                 {/* 1. Blogs / Articles count */}
-                                <div className="flex items-center justify-between gap-3 bg-white p-3.5 rounded-xl border border-gray-150 shadow-2xs">
-                                  <label htmlFor={`blog-cnt-${idx}`} className="text-xs font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1.5 shrink-0 select-none">
-                                    <PenTool size={13} className="text-indigo-600 shrink-0" />
+                                <div className="flex items-center justify-between gap-3 bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-gray-150 dark:border-slate-800 shadow-2xs">
+                                  <label htmlFor={`blog-cnt-${idx}`} className="text-xs font-bold text-gray-700 dark:text-slate-200 uppercase tracking-wider flex items-center gap-1.5 shrink-0 select-none">
+                                    <PenTool size={13} className="text-indigo-600 dark:text-blue-400 shrink-0" />
                                     Blog / Article
                                   </label>
                                   <input
@@ -737,14 +737,14 @@ export default function DSRForm({
                                       if (val !== '' && Number(val) < 0) return;
                                       handleUpdateWorkBlock(idx, { blogCount: val });
                                     }}
-                                    className="w-20 px-2.5 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-gray-955 font-bold placeholder-gray-305 focus:outline-none focus:ring-1 focus:ring-indigo-600 transition text-sm font-mono text-center"
+                                    className="w-20 px-2.5 py-1.5 bg-gray-50 dark:bg-slate-800/60 border border-gray-200 dark:border-slate-800 rounded-lg text-gray-955 dark:text-slate-50 font-bold placeholder-gray-305 focus:outline-none focus:ring-1 focus:ring-indigo-600 focus:dark:ring-blue-500/50 transition text-sm font-mono text-center"
                                   />
                                 </div>
 
                                 {/* 2. Listing count */}
-                                <div className="flex items-center justify-between gap-3 bg-white p-3.5 rounded-xl border border-gray-150 shadow-2xs">
-                                  <label htmlFor={`listing-cnt-${idx}`} className="text-xs font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1.5 shrink-0 select-none">
-                                    <Hash size={13} className="text-indigo-600 shrink-0" />
+                                <div className="flex items-center justify-between gap-3 bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-gray-150 dark:border-slate-800 shadow-2xs">
+                                  <label htmlFor={`listing-cnt-${idx}`} className="text-xs font-bold text-gray-700 dark:text-slate-200 uppercase tracking-wider flex items-center gap-1.5 shrink-0 select-none">
+                                    <Hash size={13} className="text-indigo-600 dark:text-blue-400 shrink-0" />
                                     Listings
                                   </label>
                                   <input
@@ -758,14 +758,14 @@ export default function DSRForm({
                                       if (val !== '' && Number(val) < 0) return;
                                       handleUpdateWorkBlock(idx, { listingCount: val });
                                     }}
-                                    className="w-20 px-2.5 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-gray-955 font-bold placeholder-gray-305 focus:outline-none focus:ring-1 focus:ring-indigo-600 transition text-sm font-mono text-center"
+                                    className="w-20 px-2.5 py-1.5 bg-gray-50 dark:bg-slate-800/60 border border-gray-200 dark:border-slate-800 rounded-lg text-gray-955 dark:text-slate-50 font-bold placeholder-gray-305 focus:outline-none focus:ring-1 focus:ring-indigo-600 focus:dark:ring-blue-500/50 transition text-sm font-mono text-center"
                                   />
                                 </div>
 
                                 {/* 3. Forum count */}
-                                <div className="flex items-center justify-between gap-3 bg-white p-3.5 rounded-xl border border-gray-150 shadow-2xs">
-                                  <label htmlFor={`forum-cnt-${idx}`} className="text-xs font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1.5 shrink-0 select-none">
-                                    <MessageSquare size={13} className="text-indigo-600" />
+                                <div className="flex items-center justify-between gap-3 bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-gray-150 dark:border-slate-800 shadow-2xs">
+                                  <label htmlFor={`forum-cnt-${idx}`} className="text-xs font-bold text-gray-700 dark:text-slate-200 uppercase tracking-wider flex items-center gap-1.5 shrink-0 select-none">
+                                    <MessageSquare size={13} className="text-indigo-600 dark:text-blue-400" />
                                     Forum
                                   </label>
                                   <input
@@ -779,14 +779,14 @@ export default function DSRForm({
                                       if (val !== '' && Number(val) < 0) return;
                                       handleUpdateWorkBlock(idx, { forumCount: val });
                                     }}
-                                    className="w-20 px-2.5 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-gray-955 font-bold placeholder-gray-305 focus:outline-none focus:ring-1 focus:ring-indigo-600 transition text-sm font-mono text-center"
+                                    className="w-20 px-2.5 py-1.5 bg-gray-50 dark:bg-slate-800/60 border border-gray-200 dark:border-slate-800 rounded-lg text-gray-955 dark:text-slate-50 font-bold placeholder-gray-305 focus:outline-none focus:ring-1 focus:ring-indigo-600 focus:dark:ring-blue-500/50 transition text-sm font-mono text-center"
                                   />
                                 </div>
 
                                 {/* 4. PDF count */}
-                                <div className="flex items-center justify-between gap-3 bg-white p-3.5 rounded-xl border border-gray-150 shadow-2xs">
-                                  <label htmlFor={`pdf-cnt-${idx}`} className="text-xs font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1.5 shrink-0 select-none text-ellipsis overflow-hidden">
-                                    <FileText size={13} className="text-indigo-600 shrink-0" />
+                                <div className="flex items-center justify-between gap-3 bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-gray-150 dark:border-slate-800 shadow-2xs">
+                                  <label htmlFor={`pdf-cnt-${idx}`} className="text-xs font-bold text-gray-700 dark:text-slate-200 uppercase tracking-wider flex items-center gap-1.5 shrink-0 select-none text-ellipsis overflow-hidden">
+                                    <FileText size={13} className="text-indigo-600 dark:text-blue-400 shrink-0" />
                                     PDF
                                   </label>
                                   <input
@@ -800,14 +800,14 @@ export default function DSRForm({
                                       if (val !== '' && Number(val) < 0) return;
                                       handleUpdateWorkBlock(idx, { pdfCount: val });
                                     }}
-                                    className="w-20 px-2.5 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-gray-955 font-bold placeholder-gray-305 focus:outline-none focus:ring-1 focus:ring-indigo-600 transition text-sm font-mono text-center"
+                                    className="w-20 px-2.5 py-1.5 bg-gray-50 dark:bg-slate-800/60 border border-gray-200 dark:border-slate-800 rounded-lg text-gray-955 dark:text-slate-50 font-bold placeholder-gray-305 focus:outline-none focus:ring-1 focus:ring-indigo-600 focus:dark:ring-blue-500/50 transition text-sm font-mono text-center"
                                   />
                                 </div>
 
                                 {/* 5. Image count */}
-                                <div className="flex items-center justify-between gap-3 bg-white p-3.5 rounded-xl border border-gray-150 shadow-2xs">
-                                  <label htmlFor={`image-cnt-${idx}`} className="text-xs font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1.5 shrink-0 select-none">
-                                    <Image size={13} className="text-indigo-600 shrink-0" />
+                                <div className="flex items-center justify-between gap-3 bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-gray-150 dark:border-slate-800 shadow-2xs">
+                                  <label htmlFor={`image-cnt-${idx}`} className="text-xs font-bold text-gray-700 dark:text-slate-200 uppercase tracking-wider flex items-center gap-1.5 shrink-0 select-none">
+                                    <Image size={13} className="text-indigo-600 dark:text-blue-400 shrink-0" />
                                     Images
                                   </label>
                                   <input
@@ -821,14 +821,14 @@ export default function DSRForm({
                                       if (val !== '' && Number(val) < 0) return;
                                       handleUpdateWorkBlock(idx, { imageCount: val });
                                     }}
-                                    className="w-20 px-2.5 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-gray-955 font-bold placeholder-gray-305 focus:outline-none focus:ring-1 focus:ring-indigo-600 transition text-sm font-mono text-center"
+                                    className="w-20 px-2.5 py-1.5 bg-gray-50 dark:bg-slate-800/60 border border-gray-200 dark:border-slate-800 rounded-lg text-gray-955 dark:text-slate-50 font-bold placeholder-gray-305 focus:outline-none focus:ring-1 focus:ring-indigo-600 focus:dark:ring-blue-500/50 transition text-sm font-mono text-center"
                                   />
                                 </div>
 
                                 {/* 6. Video PPT count */}
-                                <div className="flex items-center justify-between gap-3 bg-white p-3.5 rounded-xl border border-gray-150 shadow-2xs">
-                                  <label htmlFor={`videoppt-cnt-${idx}`} className="text-xs font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1.5 shrink-0 select-none">
-                                    <Presentation size={13} className="text-indigo-600 shrink-0" />
+                                <div className="flex items-center justify-between gap-3 bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-gray-150 dark:border-slate-800 shadow-2xs">
+                                  <label htmlFor={`videoppt-cnt-${idx}`} className="text-xs font-bold text-gray-700 dark:text-slate-200 uppercase tracking-wider flex items-center gap-1.5 shrink-0 select-none">
+                                    <Presentation size={13} className="text-indigo-600 dark:text-blue-400 shrink-0" />
                                     Video / PPT
                                   </label>
                                   <input
@@ -842,14 +842,14 @@ export default function DSRForm({
                                       if (val !== '' && Number(val) < 0) return;
                                       handleUpdateWorkBlock(idx, { videoPptCount: val });
                                     }}
-                                    className="w-20 px-2.5 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-gray-955 font-bold placeholder-gray-305 focus:outline-none focus:ring-1 focus:ring-indigo-600 transition text-sm font-mono text-center"
+                                    className="w-20 px-2.5 py-1.5 bg-gray-50 dark:bg-slate-800/60 border border-gray-200 dark:border-slate-800 rounded-lg text-gray-955 dark:text-slate-50 font-bold placeholder-gray-305 focus:outline-none focus:ring-1 focus:ring-indigo-600 focus:dark:ring-blue-500/50 transition text-sm font-mono text-center"
                                   />
                                 </div>
 
                                 {/* 7. Profile count */}
-                                <div className="flex items-center justify-between gap-3 bg-white p-3.5 rounded-xl border border-gray-150 shadow-2xs">
-                                  <label htmlFor={`profile-cnt-${idx}`} className="text-xs font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1.5 shrink-0 select-none">
-                                    <User size={13} className="text-indigo-600 shrink-0" />
+                                <div className="flex items-center justify-between gap-3 bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-gray-150 dark:border-slate-800 shadow-2xs">
+                                  <label htmlFor={`profile-cnt-${idx}`} className="text-xs font-bold text-gray-700 dark:text-slate-200 uppercase tracking-wider flex items-center gap-1.5 shrink-0 select-none">
+                                    <User size={13} className="text-indigo-600 dark:text-blue-400 shrink-0" />
                                     Profile
                                   </label>
                                   <input
@@ -863,14 +863,14 @@ export default function DSRForm({
                                       if (val !== '' && Number(val) < 0) return;
                                       handleUpdateWorkBlock(idx, { profileCount: val });
                                     }}
-                                    className="w-20 px-2.5 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-gray-955 font-bold placeholder-gray-305 focus:outline-none focus:ring-1 focus:ring-indigo-600 transition text-sm font-mono text-center"
+                                    className="w-20 px-2.5 py-1.5 bg-gray-50 dark:bg-slate-800/60 border border-gray-200 dark:border-slate-800 rounded-lg text-gray-955 dark:text-slate-50 font-bold placeholder-gray-305 focus:outline-none focus:ring-1 focus:ring-indigo-600 focus:dark:ring-blue-500/50 transition text-sm font-mono text-center"
                                   />
                                 </div>
 
                                 {/* 8. Link count */}
-                                <div className="flex items-center justify-between gap-3 bg-white p-3.5 rounded-xl border border-gray-150 shadow-2xs">
-                                  <label htmlFor={`link-cnt-${idx}`} className="text-xs font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1.5 shrink-0 select-none">
-                                    <Link size={13} className="text-indigo-600 shrink-0" />
+                                <div className="flex items-center justify-between gap-3 bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-gray-150 dark:border-slate-800 shadow-2xs">
+                                  <label htmlFor={`link-cnt-${idx}`} className="text-xs font-bold text-gray-700 dark:text-slate-200 uppercase tracking-wider flex items-center gap-1.5 shrink-0 select-none">
+                                    <Link size={13} className="text-indigo-600 dark:text-blue-400 shrink-0" />
                                     Links
                                   </label>
                                   <input
@@ -884,14 +884,14 @@ export default function DSRForm({
                                       if (val !== '' && Number(val) < 0) return;
                                       handleUpdateWorkBlock(idx, { linkCount: val });
                                     }}
-                                    className="w-20 px-2.5 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-gray-955 font-bold placeholder-gray-305 focus:outline-none focus:ring-1 focus:ring-indigo-600 transition text-sm font-mono text-center"
+                                    className="w-20 px-2.5 py-1.5 bg-gray-50 dark:bg-slate-800/60 border border-gray-200 dark:border-slate-800 rounded-lg text-gray-955 dark:text-slate-50 font-bold placeholder-gray-305 focus:outline-none focus:ring-1 focus:ring-indigo-600 focus:dark:ring-blue-500/50 transition text-sm font-mono text-center"
                                   />
                                 </div>
 
                                 {/* Custom Dynamic Submission fields */}
                                 {customSubmissionTypes.map((type) => (
-                                  <div key={type.id} className="flex items-center justify-between gap-3 bg-white p-3.5 rounded-xl border border-indigo-150 shadow-2xs">
-                                    <label htmlFor={`custom-cnt-${type.id}-${idx}`} className="text-xs font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1.5 shrink-0 select-none truncate">
+                                  <div key={type.id} className="flex items-center justify-between gap-3 bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-indigo-150 dark:border-blue-500/20 shadow-2xs">
+                                    <label htmlFor={`custom-cnt-${type.id}-${idx}`} className="text-xs font-bold text-gray-700 dark:text-slate-200 uppercase tracking-wider flex items-center gap-1.5 shrink-0 select-none truncate">
                                       <Hash size={13} className="text-purple-600 shrink-0" />
                                       {type.name}
                                     </label>
@@ -910,7 +910,7 @@ export default function DSRForm({
                                         };
                                         handleUpdateWorkBlock(idx, { customValues: nextCustomValues });
                                       }}
-                                      className="w-20 px-2.5 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-gray-955 font-bold placeholder-gray-350 focus:outline-none focus:ring-1 focus:ring-indigo-600 transition text-sm font-mono text-center"
+                                      className="w-20 px-2.5 py-1.5 bg-gray-50 dark:bg-slate-800/60 border border-gray-200 dark:border-slate-800 rounded-lg text-gray-955 dark:text-slate-50 font-bold placeholder-gray-350 focus:outline-none focus:ring-1 focus:ring-indigo-600 focus:dark:ring-blue-500/50 transition text-sm font-mono text-center"
                                     />
                                   </div>
                                 ))}
@@ -925,8 +925,8 @@ export default function DSRForm({
                           <label
                             className={`relative flex items-start gap-3.5 p-4.5 rounded-2xl border cursor-pointer select-none transition ${
                               (work.workTypes || []).includes('content_update')
-                                ? 'border-indigo-600 bg-indigo-50/20 ring-1 ring-indigo-600'
-                                : 'border-gray-200 bg-white hover:bg-gray-50'
+                                ? 'border-indigo-600 dark:border-blue-500/50 bg-indigo-50/20 ring-1 ring-indigo-600 dark:ring-blue-500/50'
+                                : 'border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-gray-50 hover:dark:bg-slate-800/60'
                             }`}
                           >
                             <input
@@ -939,11 +939,11 @@ export default function DSRForm({
                                   : [...current, 'content_update'];
                                 handleUpdateWorkBlock(idx, { workTypes: next });
                               }}
-                              className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 mt-1 cursor-pointer"
+                              className="w-4 h-4 rounded border-gray-300 dark:border-slate-700 text-indigo-600 dark:text-blue-400 focus:ring-indigo-500 focus:dark:ring-blue-500/50 mt-1 cursor-pointer"
                             />
                             <div className="space-y-0.5">
-                              <span className="block text-xs font-bold text-gray-900">Content Update</span>
-                              <span className="block text-[10px] text-gray-400 font-medium">Select checkboxes such as meta tags, keywords, restructure logs.</span>
+                              <span className="block text-xs font-bold text-gray-900 dark:text-slate-50">Content Update</span>
+                              <span className="block text-[10px] text-gray-400 dark:text-slate-500 font-medium">Select checkboxes such as meta tags, keywords, restructure logs.</span>
                             </div>
                           </label>
 
@@ -952,7 +952,7 @@ export default function DSRForm({
                             <motion.div
                               initial={{ opacity: 0, scale: 0.98 }}
                               animate={{ opacity: 1, scale: 1 }}
-                              className="border border-purple-100 bg-purple-50/10 rounded-2xl p-5 space-y-4"
+                              className="border border-purple-100 dark:border-purple-500/20 bg-purple-50/10 rounded-2xl p-5 space-y-4"
                             >
                               <div className="space-y-0.5">
                                 <span className="block text-[10px] font-extrabold text-purple-950 uppercase tracking-widest">
@@ -960,49 +960,49 @@ export default function DSRForm({
                                 </span>
                               </div>
 
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 bg-white p-4.5 rounded-xl border border-purple-100 shadow-2xs">
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 bg-white dark:bg-slate-900 p-4.5 rounded-xl border border-purple-100 dark:border-purple-500/20 shadow-2xs">
                                 {/* Checkbox 1: Meta Title & Description */}
-                                <label className="flex items-center gap-3 p-2.5 hover:bg-slate-50 rounded-lg cursor-pointer transition select-none">
+                                <label className="flex items-center gap-3 p-2.5 hover:bg-slate-50 hover:dark:bg-slate-800/60 rounded-lg cursor-pointer transition select-none">
                                   <input
                                     type="checkbox"
                                     checked={(work.contentUpdates || []).includes('meta_title_desc')}
                                     onChange={() => handleToggleContentUpdate(idx, 'meta_title_desc')}
-                                    className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-505 border-gray-300 cursor-pointer"
+                                    className="w-4 h-4 rounded text-indigo-600 dark:text-blue-400 focus:ring-indigo-505 focus:dark:ring-blue-500/50 border-gray-300 dark:border-slate-700 cursor-pointer"
                                   />
-                                  <span className="text-xs font-bold text-gray-800">Meta Title & Description</span>
+                                  <span className="text-xs font-bold text-gray-800 dark:text-slate-100">Meta Title & Description</span>
                                 </label>
 
                                 {/* Checkbox 2: Keyword Update */}
-                                <label className="flex items-center gap-3 p-2.5 hover:bg-slate-50 rounded-lg cursor-pointer transition select-none">
+                                <label className="flex items-center gap-3 p-2.5 hover:bg-slate-50 hover:dark:bg-slate-800/60 rounded-lg cursor-pointer transition select-none">
                                   <input
                                     type="checkbox"
                                     checked={(work.contentUpdates || []).includes('keyword_update')}
                                     onChange={() => handleToggleContentUpdate(idx, 'keyword_update')}
-                                    className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-505 border-gray-300 cursor-pointer"
+                                    className="w-4 h-4 rounded text-indigo-600 dark:text-blue-400 focus:ring-indigo-505 focus:dark:ring-blue-500/50 border-gray-300 dark:border-slate-700 cursor-pointer"
                                   />
-                                  <span className="text-xs font-bold text-gray-800">Keyword Update</span>
+                                  <span className="text-xs font-bold text-gray-800 dark:text-slate-100">Keyword Update</span>
                                 </label>
 
                                 {/* Checkbox 3: Section Update */}
-                                <label className="flex items-center gap-3 p-2.5 hover:bg-slate-50 rounded-lg cursor-pointer transition select-none">
+                                <label className="flex items-center gap-3 p-2.5 hover:bg-slate-50 hover:dark:bg-slate-800/60 rounded-lg cursor-pointer transition select-none">
                                   <input
                                     type="checkbox"
                                     checked={(work.contentUpdates || []).includes('section_update')}
                                     onChange={() => handleToggleContentUpdate(idx, 'section_update')}
-                                    className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-505 border-gray-300 cursor-pointer"
+                                    className="w-4 h-4 rounded text-indigo-600 dark:text-blue-400 focus:ring-indigo-505 focus:dark:ring-blue-500/50 border-gray-300 dark:border-slate-700 cursor-pointer"
                                   />
-                                  <span className="text-xs font-bold text-gray-800">Section Update</span>
+                                  <span className="text-xs font-bold text-gray-800 dark:text-slate-100">Section Update</span>
                                 </label>
 
                                 {/* Checkbox 4: Restructure */}
-                                <label className="flex items-center gap-3 p-2.5 hover:bg-slate-50 rounded-lg cursor-pointer transition select-none">
+                                <label className="flex items-center gap-3 p-2.5 hover:bg-slate-50 hover:dark:bg-slate-800/60 rounded-lg cursor-pointer transition select-none">
                                   <input
                                     type="checkbox"
                                     checked={(work.contentUpdates || []).includes('restructure')}
                                     onChange={() => handleToggleContentUpdate(idx, 'restructure')}
-                                    className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-505 border-gray-300 cursor-pointer"
+                                    className="w-4 h-4 rounded text-indigo-600 dark:text-blue-400 focus:ring-indigo-505 focus:dark:ring-blue-500/50 border-gray-300 dark:border-slate-700 cursor-pointer"
                                   />
-                                  <span className="text-xs font-bold text-gray-800">Restructure</span>
+                                  <span className="text-xs font-bold text-gray-800 dark:text-slate-100">Restructure</span>
                                 </label>
                               </div>
                             </motion.div>
@@ -1016,8 +1016,8 @@ export default function DSRForm({
                     {/* Note — only appears when "No Activity" is selected; hidden by default and hidden for On/Off Page Activity */}
                     {work.workStatus === 'not_worked' && (
                     <div className="space-y-2">
-                        <label htmlFor={`work-summary-${idx}`} className="block text-xs font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1.5">
-                            Note <span className="text-rose-500">*</span>
+                        <label htmlFor={`work-summary-${idx}`} className="block text-xs font-bold text-gray-700 dark:text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
+                            Note <span className="text-rose-500 dark:text-rose-400">*</span>
                         </label>
                         <textarea
                           id={`work-summary-${idx}`}
@@ -1026,7 +1026,7 @@ export default function DSRForm({
                           value={work.workSummary || ''}
                           placeholder="Write a note about why this domain was not worked on..."
                           onChange={(e) => handleUpdateWorkBlock(idx, { workSummary: e.target.value })}
-                          className="w-full px-4 py-3 bg-gray-50 border border-gray-200 focus:border-indigo-600 focus:bg-white rounded-xl text-xs text-gray-950 font-medium placeholder-gray-400 focus:outline-none transition leading-relaxed"
+                          className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800/60 border border-gray-200 dark:border-slate-800 focus:border-indigo-600 focus:dark:border-blue-500/50 focus:bg-white focus:dark:bg-slate-900 rounded-xl text-xs text-gray-950 dark:text-slate-50 font-medium placeholder-gray-400 focus:outline-none transition leading-relaxed"
                         />
                     </div>
                     )}
@@ -1037,18 +1037,18 @@ export default function DSRForm({
             </div>
 
             {/* Extra / New Work Done — separate, optional block (not tied to domain selection) */}
-            <div className="bg-white rounded-3xl border border-gray-150 shadow-xs overflow-hidden">
-              <div className="bg-gray-50/50 px-6 py-4 border-b border-gray-100 flex items-center gap-3">
-                <span className="w-8 h-8 rounded-lg bg-amber-50 text-amber-700 font-extrabold text-xs flex items-center justify-center">
+            <div className="bg-white dark:bg-slate-900 rounded-3xl border border-gray-150 dark:border-slate-800 shadow-xs overflow-hidden">
+              <div className="bg-gray-50/50 dark:bg-slate-800/40 px-6 py-4 border-b border-gray-100 dark:border-slate-800/60 flex items-center gap-3">
+                <span className="w-8 h-8 rounded-lg bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 font-extrabold text-xs flex items-center justify-center">
                   ＋
                 </span>
                 <div>
-                  <h4 className="font-bold text-gray-900 text-sm">Work Note</h4>
+                  <h4 className="font-bold text-gray-900 dark:text-slate-50 text-sm">Work Note</h4>
          
                 </div>
               </div>
               <div className="px-6 sm:px-8 pb-6 sm:pb-8 pt-3 space-y-2">
-                <label htmlFor="extra-work-note" className="block text-xs font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1.5">
+                <label htmlFor="extra-work-note" className="block text-xs font-bold text-gray-700 dark:text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
                   
                 </label>
                 {(() => {
@@ -1066,8 +1066,8 @@ export default function DSRForm({
                   }}
                   className={`w-full px-4 py-3 border rounded-xl text-xs font-medium placeholder-gray-400 focus:outline-none transition leading-relaxed ${
                     domainSelected
-                      ? 'bg-gray-100 border-gray-150 text-gray-400 cursor-not-allowed'
-                      : 'bg-gray-50 border-gray-200 focus:border-indigo-600 focus:bg-white text-gray-950'
+                      ? 'bg-gray-100 dark:bg-slate-800 border-gray-150 dark:border-slate-800 text-gray-400 dark:text-slate-500 cursor-not-allowed'
+                      : 'bg-gray-50 dark:bg-slate-800/60 border-gray-200 dark:border-slate-800 focus:border-indigo-600 focus:dark:border-blue-500/50 focus:bg-white focus:dark:bg-slate-900 text-gray-950 dark:text-slate-50'
                   }`}
                 />
                   );
@@ -1076,7 +1076,7 @@ export default function DSRForm({
             </div>
 
             {validationError && (
-              <div className="p-4 bg-rose-50 border-l-4 border-rose-500 text-rose-800 rounded-r-xl text-sm font-semibold shadow-xs animate-shake">
+              <div className="p-4 bg-rose-50 dark:bg-rose-500/10 border-l-4 border-rose-500 text-rose-800 dark:text-rose-300 rounded-r-xl text-sm font-semibold shadow-xs animate-shake">
                 {validationError}
               </div>
             )}
@@ -1086,7 +1086,7 @@ export default function DSRForm({
               <button
                 id="work-log-compile-btn"
                 type="submit"
-                className="px-8 py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs transition shadow-sm hover:shadow-md flex items-center gap-2 cursor-pointer grow sm:grow-0 justify-center"
+                className="px-8 py-3.5 bg-indigo-600 dark:bg-blue-600 hover:bg-indigo-700 hover:dark:bg-blue-500 text-white font-bold rounded-xl text-xs transition shadow-sm hover:shadow-md flex items-center gap-2 cursor-pointer grow sm:grow-0 justify-center"
               >
                 <CheckCircle2 size={16} />
                 Submit Work Log
