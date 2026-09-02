@@ -301,7 +301,7 @@ export default function AdminControlPanel({
 
         <div className="overflow-x-auto border border-gray-150 dark:border-slate-800 rounded-2xl bg-white dark:bg-ink-900 max-h-[32rem] overflow-y-auto">
           <table className="w-full text-left border-collapse">
-            <thead className="sticky top-0 bg-gray-50/95 backdrop-blur-sm">
+            <thead className="sticky top-0 bg-gray-50/95 dark:bg-ink-900/95 backdrop-blur-sm">
               <tr className="border-b border-gray-150 dark:border-slate-800 text-[9px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-widest">
                 <th className="py-3 px-4">Project</th>
                 <th className="py-3 px-4">Domain</th>
@@ -320,7 +320,7 @@ export default function AdminControlPanel({
                 </tr>
               )}
               {filteredProjects.map((p) => (
-                <tr key={p.id} className="hover:bg-slate-50/45 transition text-xs align-top">
+                <tr key={p.id} className="hover:bg-slate-50/45 hover:dark:bg-ink-800/60 transition text-xs align-top">
                   <td className="py-3 px-4 font-extrabold text-gray-900 dark:text-slate-50">
                     {p.name}
                     <div className="text-[10px] font-mono font-semibold text-gray-400 dark:text-slate-500 mt-0.5">{p.id}</div>
