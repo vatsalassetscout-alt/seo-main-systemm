@@ -901,7 +901,7 @@ export default function DSRLogs({
                       content center-aligned inside that box. */}
                   <div
                     onClick={() => toggleExpand(item.uniqueId)}
-                    className="px-4 py-3.5 sm:px-5 sm:py-4 hover:bg-slate-50/45 cursor-pointer select-none transition-colors overflow-x-auto"
+                    className="px-4 py-3.5 sm:px-5 sm:py-4 hover:bg-slate-50/45 hover:dark:bg-slate-800/40 cursor-pointer select-none transition-colors overflow-x-auto"
                   >
                     <div
                       className="grid items-center gap-x-2 w-full"
@@ -974,11 +974,11 @@ export default function DSRLogs({
                           its own colored border (green/red/blue). Fixed-width column so
                           this trio lands in the exact same spot on every row. */}
                       <div className="flex items-center gap-2">
-                        <div className="flex flex-col items-center justify-center px-3 py-1.5 rounded-xl border border-emerald-150 bg-emerald-50/50 flex-1 leading-tight">
+                        <div className="flex flex-col items-center justify-center px-3 py-1.5 rounded-xl border border-emerald-150 dark:border-emerald-500/20 bg-emerald-50/50 dark:bg-emerald-500/10 flex-1 leading-tight">
                           <span className="text-[9.5px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider whitespace-nowrap">Worked</span>
                           <span className="text-[16px] font-black text-emerald-600 dark:text-emerald-400">{workedProjectCount}</span>
                         </div>
-                        <div className="flex flex-col items-center justify-center px-3 py-1.5 rounded-xl border border-rose-150 bg-rose-50/50 flex-1 leading-tight">
+                        <div className="flex flex-col items-center justify-center px-3 py-1.5 rounded-xl border border-rose-150 dark:border-rose-500/20 bg-rose-50/50 dark:bg-rose-500/10 flex-1 leading-tight">
                           <span className="text-[9.5px] font-bold text-rose-600 dark:text-rose-400 uppercase tracking-wider whitespace-nowrap">Not Worked</span>
                           <span className="text-[16px] font-black text-rose-600 dark:text-rose-400">{notWorkedProjectCount}</span>
                         </div>
@@ -1056,8 +1056,8 @@ export default function DSRLogs({
                         {item.status && (
                           <span className={`text-[10.5px] uppercase font-bold px-2.5 py-1.5 rounded-lg border tracking-wider font-sans whitespace-nowrap min-w-[96px] text-center ${
                             item.status === 'Approved' ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-800 border-emerald-100 dark:border-emerald-500/20' :
-                            item.status === 'Needs Revision' ? 'bg-rose-50 dark:bg-rose-500/10 text-rose-855 border-rose-100' :
-                            item.status === 'Remark' ? 'bg-violet-50 text-violet-800 border-violet-150' :
+                            item.status === 'Needs Revision' ? 'bg-rose-50 dark:bg-rose-500/10 text-rose-855 dark:text-rose-300 border-rose-100 dark:border-rose-500/20' :
+                            item.status === 'Remark' ? 'bg-violet-50 dark:bg-violet-500/10 text-violet-800 dark:text-violet-300 border-violet-150 dark:border-violet-500/20' :
                             'bg-amber-50 dark:bg-amber-500/10 text-amber-855 border-amber-100 dark:border-amber-500/20'
                           }`}>
                             {item.status === 'Remark' ? '💬 Remark' : item.status}
@@ -1086,7 +1086,7 @@ export default function DSRLogs({
                         exit={{ height: 0, opacity: 0 }}
                         className="overflow-hidden bg-white dark:bg-slate-900"
                       >
-                        <div className="p-4 sm:p-5 space-y-5 border-t border-slate-150 dark:border-slate-800 bg-slate-50/20 text-left">
+                        <div className="p-4 sm:p-5 space-y-5 border-t border-slate-150 dark:border-slate-800 bg-slate-50/20 dark:bg-slate-800/20 text-left">
                           
                           {/* Inner list of submitted project works */}
                           <div className="space-y-6">
@@ -1432,7 +1432,7 @@ export default function DSRLogs({
                                       setRemarkText('');
                                       setRemarkModalItem(item);
                                     }}
-                                    className="px-3.5 py-1.5 rounded-xl text-xs font-black transition cursor-pointer select-none font-sans bg-violet-50 text-violet-800 hover:bg-violet-100 border border-violet-150 flex items-center gap-1"
+                                    className="px-3.5 py-1.5 rounded-xl text-xs font-black transition cursor-pointer select-none font-sans bg-violet-50 dark:bg-violet-500/10 text-violet-800 dark:text-violet-300 hover:bg-violet-100 hover:dark:bg-violet-500/15 border border-violet-150 dark:border-violet-500/20 flex items-center gap-1"
                                   >
                                      Remark
                                   </button>
