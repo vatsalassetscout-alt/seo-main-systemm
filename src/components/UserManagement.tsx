@@ -248,7 +248,7 @@ export default function UserManagementPanel({
         </button>
       </div>
 
-      <div className="overflow-x-auto border border-gray-150 dark:border-slate-800 rounded-2xl bg-white dark:bg-slate-900 max-h-[32rem] overflow-y-auto">
+      <div className="overflow-x-auto border border-gray-150 dark:border-slate-800 rounded-2xl bg-white dark:bg-ink-900 max-h-[32rem] overflow-y-auto">
         <table className="w-full text-left border-collapse">
           <thead className="sticky top-0 bg-gray-50/95 backdrop-blur-sm">
             <tr className="border-b border-gray-150 dark:border-slate-800 text-[9px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-widest">
@@ -282,7 +282,7 @@ export default function UserManagementPanel({
                 <td className="py-3 px-4">
                   <span
                     className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wide ${
-                      u.role === 'admin' ? 'bg-violet-50 text-violet-700' : 'bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-slate-400'
+                      u.role === 'admin' ? 'bg-violet-50 text-violet-700' : 'bg-gray-100 dark:bg-ink-800 text-gray-500 dark:text-slate-400'
                     }`}
                   >
                     {u.role || 'user'}
@@ -393,11 +393,11 @@ export function AddUserModal({
       <motion.div
         initial={{ opacity: 0, y: 20, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
-        className="bg-white dark:bg-slate-900 rounded-3xl border border-gray-150 dark:border-slate-800 shadow-lg w-full max-w-sm"
+        className="bg-white dark:bg-ink-900 rounded-3xl border border-gray-150 dark:border-slate-800 shadow-lg w-full max-w-sm"
       >
         <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-slate-800/60">
           <h3 className="font-extrabold text-gray-900 dark:text-slate-50 text-sm">{initialUserId ? 'Register User' : 'Add User'}</h3>
-          <button onClick={onClose} className="p-1.5 text-gray-400 dark:text-slate-500 hover:text-gray-700 hover:dark:text-slate-200 hover:bg-gray-50 hover:dark:bg-slate-800/60 rounded-lg cursor-pointer">
+          <button onClick={onClose} className="p-1.5 text-gray-400 dark:text-slate-500 hover:text-gray-700 hover:dark:text-slate-200 hover:bg-gray-50 hover:dark:bg-ink-800/60 rounded-lg cursor-pointer">
             <X size={16} />
           </button>
         </div>
@@ -414,7 +414,7 @@ export function AddUserModal({
               onChange={(e) => setUserId(e.target.value)}
               required
               placeholder="e.g. 7412"
-              className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800/60 border border-gray-200 dark:border-slate-800 focus:border-indigo-650 focus:dark:border-blue-500/50 rounded-xl text-xs font-semibold font-mono focus:outline-none focus:ring-1 focus:ring-indigo-650 focus:dark:ring-blue-500/50 transition"
+              className="w-full px-4 py-3 bg-gray-50 dark:bg-ink-800/60 border border-gray-200 dark:border-slate-800 focus:border-indigo-650 focus:dark:border-blue-500/50 rounded-xl text-xs font-semibold font-mono focus:outline-none focus:ring-1 focus:ring-indigo-650 focus:dark:ring-blue-500/50 transition"
             />
           </div>
           <div className="space-y-1.5">
@@ -424,7 +424,7 @@ export function AddUserModal({
               onChange={(e) => setName(e.target.value)}
               required
               placeholder="e.g. Rohit Sharma"
-              className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800/60 border border-gray-200 dark:border-slate-800 focus:border-indigo-650 focus:dark:border-blue-500/50 rounded-xl text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-indigo-650 focus:dark:ring-blue-500/50 transition"
+              className="w-full px-4 py-3 bg-gray-50 dark:bg-ink-800/60 border border-gray-200 dark:border-slate-800 focus:border-indigo-650 focus:dark:border-blue-500/50 rounded-xl text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-indigo-650 focus:dark:ring-blue-500/50 transition"
             />
           </div>
           <div className="space-y-1.5">
@@ -434,7 +434,7 @@ export function AddUserModal({
               onChange={(e) => setPasskey(e.target.value)}
               type="text"
               placeholder="e.g. 4821 — leave blank to skip"
-              className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800/60 border border-gray-200 dark:border-slate-800 focus:border-indigo-650 focus:dark:border-blue-500/50 rounded-xl text-xs font-semibold font-mono focus:outline-none focus:ring-1 focus:ring-indigo-650 focus:dark:ring-blue-500/50 transition"
+              className="w-full px-4 py-3 bg-gray-50 dark:bg-ink-800/60 border border-gray-200 dark:border-slate-800 focus:border-indigo-650 focus:dark:border-blue-500/50 rounded-xl text-xs font-semibold font-mono focus:outline-none focus:ring-1 focus:ring-indigo-650 focus:dark:ring-blue-500/50 transition"
             />
           </div>
           <div className="space-y-1.5">
@@ -442,7 +442,7 @@ export function AddUserModal({
             <select
               value={role}
               onChange={(e) => setRole(e.target.value as 'user' | 'admin')}
-              className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800/60 border border-gray-200 dark:border-slate-800 focus:border-indigo-650 focus:dark:border-blue-500/50 rounded-xl text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-indigo-650 focus:dark:ring-blue-500/50 transition"
+              className="w-full px-4 py-3 bg-gray-50 dark:bg-ink-800/60 border border-gray-200 dark:border-slate-800 focus:border-indigo-650 focus:dark:border-blue-500/50 rounded-xl text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-indigo-650 focus:dark:ring-blue-500/50 transition"
             >
               <option value="user">User</option>
               <option value="admin">Admin</option>
@@ -490,18 +490,18 @@ export function RenameUserModal({
       <motion.div
         initial={{ opacity: 0, y: 20, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
-        className="bg-white dark:bg-slate-900 rounded-3xl border border-gray-150 dark:border-slate-800 shadow-lg w-full max-w-sm"
+        className="bg-white dark:bg-ink-900 rounded-3xl border border-gray-150 dark:border-slate-800 shadow-lg w-full max-w-sm"
       >
         <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-slate-800/60">
           <h3 className="font-extrabold text-gray-900 dark:text-slate-50 text-sm">Edit "{user.name}"</h3>
-          <button onClick={onClose} className="p-1.5 text-gray-400 dark:text-slate-500 hover:text-gray-700 hover:dark:text-slate-200 hover:bg-gray-50 hover:dark:bg-slate-800/60 rounded-lg cursor-pointer">
+          <button onClick={onClose} className="p-1.5 text-gray-400 dark:text-slate-500 hover:text-gray-700 hover:dark:text-slate-200 hover:bg-gray-50 hover:dark:bg-ink-800/60 rounded-lg cursor-pointer">
             <X size={16} />
           </button>
         </div>
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div className="space-y-1.5">
             <label className="block text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-widest">Current User ID</label>
-            <div className="px-4 py-3 bg-gray-50 dark:bg-slate-800/60 border border-gray-150 dark:border-slate-800 rounded-xl text-xs font-mono font-bold text-gray-400 dark:text-slate-500">
+            <div className="px-4 py-3 bg-gray-50 dark:bg-ink-800/60 border border-gray-150 dark:border-slate-800 rounded-xl text-xs font-mono font-bold text-gray-400 dark:text-slate-500">
               {user.email}
             </div>
           </div>
@@ -511,7 +511,7 @@ export function RenameUserModal({
               value={newUserId}
               onChange={(e) => setNewUserId(e.target.value)}
               required
-              className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800/60 border border-gray-200 dark:border-slate-800 focus:border-indigo-650 focus:dark:border-blue-500/50 rounded-xl text-xs font-semibold font-mono focus:outline-none focus:ring-1 focus:ring-indigo-650 focus:dark:ring-blue-500/50 transition"
+              className="w-full px-4 py-3 bg-gray-50 dark:bg-ink-800/60 border border-gray-200 dark:border-slate-800 focus:border-indigo-650 focus:dark:border-blue-500/50 rounded-xl text-xs font-semibold font-mono focus:outline-none focus:ring-1 focus:ring-indigo-650 focus:dark:ring-blue-500/50 transition"
             />
           </div>
           <div className="space-y-1.5">
@@ -520,7 +520,7 @@ export function RenameUserModal({
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               required
-              className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800/60 border border-gray-200 dark:border-slate-800 focus:border-indigo-650 focus:dark:border-blue-500/50 rounded-xl text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-indigo-650 focus:dark:ring-blue-500/50 transition"
+              className="w-full px-4 py-3 bg-gray-50 dark:bg-ink-800/60 border border-gray-200 dark:border-slate-800 focus:border-indigo-650 focus:dark:border-blue-500/50 rounded-xl text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-indigo-650 focus:dark:ring-blue-500/50 transition"
             />
           </div>
           <div className="space-y-1.5">
@@ -529,7 +529,7 @@ export function RenameUserModal({
               value={newPasskey}
               onChange={(e) => setNewPasskey(e.target.value)}
               placeholder="Leave blank to keep current passkey"
-              className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800/60 border border-gray-200 dark:border-slate-800 focus:border-indigo-650 focus:dark:border-blue-500/50 rounded-xl text-xs font-semibold font-mono focus:outline-none focus:ring-1 focus:ring-indigo-650 focus:dark:ring-blue-500/50 transition"
+              className="w-full px-4 py-3 bg-gray-50 dark:bg-ink-800/60 border border-gray-200 dark:border-slate-800 focus:border-indigo-650 focus:dark:border-blue-500/50 rounded-xl text-xs font-semibold font-mono focus:outline-none focus:ring-1 focus:ring-indigo-650 focus:dark:ring-blue-500/50 transition"
             />
           </div>
           <button
