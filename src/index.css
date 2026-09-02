@@ -5,6 +5,19 @@
    `.dark` class on <html> is all that's needed — see src/lib/theme.ts. */
 @custom-variant dark (&:where(.dark, .dark *));
 
+@theme {
+  /* True near-black surface tokens for dark mode. Tailwind's built-in
+     `slate` scale has a visible blue tint; these are a neutral, almost
+     achromatic black instead, used only for dark-mode *backgrounds*
+     (page, header, cards, hovers) so the app reads as black rather than
+     navy. Text/border colors still use the regular `slate` scale — only
+     background utilities (bg-ink-*) were swapped over. */
+  --color-ink-950: #060607;
+  --color-ink-900: #0a0a0c;
+  --color-ink-800: #131316;
+  --color-ink-700: #1c1c20;
+}
+
 :root {
   color-scheme: light;
 }
