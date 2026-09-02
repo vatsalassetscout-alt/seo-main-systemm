@@ -325,7 +325,7 @@ export default function DSRSettings({
       )}
 
       {/* Active settings module view */}
-      <div className="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl border border-gray-150 dark:border-slate-800 shadow-xs">
+      <div className="bg-white dark:bg-ink-900 p-6 sm:p-8 rounded-3xl border border-gray-150 dark:border-slate-800 shadow-xs">
         {/* TAB 1: Users Panel — single pipeline: existing (project-assigned) +
              newly added users, full add/rename/delete control lives here.
              Kept mounted (just hidden) even off-tab so the merged user list
@@ -368,7 +368,7 @@ export default function DSRSettings({
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {/* Form: Assign Project */}
-              <div className="md:col-span-1 bg-slate-50/50 dark:bg-slate-800/40 p-6 rounded-2xl border border-gray-150 dark:border-slate-800 h-fit space-y-4">
+              <div className="md:col-span-1 bg-slate-50/50 dark:bg-ink-800/40 p-6 rounded-2xl border border-gray-150 dark:border-slate-800 h-fit space-y-4">
                 <form
                   onSubmit={(e) => {
                     e.preventDefault();
@@ -412,7 +412,7 @@ export default function DSRSettings({
                       required
                       value={selectedUserEmail}
                       onChange={(e) => setSelectedUserEmail(e.target.value)}
-                      className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded text-xs focus:ring-1 focus:ring-indigo-500 focus:dark:ring-blue-500/50 text-gray-900 dark:text-slate-50 focus:outline-none"
+                      className="w-full px-3 py-2 bg-white dark:bg-ink-900 border border-gray-200 dark:border-slate-800 rounded text-xs focus:ring-1 focus:ring-indigo-500 focus:dark:ring-blue-500/50 text-gray-900 dark:text-slate-50 focus:outline-none"
                     >
                       <option value="">- Select User -</option>
                       {(() => {
@@ -437,7 +437,7 @@ export default function DSRSettings({
                     <select
                       name="projectId"
                       required
-                      className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded text-xs focus:ring-1 focus:ring-indigo-500 focus:dark:ring-blue-500/50 text-gray-900 dark:text-slate-50 focus:outline-none"
+                      className="w-full px-3 py-2 bg-white dark:bg-ink-900 border border-gray-200 dark:border-slate-800 rounded text-xs focus:ring-1 focus:ring-indigo-500 focus:dark:ring-blue-500/50 text-gray-900 dark:text-slate-50 focus:outline-none"
                     >
                       <option value="">- Select Active Project -</option>
                       {(() => {
@@ -462,7 +462,7 @@ export default function DSRSettings({
                       name="date"
                       required
                       defaultValue={new Date().toISOString().split('T')[0]}
-                      className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded text-xs focus:ring-1 focus:ring-indigo-500 focus:dark:ring-blue-500/50 text-gray-900 dark:text-slate-50 font-mono focus:outline-none"
+                      className="w-full px-3 py-2 bg-white dark:bg-ink-900 border border-gray-200 dark:border-slate-800 rounded text-xs focus:ring-1 focus:ring-indigo-500 focus:dark:ring-blue-500/50 text-gray-900 dark:text-slate-50 font-mono focus:outline-none"
                     />
                   </div>
 
@@ -472,7 +472,7 @@ export default function DSRSettings({
                       name="message"
                       rows={3}
                       placeholder="e.g. Please check SEO backlinks and indexation status"
-                      className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded text-xs focus:ring-1 focus:ring-indigo-500 focus:dark:ring-blue-500/50 text-gray-900 dark:text-slate-50 focus:outline-none"
+                      className="w-full px-3 py-2 bg-white dark:bg-ink-900 border border-gray-200 dark:border-slate-800 rounded text-xs focus:ring-1 focus:ring-indigo-500 focus:dark:ring-blue-500/50 text-gray-900 dark:text-slate-50 focus:outline-none"
                     />
                   </div>
 
@@ -543,7 +543,7 @@ export default function DSRSettings({
                             setIsDeleteMode(false);
                             setSelectedAssignmentIds([]);
                           }}
-                          className="px-2.5 py-1 text-[10px] font-bold text-gray-500 dark:text-slate-400 bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 hover:dark:bg-slate-700 rounded-lg transition cursor-pointer"
+                          className="px-2.5 py-1 text-[10px] font-bold text-gray-500 dark:text-slate-400 bg-gray-100 dark:bg-ink-800 hover:bg-gray-200 hover:dark:bg-ink-700 rounded-lg transition cursor-pointer"
                         >
                           Cancel
                         </button>
@@ -566,7 +566,7 @@ export default function DSRSettings({
                   </div>
                 </div>
 
-                <div className="bg-white dark:bg-slate-900 border border-gray-150 dark:border-slate-800 rounded-2xl overflow-hidden shadow-2xs">
+                <div className="bg-white dark:bg-ink-900 border border-gray-150 dark:border-slate-800 rounded-2xl overflow-hidden shadow-2xs">
                   <div className="overflow-x-auto">
                     <table className="w-full text-left text-xs">
                       <thead className="bg-gray-50/70 border-b border-gray-150 dark:border-slate-800 font-bold text-gray-500 dark:text-slate-400 text-[10px] uppercase">
@@ -616,7 +616,7 @@ export default function DSRSettings({
                                     }
                                   }
                                 }}
-                                className={`hover:bg-slate-50/40 hover:dark:bg-slate-800/35 transition-colors ${isSelected ? 'bg-indigo-50/15' : ''} ${isDeleteMode ? 'cursor-pointer select-none' : ''}`}
+                                className={`hover:bg-slate-50/40 hover:dark:bg-ink-800/35 transition-colors ${isSelected ? 'bg-indigo-50/15' : ''} ${isDeleteMode ? 'cursor-pointer select-none' : ''}`}
                               >
                                 {isDeleteMode && (
                                   <td className="px-4 py-3.5 text-center">
@@ -686,7 +686,7 @@ export default function DSRSettings({
         )}
 
         {activeSubTab === 'database' && (
-          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xs border border-gray-150 dark:border-slate-800 p-6 space-y-6">
+          <div className="bg-white dark:bg-ink-900 rounded-2xl shadow-xs border border-gray-150 dark:border-slate-800 p-6 space-y-6">
             <div className="flex items-center gap-2 pb-4 border-b border-gray-100 dark:border-slate-800/60">
               <Database className="text-indigo-600 dark:text-blue-400" size={20} />
               <div>
@@ -765,7 +765,7 @@ export default function DSRSettings({
             </div>
 
             {/* Setup Instructions list */}
-            <div className="bg-slate-50 dark:bg-slate-800/60 rounded-xl p-5 border border-gray-150 dark:border-slate-800 space-y-4">
+            <div className="bg-slate-50 dark:bg-ink-800/60 rounded-xl p-5 border border-gray-150 dark:border-slate-800 space-y-4">
               <div className="text-xs font-bold text-gray-800 dark:text-slate-100 uppercase tracking-wide">
                 How to set up Supabase Persistence:
               </div>
@@ -773,7 +773,7 @@ export default function DSRSettings({
                 <li>Create a free account or project on <a href="https://supabase.com" target="_blank" rel="noreferrer" className="text-indigo-600 dark:text-blue-400 hover:underline inline-flex items-center gap-0.5 font-bold">Supabase <ExternalLink size={11} /></a>.</li>
                 <li>Go to <strong>Project Settings</strong> &gt; <strong>API</strong> and find your Project URL and anon/public Key.</li>
                 <li>Add these keys to your AI Studio secrets / environment variables as:
-                  <div className="mt-1.5 font-mono text-[10px] bg-slate-100 dark:bg-slate-800 p-1.5 px-2 rounded-lg text-slate-700 dark:text-slate-200 block whitespace-pre-wrap">
+                  <div className="mt-1.5 font-mono text-[10px] bg-slate-100 dark:bg-ink-800 p-1.5 px-2 rounded-lg text-slate-700 dark:text-slate-200 block whitespace-pre-wrap">
                     SUPABASE_URL=your_project_url<br/>
                     SUPABASE_KEY=your_anon_public_key
                   </div>
