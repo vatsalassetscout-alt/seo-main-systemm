@@ -268,6 +268,9 @@ export default function DSRDashboard({
       if (userDropdownRef.current && !userDropdownRef.current.contains(target)) {
         setIsUserDropdownOpen(false);
       }
+      if (dateDropdownRef.current && !dateDropdownRef.current.contains(target)) {
+        setIsCustomDatePanelOpen(false);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -280,6 +283,8 @@ export default function DSRDashboard({
   const [dateFilterType, setDateFilterType] = useState<'all' | 'today' | 'yesterday' | 'last_7_days' | 'custom'>('all');
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
+  const [isCustomDatePanelOpen, setIsCustomDatePanelOpen] = useState(false);
+  const dateDropdownRef = useRef<HTMLDivElement>(null);
 
   // Project backlinks cell expand state (for clicking on the backlinks count)
   const [expandedProjectStats, setExpandedProjectStats] = useState<Record<string, boolean>>({});
@@ -1682,7 +1687,7 @@ export default function DSRDashboard({
           </div>
 
           {/* Block 1: Date Filter — pill style */}
-          <div className="relative">
+          <div className="relative" ref={dateDropdownRef} onMouseDown={() => { if (dateFilterType === 'custom') setIsCustomDatePanelOpen(true); }}>
             <div
               className={`relative flex items-center gap-1.5 pl-4 pr-3 py-2.5 rounded-xl border text-[13px] font-semibold whitespace-nowrap transition ${
                 dateFilterType !== 'all'
@@ -1702,7 +1707,11 @@ export default function DSRDashboard({
               <ChevronDown size={14} className={dateFilterType !== 'all' ? 'text-indigo-400' : 'text-gray-400'} />
               <select
                 value={dateFilterType}
-                onChange={(e) => setDateFilterType(e.target.value as any)}
+                onChange={(e) => {
+                  const value = e.target.value as any;
+                  setDateFilterType(value);
+                  setIsCustomDatePanelOpen(value === 'custom');
+                }}
                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                 aria-label="Date Filter"
               >
@@ -1714,7 +1723,7 @@ export default function DSRDashboard({
               </select>
             </div>
 
-            {dateFilterType === 'custom' && (
+            {dateFilterType === 'custom' && isCustomDatePanelOpen && (
               <div className="absolute left-0 mt-1.5 z-50 flex flex-col gap-1 bg-white p-2 border border-indigo-100 rounded-xl shadow-lg w-48">
                 <input
                   type="date"
