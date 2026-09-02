@@ -27,12 +27,6 @@ body,
   transition: background-color 0.25s ease, color 0.25s ease;
 }
 
-/* Logo assets in this app are dark-on-transparent; invert them so they stay
-   legible against dark surfaces. */
-.dark .dark-logo-invert {
-  filter: invert(1) brightness(1.8) contrast(0.9);
-}
-
 /* Slim, low-contrast scrollbars that fit the dark surface instead of the
    default light-chrome scrollbar. */
 .dark ::-webkit-scrollbar {
