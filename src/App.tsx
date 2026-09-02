@@ -17,6 +17,7 @@ import DSRSettings from './components/DSRSettings';
 import TaskLineup from './components/TaskLineup';
 import LoginScreen from './components/LoginScreen';
 import ThemeToggle from './components/ThemeToggle';
+import Logo from './components/Logo';
 import { initAuth, googleSignIn, getAccessToken, logout } from './lib/firebase';
 import { getUserDisplayName, registerNamesFromProjects, doesUserMatch } from './lib/userUtils';
 import { cleanDomain } from './lib/domain';
@@ -45,7 +46,9 @@ import {
   Menu,
   ChevronRight,
   Settings,
-  FileBarChart
+  FileBarChart,
+  Sun,
+  Moon
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -1186,16 +1189,7 @@ export default function App() {
 
                     {/* Panel header */}
                     <div className="flex items-center justify-between px-4 pt-3 pb-2.5 shrink-0">
-                      <img
-                        src="https://assetscout.in/assets/images/Assetscout%20Logo%20Black.webp"
-                        alt="Assetscout Logo"
-                        width={110}
-                        height={24}
-                        loading="lazy"
-                        decoding="async"
-                        className="h-6 w-auto object-contain block dark-logo-invert"
-                        referrerPolicy="no-referrer"
-                      />
+                      <Logo imgHeightClassName="h-6" />
                       <button
                         type="button"
                         onClick={closeNavMenuNow}
@@ -1371,6 +1365,16 @@ export default function App() {
                         Reports
                       </button>
                     )}
+
+                    {/* Appearance — theme switch, placed under all other menu options */}
+                    <div className="w-full flex items-center justify-between gap-3 px-3.5 py-2.5 mt-1 rounded-xl border border-gray-150 dark:border-slate-800">
+                      <span className="flex items-center gap-3 text-xs font-bold text-gray-500 dark:text-slate-400">
+                        <Sun size={15} className="dark:hidden" />
+                        <Moon size={15} className="hidden dark:block" />
+                        Appearance
+                      </span>
+                      <ThemeToggle />
+                    </div>
                   </nav>
 
                   {/* Panel footer: admin settings icon + logout, pinned to the bottom */}
@@ -1406,24 +1410,11 @@ export default function App() {
 
             {/* Center: branding */}
             <div className="flex items-center absolute left-1/2 -translate-x-1/2">
-              <img 
-                src="https://assetscout.in/assets/images/Assetscout%20Logo%20Black.webp" 
-                alt="Assetscout Logo" 
-                width={140}
-                height={32}
-                loading="eager"
-                fetchPriority="high"
-                decoding="async"
-                className="h-7 sm:h-8 w-auto object-contain block dark-logo-invert"
-                referrerPolicy="no-referrer"
-              />
+              <Logo />
             </div>
 
             {/* Right Side: Account Actions & Logouts */}
             <div className="flex items-center gap-3">
-              {/* Light / Dark theme switch */}
-              <ThemeToggle />
-
               {/* Manual Refresh Button */}
               <button
                 onClick={handleTriggerSync}
