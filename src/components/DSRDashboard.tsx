@@ -1626,7 +1626,7 @@ export default function DSRDashboard({
       <div ref={stickyBarRef} className="sticky top-16 z-30 -mx-1 px-1 pt-2 pb-2.5 bg-gray-50/95 backdrop-blur-sm space-y-3">
 
       {/* Workspace Filters panel - ON TOP OF PAGE */}
-      <div className="bg-white p-3 rounded-2xl border border-gray-150 shadow-2xs space-y-2.5">
+      <div className="bg-white p-3 rounded-2xl shadow-2xs space-y-2.5">
 
         {/* Search bar + Filters — single line, search bar fills remaining width */}
         <div className="flex flex-wrap items-center gap-2.5 pt-1">
@@ -1708,8 +1708,8 @@ export default function DSRDashboard({
           </div>
 
           {/* Block 2: Region Control — label removed, just the segmented control */}
-          <div className="bg-slate-50/40 p-1.5 rounded-xl border border-gray-100">
-            <div className="flex bg-gray-100 p-1.5 rounded-xl border border-gray-200 select-none h-[40px] items-center gap-1.5">
+          <div className="bg-slate-50/40 p-1.5 rounded-xl">
+            <div className="flex bg-gray-100 p-1.5 rounded-xl select-none h-[40px] items-center gap-1.5">
               {[
                 { label: 'WEST', value: 'West' },
                 { label: 'ALL', value: 'All' },
@@ -1761,7 +1761,7 @@ export default function DSRDashboard({
                   className="fixed inset-0 z-40" 
                   onClick={() => setIsProjectDropdownOpen(false)} 
                 />
-                <div className="absolute left-0 mt-1.5 w-64 bg-white border border-gray-200 rounded-xl shadow-lg z-50 p-2.5 space-y-2 max-h-56 overflow-y-auto">
+                <div className="absolute left-0 mt-1.5 w-72 bg-white border border-gray-200 rounded-xl shadow-lg z-50 p-2.5 space-y-2 max-h-56 overflow-y-auto">
                     <div className="flex items-center justify-between text-[9px] pb-1 border-b border-gray-100 font-bold text-gray-400">
                       <span>PROJECTS</span>
                       <div className="flex gap-2">
@@ -1855,7 +1855,7 @@ export default function DSRDashboard({
                   className="fixed inset-0 z-40" 
                   onClick={() => setIsLocationDropdownOpen(false)} 
                 />
-                <div className="absolute left-0 mt-1.5 w-64 bg-white border border-gray-200 rounded-xl shadow-lg z-50 p-2.5 space-y-2 max-h-56 overflow-y-auto font-sans">
+                <div className="absolute left-0 mt-1.5 w-72 bg-white border border-gray-200 rounded-xl shadow-lg z-50 p-2.5 space-y-2 max-h-56 overflow-y-auto font-sans">
                     <div className="flex items-center justify-between text-[9px] pb-1 border-b border-gray-100 font-bold text-gray-400">
                       <span>LOCATIONS</span>
                       <div className="flex gap-2">
@@ -1949,7 +1949,7 @@ export default function DSRDashboard({
                   className="fixed inset-0 z-40"
                   onClick={() => setIsPriorityDropdownOpen(false)}
                 />
-                <div className="absolute left-0 mt-1.5 w-64 bg-white border border-gray-200 rounded-xl shadow-lg z-50 p-2.5 space-y-2 max-h-56 overflow-y-auto">
+                <div className="absolute left-0 mt-1.5 w-72 bg-white border border-gray-200 rounded-xl shadow-lg z-50 p-2.5 space-y-2 max-h-56 overflow-y-auto">
                     <div className="flex items-center justify-between text-[9px] pb-1 border-b border-gray-100 font-bold text-gray-400">
                       <span>PRIORITY</span>
                       <div className="flex gap-2">
@@ -2031,7 +2031,7 @@ export default function DSRDashboard({
                     className="fixed inset-0 z-40" 
                     onClick={() => setIsUserDropdownOpen(false)} 
                   />
-                  <div className="absolute left-0 mt-1.5 w-64 bg-white border border-gray-200 rounded-xl shadow-lg z-50 p-2.5 space-y-2 max-h-56 overflow-y-auto">
+                  <div className="absolute right-0 mt-1.5 w-72 max-w-[calc(100vw-2rem)] bg-white border border-gray-200 rounded-xl shadow-lg z-50 p-2.5 space-y-2 max-h-56 overflow-y-auto">
                       <div className="flex items-center justify-between text-[9px] pb-1 border-b border-gray-105 font-bold text-gray-400 font-sans">
                         <span>USERS</span>
                         <div className="flex gap-2">
