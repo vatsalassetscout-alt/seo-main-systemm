@@ -509,7 +509,7 @@ export default function DSRLogs({
       {/* Search & Parameters panel — compact pill-style filters, matching the
           Overview Panel's "Workspace Filters" treatment: a growing search bar
           plus inline pill dropdowns, all on one row instead of a boxy grid. */}
-      <div className="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl border border-gray-100 dark:border-slate-800/60 shadow-xs space-y-3">
+      <div className="bg-white dark:bg-ink-900 p-4 sm:p-5 rounded-2xl border border-gray-100 dark:border-slate-800/60 shadow-xs space-y-3">
         <div className="flex flex-wrap items-center gap-2.5">
           {/* Dynamic search bar — grows to fill remaining width */}
           <div className="relative flex-1 min-w-[220px]">
@@ -519,7 +519,7 @@ export default function DSRLogs({
               placeholder="Search everything (user id, project, blog)..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-250 rounded-xl text-[13px] font-semibold placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:dark:ring-blue-500/50 hover:bg-slate-100/50 transition text-gray-950 dark:text-slate-50"
+              className="w-full pl-9 pr-4 py-2.5 bg-slate-50 dark:bg-ink-800/60 border border-slate-250 rounded-xl text-[13px] font-semibold placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:dark:ring-blue-500/50 hover:bg-slate-100/50 transition text-gray-950 dark:text-slate-50"
             />
             {searchTerm && (
               <button
@@ -538,7 +538,7 @@ export default function DSRLogs({
               className={`relative flex items-center gap-1.5 pl-4 pr-3 py-2.5 rounded-xl border text-[13px] font-semibold whitespace-nowrap transition cursor-pointer ${
                 dateFilterType !== 'all'
                   ? 'border-indigo-200 dark:border-blue-500/25 bg-indigo-50 dark:bg-blue-500/10 text-indigo-700 dark:text-blue-400'
-                  : 'border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-gray-700 dark:text-slate-200 hover:bg-gray-50 hover:dark:bg-slate-800/60'
+                  : 'border-gray-200 dark:border-slate-800 bg-white dark:bg-ink-900 text-gray-700 dark:text-slate-200 hover:bg-gray-50 hover:dark:bg-ink-800/60'
               }`}
             >
               <Calendar size={14} className={dateFilterType !== 'all' ? 'text-indigo-500' : 'text-gray-400 dark:text-slate-500'} />
@@ -561,13 +561,13 @@ export default function DSRLogs({
             </div>
 
             {dateFilterType === 'custom' && (
-              <div className="absolute left-0 mt-1.5 z-50 flex flex-col gap-1 bg-white dark:bg-slate-900 p-2 border border-indigo-100 dark:border-blue-500/20 rounded-xl shadow-lg w-48" onClick={(e) => e.stopPropagation()}>
+              <div className="absolute left-0 mt-1.5 z-50 flex flex-col gap-1 bg-white dark:bg-ink-900 p-2 border border-indigo-100 dark:border-blue-500/20 rounded-xl shadow-lg w-48" onClick={(e) => e.stopPropagation()}>
                 <label className="block text-[9px] font-bold text-indigo-900 dark:text-blue-200 uppercase tracking-wider px-0.5">Start Date</label>
                 <input
                   type="date"
                   value={customStartDate}
                   onChange={(e) => setCustomStartDate(e.target.value)}
-                  className="w-full px-1.5 py-1 bg-gray-50 dark:bg-slate-800/60 border border-gray-200 dark:border-slate-800 rounded text-[10px] font-bold text-gray-900 dark:text-slate-50 cursor-pointer"
+                  className="w-full px-1.5 py-1 bg-gray-50 dark:bg-ink-800/60 border border-gray-200 dark:border-slate-800 rounded text-[10px] font-bold text-gray-900 dark:text-slate-50 cursor-pointer"
                   title="Start Date"
                 />
                 <label className="block text-[9px] font-bold text-indigo-900 dark:text-blue-200 uppercase tracking-wider px-0.5 mt-0.5">End Date</label>
@@ -575,7 +575,7 @@ export default function DSRLogs({
                   type="date"
                   value={customEndDate}
                   onChange={(e) => setCustomEndDate(e.target.value)}
-                  className="w-full px-1.5 py-1 bg-gray-50 dark:bg-slate-800/60 border border-gray-200 dark:border-slate-800 rounded text-[10px] font-bold text-gray-900 dark:text-slate-50 cursor-pointer"
+                  className="w-full px-1.5 py-1 bg-gray-50 dark:bg-ink-800/60 border border-gray-200 dark:border-slate-800 rounded text-[10px] font-bold text-gray-900 dark:text-slate-50 cursor-pointer"
                   title="End Date"
                 />
               </div>
@@ -595,7 +595,7 @@ export default function DSRLogs({
               className={`flex items-center gap-1.5 pl-4 pr-3 py-2.5 rounded-xl border text-[13px] font-semibold whitespace-nowrap transition cursor-pointer ${
                 selectedProjectId !== 'all'
                   ? 'border-indigo-200 dark:border-blue-500/25 bg-indigo-50 dark:bg-blue-500/10 text-indigo-700 dark:text-blue-400'
-                  : 'border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-gray-700 dark:text-slate-200 hover:bg-gray-50 hover:dark:bg-slate-800/60'
+                  : 'border-gray-200 dark:border-slate-800 bg-white dark:bg-ink-900 text-gray-700 dark:text-slate-200 hover:bg-gray-50 hover:dark:bg-ink-800/60'
               }`}
             >
               <Tag size={14} className={selectedProjectId !== 'all' ? 'text-indigo-500' : 'text-gray-400 dark:text-slate-500'} />
@@ -609,7 +609,7 @@ export default function DSRLogs({
             {isProjectDropdownOpen && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setIsProjectDropdownOpen(false)} />
-                <div className="absolute left-0 mt-1.5 w-64 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl shadow-lg z-50 p-2.5 space-y-2 max-h-64 overflow-y-auto">
+                <div className="absolute left-0 mt-1.5 w-64 bg-white dark:bg-ink-900 border border-gray-200 dark:border-slate-800 rounded-xl shadow-lg z-50 p-2.5 space-y-2 max-h-64 overflow-y-auto">
                   <div className="flex items-center justify-between text-[9px] pb-1 border-b border-gray-100 dark:border-slate-800/60 font-bold text-gray-400 dark:text-slate-500">
                     <span>PROJECT</span>
                     {selectedProjectId !== 'all' && (
@@ -629,7 +629,7 @@ export default function DSRLogs({
                       value={projectSearchTerm}
                       onChange={(e) => setProjectSearchTerm(e.target.value)}
                       placeholder="Search project..."
-                      className="w-full px-2 py-1 bg-gray-50 dark:bg-slate-800/60 border border-gray-200 dark:border-slate-800 rounded text-[10px] font-bold focus:outline-none focus:ring-1 focus:ring-indigo-550 focus:dark:ring-blue-500/50 text-gray-950 dark:text-slate-50 placeholder-gray-400"
+                      className="w-full px-2 py-1 bg-gray-50 dark:bg-ink-800/60 border border-gray-200 dark:border-slate-800 rounded text-[10px] font-bold focus:outline-none focus:ring-1 focus:ring-indigo-550 focus:dark:ring-blue-500/50 text-gray-950 dark:text-slate-50 placeholder-gray-400"
                     />
                   </div>
 
@@ -637,7 +637,7 @@ export default function DSRLogs({
                     <div
                       onClick={() => { setSelectedProjectId('all'); setIsProjectDropdownOpen(false); }}
                       className={`px-2 py-1.5 rounded cursor-pointer text-[12px] font-bold truncate transition-colors ${
-                        selectedProjectId === 'all' ? 'bg-indigo-50 dark:bg-blue-500/10 text-indigo-700 dark:text-blue-400' : 'text-gray-800 dark:text-slate-100 hover:bg-gray-50 hover:dark:bg-slate-800/60'
+                        selectedProjectId === 'all' ? 'bg-indigo-50 dark:bg-blue-500/10 text-indigo-700 dark:text-blue-400' : 'text-gray-800 dark:text-slate-100 hover:bg-gray-50 hover:dark:bg-ink-800/60'
                       }`}
                     >
                       Every Project (All Allocations)
@@ -649,7 +649,7 @@ export default function DSRLogs({
                           key={p.id}
                           onClick={() => { setSelectedProjectId(p.id); setIsProjectDropdownOpen(false); }}
                           className={`px-2 py-1.5 rounded cursor-pointer text-[12px] font-bold truncate transition-colors ${
-                            selectedProjectId === p.id ? 'bg-indigo-50 dark:bg-blue-500/10 text-indigo-700 dark:text-blue-400' : 'text-gray-800 dark:text-slate-100 hover:bg-gray-50 hover:dark:bg-slate-800/60'
+                            selectedProjectId === p.id ? 'bg-indigo-50 dark:bg-blue-500/10 text-indigo-700 dark:text-blue-400' : 'text-gray-800 dark:text-slate-100 hover:bg-gray-50 hover:dark:bg-ink-800/60'
                           }`}
                         >
                           {p.name}
@@ -675,7 +675,7 @@ export default function DSRLogs({
                 className={`flex items-center gap-1.5 pl-4 pr-3 py-2.5 rounded-xl border text-[13px] font-semibold whitespace-nowrap transition cursor-pointer ${
                   selectedUsers.length > 0
                     ? 'border-indigo-200 dark:border-blue-500/25 bg-indigo-50 dark:bg-blue-500/10 text-indigo-700 dark:text-blue-400'
-                    : 'border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-gray-700 dark:text-slate-200 hover:bg-gray-50 hover:dark:bg-slate-800/60'
+                    : 'border-gray-200 dark:border-slate-800 bg-white dark:bg-ink-900 text-gray-700 dark:text-slate-200 hover:bg-gray-50 hover:dark:bg-ink-800/60'
                 }`}
               >
                 <Users size={14} className={selectedUsers.length > 0 ? 'text-indigo-500' : 'text-gray-400 dark:text-slate-500'} />
@@ -692,7 +692,7 @@ export default function DSRLogs({
                     className="fixed inset-0 z-40"
                     onClick={() => setIsUserDropdownOpen(false)}
                   />
-                  <div className="absolute left-0 mt-1.5 w-64 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl shadow-lg z-50 p-2.5 space-y-2 max-h-56 overflow-y-auto">
+                  <div className="absolute left-0 mt-1.5 w-64 bg-white dark:bg-ink-900 border border-gray-200 dark:border-slate-800 rounded-xl shadow-lg z-50 p-2.5 space-y-2 max-h-56 overflow-y-auto">
                     <div className="flex items-center justify-between text-[9px] pb-1 border-b border-gray-100 dark:border-slate-800/60 font-bold text-gray-400 dark:text-slate-500">
                       <span>USERS</span>
                       <div className="flex gap-2">
@@ -721,7 +721,7 @@ export default function DSRLogs({
                         value={userSearchTerm}
                         onChange={(e) => setUserSearchTerm(e.target.value)}
                         placeholder="Search user..."
-                        className="w-full px-2 py-1 bg-gray-50 dark:bg-slate-800/60 border border-gray-200 dark:border-slate-800 rounded text-[10px] font-bold focus:outline-none focus:ring-1 focus:ring-indigo-550 focus:dark:ring-blue-500/50 text-gray-950 dark:text-slate-50 placeholder-gray-400 h-[26px]"
+                        className="w-full px-2 py-1 bg-gray-50 dark:bg-ink-800/60 border border-gray-200 dark:border-slate-800 rounded text-[10px] font-bold focus:outline-none focus:ring-1 focus:ring-indigo-550 focus:dark:ring-blue-500/50 text-gray-950 dark:text-slate-50 placeholder-gray-400 h-[26px]"
                       />
                     </div>
 
@@ -731,7 +731,7 @@ export default function DSRLogs({
                         .map((u) => {
                           const isChecked = selectedUsers.includes(u.email);
                           return (
-                            <div key={u.email} className="flex items-center justify-between p-1 rounded hover:bg-gray-50 hover:dark:bg-slate-800/60 transition-colors">
+                            <div key={u.email} className="flex items-center justify-between p-1 rounded hover:bg-gray-50 hover:dark:bg-ink-800/60 transition-colors">
                               <label className="flex items-center gap-2 cursor-pointer text-[11px] text-gray-800 dark:text-slate-100 font-bold grow select-none">
                                 <input
                                   type="checkbox"
@@ -771,7 +771,7 @@ export default function DSRLogs({
                 className={`flex items-center gap-1.5 pl-4 pr-3 py-2.5 rounded-xl border text-[13px] font-semibold whitespace-nowrap transition cursor-pointer ${
                   statusFilter !== 'all'
                     ? 'border-indigo-200 dark:border-blue-500/25 bg-indigo-50 dark:bg-blue-500/10 text-indigo-700 dark:text-blue-400'
-                    : 'border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-gray-700 dark:text-slate-200 hover:bg-gray-50 hover:dark:bg-slate-800/60'
+                    : 'border-gray-200 dark:border-slate-800 bg-white dark:bg-ink-900 text-gray-700 dark:text-slate-200 hover:bg-gray-50 hover:dark:bg-ink-800/60'
                 }`}
               >
                 <ShieldCheck size={14} className={statusFilter !== 'all' ? 'text-indigo-500' : 'text-gray-400 dark:text-slate-500'} />
@@ -783,13 +783,13 @@ export default function DSRLogs({
               {isStatusDropdownOpen && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setIsStatusDropdownOpen(false)} />
-                  <div className="absolute right-0 mt-1.5 w-44 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl shadow-lg z-50 p-1.5 space-y-0.5">
+                  <div className="absolute right-0 mt-1.5 w-44 bg-white dark:bg-ink-900 border border-gray-200 dark:border-slate-800 rounded-xl shadow-lg z-50 p-1.5 space-y-0.5">
                     {(['all', 'Pending', 'Approved', 'Remark'] as const).map((s) => (
                       <div
                         key={s}
                         onClick={() => { setStatusFilter(s); setIsStatusDropdownOpen(false); }}
                         className={`px-2.5 py-1.5 rounded-lg cursor-pointer text-[12px] font-bold transition-colors ${
-                          statusFilter === s ? 'bg-indigo-50 dark:bg-blue-500/10 text-indigo-700 dark:text-blue-400' : 'text-gray-800 dark:text-slate-100 hover:bg-gray-50 hover:dark:bg-slate-800/60'
+                          statusFilter === s ? 'bg-indigo-50 dark:bg-blue-500/10 text-indigo-700 dark:text-blue-400' : 'text-gray-800 dark:text-slate-100 hover:bg-gray-50 hover:dark:bg-ink-800/60'
                         }`}
                       >
                         {STATUS_FILTER_LABELS[s]}
@@ -805,7 +805,7 @@ export default function DSRLogs({
 
       {/* Primary entries feed list */}
       {flatLogs.length === 0 ? (
-        <div className="bg-white dark:bg-slate-900 p-12 rounded-3xl border border-gray-150 dark:border-slate-800 text-center flex flex-col items-center justify-center space-y-4 max-w-xl mx-auto">
+        <div className="bg-white dark:bg-ink-900 p-12 rounded-3xl border border-gray-150 dark:border-slate-800 text-center flex flex-col items-center justify-center space-y-4 max-w-xl mx-auto">
           <Compass size={40} className="text-gray-300 dark:text-slate-500 animate-pulse" />
           <h4 className="text-sm font-bold text-gray-800 dark:text-slate-100">Clear Search Criteria</h4>
           <p className="text-xs text-gray-550 dark:text-slate-300 leading-relaxed">
@@ -882,7 +882,7 @@ export default function DSRLogs({
                 <div
                   key={item.uniqueId}
                   ref={(el) => { logItemRefs.current[item.uniqueId] = el; }}
-                  className={`bg-white dark:bg-slate-900 rounded-2xl border transition-all duration-200 overflow-hidden ${
+                  className={`bg-white dark:bg-ink-900 rounded-2xl border transition-all duration-200 overflow-hidden ${
                     isExpanded 
                       ? 'border-indigo-400 shadow-sm shadow-indigo-100/40 ring-1 ring-indigo-400/20 dark:ring-blue-400/20' 
                       : 'border-slate-150 dark:border-slate-800 hover:border-slate-200/90 shadow-2xs hover:shadow-3xs'
@@ -901,7 +901,7 @@ export default function DSRLogs({
                       content center-aligned inside that box. */}
                   <div
                     onClick={() => toggleExpand(item.uniqueId)}
-                    className="px-4 py-3.5 sm:px-5 sm:py-4 hover:bg-slate-50/45 hover:dark:bg-slate-800/40 cursor-pointer select-none transition-colors overflow-x-auto"
+                    className="px-4 py-3.5 sm:px-5 sm:py-4 hover:bg-slate-50/45 hover:dark:bg-ink-800/40 cursor-pointer select-none transition-colors overflow-x-auto"
                   >
                     <div
                       className="grid items-center gap-x-2 w-full"
@@ -1060,7 +1060,7 @@ export default function DSRLogs({
                             item.status === 'Remark' ? 'bg-violet-50 dark:bg-violet-500/10 text-violet-800 dark:text-violet-400 border-violet-150 dark:border-violet-500/20' :
                             'bg-amber-50 dark:bg-amber-500/10 text-amber-855 dark:text-amber-400 border-amber-100 dark:border-amber-500/20'
                           }`}>
-                            {item.status === 'Remark' ? ' Remark' : item.status}
+                            {item.status === 'Remark' ? '💬 Remark' : item.status}
                           </span>
                         )}
 
@@ -1069,7 +1069,7 @@ export default function DSRLogs({
                             e.stopPropagation();
                             toggleExpand(item.uniqueId);
                           }}
-                          className="flex items-center justify-center p-2 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800 hover:bg-slate-100 hover:dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-lg transition shrink-0"
+                          className="flex items-center justify-center p-2 bg-slate-50 dark:bg-ink-800/60 border border-slate-200 dark:border-slate-800 hover:bg-slate-100 hover:dark:bg-ink-800 text-slate-500 dark:text-slate-400 rounded-lg transition shrink-0"
                         >
                           {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                         </button>
@@ -1084,9 +1084,9 @@ export default function DSRLogs({
                         initial={{ height: 0, opacity: 0 }}
                         animate={{ height: 'auto', opacity: 1 }}
                         exit={{ height: 0, opacity: 0 }}
-                        className="overflow-hidden bg-white dark:bg-slate-900"
+                        className="overflow-hidden bg-white dark:bg-ink-900"
                       >
-                        <div className="p-4 sm:p-5 space-y-5 border-t border-slate-150 dark:border-slate-800 bg-slate-50/20 dark:bg-slate-800/20 text-left">
+                        <div className="p-4 sm:p-5 space-y-5 border-t border-slate-150 dark:border-slate-800 bg-slate-50/20 dark:bg-ink-800/20 text-left">
                           
                           {/* Inner list of submitted project works */}
                           <div className="space-y-6">
@@ -1160,9 +1160,9 @@ export default function DSRLogs({
                                           {hasDomain ? `Project ${projectDisplayNumber}` : 'Note'}
                                         </h4>
                                         <p className="text-sm font-black text-slate-900 dark:text-white mt-1 flex items-center gap-2">
-                                           {hasDomain ? (workMatchedProj?.name || work.projectName || 'Work Note') : 'Work Note'}
+                                          📂 {hasDomain ? (workMatchedProj?.name || work.projectName || 'Work Note') : 'Work Note'}
                                           {workMatchedProj?.domain && (
-                                            <span className="font-mono text-xs text-slate-500 dark:text-slate-100 font-bold bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-800 px-2 py-0.5 rounded-lg">
+                                            <span className="font-mono text-xs text-slate-500 dark:text-slate-100 font-bold bg-slate-100 dark:bg-ink-800 border border-slate-200 dark:border-slate-800 px-2 py-0.5 rounded-lg">
                                               {cleanDomain(workMatchedProj.domain)}
                                             </span>
                                           )}
@@ -1206,7 +1206,7 @@ export default function DSRLogs({
                                       return (
                                         <div className="space-y-1.5">
                                           <h4 className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">No Activities</h4>
-                                          <div className="bg-white dark:bg-slate-900 p-3.5 rounded-2xl border border-slate-150 dark:border-slate-800 shadow-3xs text-xs text-slate-805 leading-relaxed font-semibold">
+                                          <div className="bg-white dark:bg-ink-900 p-3.5 rounded-2xl border border-slate-150 dark:border-slate-800 shadow-3xs text-xs text-slate-805 leading-relaxed font-semibold">
                                             {work.workSummary ? (
                                               <p className="whitespace-pre-wrap">{work.workSummary}</p>
                                             ) : (
@@ -1242,7 +1242,7 @@ export default function DSRLogs({
 
                                         {/* Target Keywords block */}
                                         {keywordsList.length > 0 && (
-                                          <div className="bg-white dark:bg-slate-900 p-3.5 rounded-2xl border border-slate-150 dark:border-slate-800 shadow-3xs flex flex-wrap items-center gap-2">
+                                          <div className="bg-white dark:bg-ink-900 p-3.5 rounded-2xl border border-slate-150 dark:border-slate-800 shadow-3xs flex flex-wrap items-center gap-2">
                                             <span className="text-[9.5px] font-black text-slate-405 uppercase tracking-wide font-sans">Target Keywords:</span>
                                             <div className="flex flex-wrap gap-1.5">
                                               {keywordsList.map((kw: string, kwIdx: number) => (
@@ -1261,49 +1261,49 @@ export default function DSRLogs({
                                         {hasNumericMetrics && (
                                           <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2.5">
                                             {work.listingCount > 0 && (
-                                                <div className="bg-white dark:bg-slate-900 border border-slate-150 dark:border-slate-800 p-2.5 rounded-xl text-center space-y-0.5 shadow-3xs">
+                                                <div className="bg-white dark:bg-ink-900 border border-slate-150 dark:border-slate-800 p-2.5 rounded-xl text-center space-y-0.5 shadow-3xs">
                                                   <span className="block text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider font-sans">Listings</span>
                                                   <span className="block font-mono text-xs font-black text-slate-905 dark:text-slate-50">{work.listingCount}</span>
                                                 </div>
                                               )}
                                               {work.blogCount > 0 && (
-                                                <div className="bg-white dark:bg-slate-900 border border-slate-150 dark:border-slate-800 p-2.5 rounded-xl text-center space-y-0.5 shadow-3xs">
+                                                <div className="bg-white dark:bg-ink-900 border border-slate-150 dark:border-slate-800 p-2.5 rounded-xl text-center space-y-0.5 shadow-3xs">
                                                   <span className="block text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider font-sans">Blogs</span>
                                                   <span className="block font-mono text-xs font-black text-slate-905 dark:text-slate-50">{work.blogCount}</span>
                                                 </div>
                                               )}
                                               {work.forumCount > 0 && (
-                                                <div className="bg-white dark:bg-slate-900 border border-slate-150 dark:border-slate-800 p-2.5 rounded-xl text-center space-y-0.5 shadow-3xs">
+                                                <div className="bg-white dark:bg-ink-900 border border-slate-150 dark:border-slate-800 p-2.5 rounded-xl text-center space-y-0.5 shadow-3xs">
                                                   <span className="block text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider font-sans">Forums</span>
                                                   <span className="block font-mono text-xs font-black text-slate-905 dark:text-slate-50">{work.forumCount}</span>
                                                 </div>
                                               )}
                                               {work.pdfCount > 0 && (
-                                                <div className="bg-white dark:bg-slate-900 border border-slate-150 dark:border-slate-800 p-2.5 rounded-xl text-center space-y-0.5 shadow-3xs">
+                                                <div className="bg-white dark:bg-ink-900 border border-slate-150 dark:border-slate-800 p-2.5 rounded-xl text-center space-y-0.5 shadow-3xs">
                                                   <span className="block text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider font-sans">PDFs</span>
                                                   <span className="block font-mono text-xs font-black text-slate-905 dark:text-slate-50">{work.pdfCount}</span>
                                                 </div>
                                               )}
                                               {work.imageCount > 0 && (
-                                                <div className="bg-white dark:bg-slate-900 border border-slate-150 dark:border-slate-800 p-2.5 rounded-xl text-center space-y-0.5 shadow-3xs">
+                                                <div className="bg-white dark:bg-ink-900 border border-slate-150 dark:border-slate-800 p-2.5 rounded-xl text-center space-y-0.5 shadow-3xs">
                                                   <span className="block text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider font-sans">Images</span>
                                                   <span className="block font-mono text-xs font-black text-slate-905 dark:text-slate-50">{work.imageCount}</span>
                                                 </div>
                                               )}
                                               {work.videoPptCount > 0 && (
-                                                <div className="bg-white dark:bg-slate-900 border border-slate-150 dark:border-slate-800 p-2.5 rounded-xl text-center space-y-0.5 shadow-3xs">
+                                                <div className="bg-white dark:bg-ink-900 border border-slate-150 dark:border-slate-800 p-2.5 rounded-xl text-center space-y-0.5 shadow-3xs">
                                                   <span className="block text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider font-sans">Video/PPT</span>
                                                   <span className="block font-mono text-xs font-black text-slate-905 dark:text-slate-50">{work.videoPptCount}</span>
                                                 </div>
                                               )}
                                               {work.profileCount > 0 && (
-                                                <div className="bg-white dark:bg-slate-900 border border-slate-150 dark:border-slate-800 p-2.5 rounded-xl text-center space-y-0.5 shadow-3xs">
+                                                <div className="bg-white dark:bg-ink-900 border border-slate-150 dark:border-slate-800 p-2.5 rounded-xl text-center space-y-0.5 shadow-3xs">
                                                   <span className="block text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider font-sans">Profile</span>
                                                   <span className="block font-mono text-xs font-black text-slate-905 dark:text-slate-50">{work.profileCount}</span>
                                                 </div>
                                               )}
                                               {work.linkCount > 0 && (
-                                                <div className="bg-white dark:bg-slate-900 border border-slate-150 dark:border-slate-800 p-2.5 rounded-xl text-center space-y-0.5 shadow-3xs">
+                                                <div className="bg-white dark:bg-ink-900 border border-slate-150 dark:border-slate-800 p-2.5 rounded-xl text-center space-y-0.5 shadow-3xs">
                                                   <span className="block text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider font-sans">Links</span>
                                                   <span className="block font-mono text-xs font-black text-slate-905 dark:text-slate-50">{work.linkCount}</span>
                                                 </div>
@@ -1314,7 +1314,7 @@ export default function DSRLogs({
                                                 const count = rawVal !== undefined ? Number(rawVal) : 0;
                                                 if (count <= 0) return null;
                                                 return (
-                                                  <div key={type.id} className="bg-white dark:bg-slate-900 border border-slate-150 dark:border-slate-800 p-2.5 rounded-xl text-center space-y-0.5 shadow-3xs">
+                                                  <div key={type.id} className="bg-white dark:bg-ink-900 border border-slate-150 dark:border-slate-800 p-2.5 rounded-xl text-center space-y-0.5 shadow-3xs">
                                                     <span className="block text-[9px] font-black text-purple-600 uppercase tracking-wider truncate font-sans" title={type.name}>
                                                       {type.name}
                                                     </span>
@@ -1330,7 +1330,7 @@ export default function DSRLogs({
 
                                   {/* Blog Backlink URLs if exists */}
                                   {work.blog && (
-                                    <div className="space-y-1 bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-150 dark:border-slate-800 shadow-3xs">
+                                    <div className="space-y-1 bg-white dark:bg-ink-900 p-3 rounded-xl border border-slate-150 dark:border-slate-800 shadow-3xs">
                                       <h4 className="text-[10px] font-black text-indigo-650 dark:text-blue-400 uppercase tracking-wider flex items-center gap-1.5">
                                         <ExternalLink size={11} />
                                         Published Blog & Live Backlink URL
@@ -1449,7 +1449,7 @@ export default function DSRLogs({
                                     logItemRefs.current[item.uniqueId]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
                                   }}
                                   title="Close this log"
-                                  className="flex items-center justify-center p-1.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800 hover:bg-slate-100 hover:dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-lg transition cursor-pointer"
+                                  className="flex items-center justify-center p-1.5 bg-slate-50 dark:bg-ink-800/60 border border-slate-200 dark:border-slate-800 hover:bg-slate-100 hover:dark:bg-ink-800 text-slate-500 dark:text-slate-400 rounded-lg transition cursor-pointer"
                                 >
                                   <ChevronUp size={13} />
                                 </button>
@@ -1481,21 +1481,21 @@ export default function DSRLogs({
               initial={{ scale: 0.9, y: 20 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.9, y: 20 }}
-              className="bg-white dark:bg-slate-900 rounded-3xl overflow-hidden shadow-2xl max-w-3xl w-full relative"
+              className="bg-white dark:bg-ink-900 rounded-3xl overflow-hidden shadow-2xl max-w-3xl w-full relative"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Modal header */}
-              <div className="p-4 border-b border-gray-100 dark:border-slate-800/60 flex justify-between items-center bg-gray-50 dark:bg-slate-800/60">
+              <div className="p-4 border-b border-gray-100 dark:border-slate-800/60 flex justify-between items-center bg-gray-50 dark:bg-ink-800/60">
                 <span className="text-xs font-bold text-gray-800 dark:text-slate-100">{activePreviewImage.title}</span>
                 <button
                   onClick={() => setActivePreviewImage(null)}
-                  className="p-1 hover:bg-gray-200 hover:dark:bg-slate-700 rounded-lg text-gray-500 dark:text-slate-400"
+                  className="p-1 hover:bg-gray-200 hover:dark:bg-ink-700 rounded-lg text-gray-500 dark:text-slate-400"
                 >
                   <X size={16} />
                 </button>
               </div>
               {/* Zoom image container */}
-              <div className="p-4 bg-gray-100 dark:bg-slate-800 flex justify-center max-h-[80vh] overflow-hidden">
+              <div className="p-4 bg-gray-100 dark:bg-ink-800 flex justify-center max-h-[80vh] overflow-hidden">
                 <img
                   src={activePreviewImage.src}
                   alt={activePreviewImage.title}
@@ -1522,16 +1522,16 @@ export default function DSRLogs({
               initial={{ scale: 0.9, y: 20 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.9, y: 20 }}
-              className="bg-white dark:bg-slate-900 rounded-3xl overflow-hidden shadow-2xl max-w-md w-full relative"
+              className="bg-white dark:bg-ink-900 rounded-3xl overflow-hidden shadow-2xl max-w-md w-full relative"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="p-4 border-b border-gray-100 dark:border-slate-800/60 flex justify-between items-center bg-gray-50 dark:bg-slate-800/60">
+              <div className="p-4 border-b border-gray-100 dark:border-slate-800/60 flex justify-between items-center bg-gray-50 dark:bg-ink-800/60">
                 <span className="text-xs font-black text-gray-800 dark:text-slate-100 uppercase tracking-wider flex items-center gap-1.5">
                   Send Remark
                 </span>
                 <button
                   onClick={() => setRemarkModalItem(null)}
-                  className="p-1 hover:bg-gray-200 hover:dark:bg-slate-700 rounded-lg text-gray-500 dark:text-slate-400"
+                  className="p-1 hover:bg-gray-200 hover:dark:bg-ink-700 rounded-lg text-gray-500 dark:text-slate-400"
                 >
                   <X size={16} />
                 </button>
@@ -1546,12 +1546,12 @@ export default function DSRLogs({
                   onChange={(e) => setRemarkText(e.target.value)}
                   placeholder="Write your remark here..."
                   rows={4}
-                  className="w-full px-3 py-2.5 bg-gray-50 dark:bg-slate-800/60 border border-gray-200 dark:border-slate-800 rounded-xl text-sm text-gray-900 dark:text-slate-50 focus:outline-none focus:border-indigo-300 focus:dark:border-blue-500/30 transition resize-none"
+                  className="w-full px-3 py-2.5 bg-gray-50 dark:bg-ink-800/60 border border-gray-200 dark:border-slate-800 rounded-xl text-sm text-gray-900 dark:text-slate-50 focus:outline-none focus:border-indigo-300 focus:dark:border-blue-500/30 transition resize-none"
                 />
                 <div className="flex justify-end gap-2 pt-1">
                   <button
                     onClick={() => setRemarkModalItem(null)}
-                    className="px-4 py-2 rounded-xl text-xs font-black text-gray-500 dark:text-slate-400 hover:bg-gray-100 hover:dark:bg-slate-800 transition cursor-pointer"
+                    className="px-4 py-2 rounded-xl text-xs font-black text-gray-500 dark:text-slate-400 hover:bg-gray-100 hover:dark:bg-ink-800 transition cursor-pointer"
                   >
                     Cancel
                   </button>
@@ -1594,17 +1594,17 @@ export default function DSRLogs({
                 initial={{ scale: 0.9, y: 20 }}
                 animate={{ scale: 1, y: 0 }}
                 exit={{ scale: 0.9, y: 20 }}
-                className="bg-white dark:bg-slate-900 rounded-3xl overflow-hidden shadow-2xl max-w-lg w-full relative max-h-[85vh] flex flex-col"
+                className="bg-white dark:bg-ink-900 rounded-3xl overflow-hidden shadow-2xl max-w-lg w-full relative max-h-[85vh] flex flex-col"
                 onClick={(e) => e.stopPropagation()}
               >
-                <div className="p-4 border-b border-gray-100 dark:border-slate-800/60 flex justify-between items-center bg-gray-50 dark:bg-slate-800/60 shrink-0">
+                <div className="p-4 border-b border-gray-100 dark:border-slate-800/60 flex justify-between items-center bg-gray-50 dark:bg-ink-800/60 shrink-0">
                   <span className="text-xs font-black text-gray-800 dark:text-slate-100 uppercase tracking-wider flex items-center gap-1.5">
                     <Trash2 size={14} className="text-rose-600 dark:text-rose-400" />
                     Delete Log — {deleteModalItem.filledForDate}
                   </span>
                   <button
                     onClick={() => setDeleteModalItem(null)}
-                    className="p-1 hover:bg-gray-200 hover:dark:bg-slate-700 rounded-lg text-gray-500 dark:text-slate-400"
+                    className="p-1 hover:bg-gray-200 hover:dark:bg-ink-700 rounded-lg text-gray-500 dark:text-slate-400"
                   >
                     <X size={16} />
                   </button>
@@ -1674,7 +1674,7 @@ export default function DSRLogs({
                 <div className="flex justify-end gap-2 p-4 border-t border-gray-100 dark:border-slate-800/60 shrink-0">
                   <button
                     onClick={() => setDeleteModalItem(null)}
-                    className="px-4 py-2 rounded-xl text-xs font-black text-gray-500 dark:text-slate-400 hover:bg-gray-100 hover:dark:bg-slate-800 transition cursor-pointer"
+                    className="px-4 py-2 rounded-xl text-xs font-black text-gray-500 dark:text-slate-400 hover:bg-gray-100 hover:dark:bg-ink-800 transition cursor-pointer"
                   >
                     Cancel
                   </button>
