@@ -251,7 +251,7 @@ export default function AdminControlPanel({
           </div>
         </div>
 
-        <div className="border border-gray-150 dark:border-slate-800 rounded-2xl bg-white dark:bg-slate-900 p-5 flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+        <div className="border border-gray-150 dark:border-slate-800 rounded-2xl bg-white dark:bg-ink-900 p-5 flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
           <div className="flex-1 space-y-1">
             <p className="text-xs font-bold text-gray-800 dark:text-slate-100">Send Report</p>
             <p className="text-[11px] text-gray-400 dark:text-slate-500">
@@ -295,11 +295,11 @@ export default function AdminControlPanel({
             value={projectSearch}
             onChange={(e) => setProjectSearch(e.target.value)}
             placeholder="Search projects by name, domain, location, keyword, or assignee…"
-            className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-slate-800/60 border border-gray-200 dark:border-slate-800 focus:border-indigo-650 focus:dark:border-blue-500/50 rounded-xl text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-indigo-650 focus:dark:ring-blue-500/50 transition"
+            className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-ink-800/60 border border-gray-200 dark:border-slate-800 focus:border-indigo-650 focus:dark:border-blue-500/50 rounded-xl text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-indigo-650 focus:dark:ring-blue-500/50 transition"
           />
         </div>
 
-        <div className="overflow-x-auto border border-gray-150 dark:border-slate-800 rounded-2xl bg-white dark:bg-slate-900 max-h-[32rem] overflow-y-auto">
+        <div className="overflow-x-auto border border-gray-150 dark:border-slate-800 rounded-2xl bg-white dark:bg-ink-900 max-h-[32rem] overflow-y-auto">
           <table className="w-full text-left border-collapse">
             <thead className="sticky top-0 bg-gray-50/95 backdrop-blur-sm">
               <tr className="border-b border-gray-150 dark:border-slate-800 text-[9px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-widest">
@@ -339,7 +339,7 @@ export default function AdminControlPanel({
                         </span>
                       ))}
                       {(p.keywords || []).length > 4 && (
-                        <span className="px-2 py-0.5 bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-slate-400 rounded-full text-[10px] font-bold">
+                        <span className="px-2 py-0.5 bg-gray-100 dark:bg-ink-800 text-gray-500 dark:text-slate-400 rounded-full text-[10px] font-bold">
                           +{(p.keywords || []).length - 4}
                         </span>
                       )}
@@ -468,11 +468,11 @@ function ProjectFormModal({
       <motion.div
         initial={{ opacity: 0, y: 20, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
-        className="bg-white dark:bg-slate-900 rounded-3xl border border-gray-150 dark:border-slate-800 shadow-lg w-full max-w-lg max-h-[90vh] overflow-y-auto"
+        className="bg-white dark:bg-ink-900 rounded-3xl border border-gray-150 dark:border-slate-800 shadow-lg w-full max-w-lg max-h-[90vh] overflow-y-auto"
       >
         <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-slate-800/60">
           <h3 className="font-extrabold text-gray-900 dark:text-slate-50 text-sm">{isEdit ? 'Edit Project' : 'Add Project'}</h3>
-          <button onClick={onClose} className="p-1.5 text-gray-400 dark:text-slate-500 hover:text-gray-700 hover:dark:text-slate-200 hover:bg-gray-50 hover:dark:bg-slate-800/60 rounded-lg cursor-pointer">
+          <button onClick={onClose} className="p-1.5 text-gray-400 dark:text-slate-500 hover:text-gray-700 hover:dark:text-slate-200 hover:bg-gray-50 hover:dark:bg-ink-800/60 rounded-lg cursor-pointer">
             <X size={16} />
           </button>
         </div>
@@ -480,7 +480,7 @@ function ProjectFormModal({
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div className="space-y-1.5">
             <label className="block text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-widest">Project ID</label>
-            <div className="px-4 py-3 bg-gray-50 dark:bg-slate-800/60 border border-gray-150 dark:border-slate-800 rounded-xl text-xs font-mono font-bold text-gray-500 dark:text-slate-400">
+            <div className="px-4 py-3 bg-gray-50 dark:bg-ink-800/60 border border-gray-150 dark:border-slate-800 rounded-xl text-xs font-mono font-bold text-gray-500 dark:text-slate-400">
               {idPreview || <span className="text-gray-300 dark:text-slate-500">auto-generated from domain</span>}
             </div>
           </div>
@@ -493,7 +493,7 @@ function ProjectFormModal({
               onBlur={(e) => setDomain(normalizeDomain(e.target.value))}
               required
               placeholder="e.g. parkpebbles.com"
-              className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800/60 border border-gray-200 dark:border-slate-800 focus:border-indigo-650 focus:dark:border-blue-500/50 rounded-xl text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-indigo-650 focus:dark:ring-blue-500/50 transition"
+              className="w-full px-4 py-3 bg-gray-50 dark:bg-ink-800/60 border border-gray-200 dark:border-slate-800 focus:border-indigo-650 focus:dark:border-blue-500/50 rounded-xl text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-indigo-650 focus:dark:ring-blue-500/50 transition"
             />
             <p className="text-[10px] text-gray-400 dark:text-slate-500">Just the domain — https://, www. and trailing slashes are stripped automatically.</p>
           </div>
@@ -505,7 +505,7 @@ function ProjectFormModal({
               onChange={(e) => setName(e.target.value)}
               required
               placeholder="e.g. Park Pebbles Bhugaon"
-              className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800/60 border border-gray-200 dark:border-slate-800 focus:border-indigo-650 focus:dark:border-blue-500/50 rounded-xl text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-indigo-650 focus:dark:ring-blue-500/50 transition"
+              className="w-full px-4 py-3 bg-gray-50 dark:bg-ink-800/60 border border-gray-200 dark:border-slate-800 focus:border-indigo-650 focus:dark:border-blue-500/50 rounded-xl text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-indigo-650 focus:dark:ring-blue-500/50 transition"
             />
           </div>
 
@@ -516,7 +516,7 @@ function ProjectFormModal({
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
                 placeholder="e.g. Bhugaon, Pune"
-                className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800/60 border border-gray-200 dark:border-slate-800 focus:border-indigo-650 focus:dark:border-blue-500/50 rounded-xl text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-indigo-650 focus:dark:ring-blue-500/50 transition"
+                className="w-full px-4 py-3 bg-gray-50 dark:bg-ink-800/60 border border-gray-200 dark:border-slate-800 focus:border-indigo-650 focus:dark:border-blue-500/50 rounded-xl text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-indigo-650 focus:dark:ring-blue-500/50 transition"
               />
             </div>
             <div className="space-y-1.5">
@@ -525,7 +525,7 @@ function ProjectFormModal({
                 value={region}
                 onChange={(e) => setRegion(e.target.value)}
                 placeholder="e.g. West"
-                className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800/60 border border-gray-200 dark:border-slate-800 focus:border-indigo-650 focus:dark:border-blue-500/50 rounded-xl text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-indigo-650 focus:dark:ring-blue-500/50 transition"
+                className="w-full px-4 py-3 bg-gray-50 dark:bg-ink-800/60 border border-gray-200 dark:border-slate-800 focus:border-indigo-650 focus:dark:border-blue-500/50 rounded-xl text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-indigo-650 focus:dark:ring-blue-500/50 transition"
               />
             </div>
           </div>
@@ -546,7 +546,7 @@ function ProjectFormModal({
                   }
                 }}
                 placeholder="Type a keyword and press Enter"
-                className="flex-1 px-4 py-3 bg-gray-50 dark:bg-slate-800/60 border border-gray-200 dark:border-slate-800 focus:border-indigo-650 focus:dark:border-blue-500/50 rounded-xl text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-indigo-650 focus:dark:ring-blue-500/50 transition"
+                className="flex-1 px-4 py-3 bg-gray-50 dark:bg-ink-800/60 border border-gray-200 dark:border-slate-800 focus:border-indigo-650 focus:dark:border-blue-500/50 rounded-xl text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-indigo-650 focus:dark:ring-blue-500/50 transition"
               />
               <button
                 type="button"
@@ -616,11 +616,11 @@ function ReassignModal({
       <motion.div
         initial={{ opacity: 0, y: 20, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
-        className="bg-white dark:bg-slate-900 rounded-3xl border border-gray-150 dark:border-slate-800 shadow-lg w-full max-w-sm"
+        className="bg-white dark:bg-ink-900 rounded-3xl border border-gray-150 dark:border-slate-800 shadow-lg w-full max-w-sm"
       >
         <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-slate-800/60">
           <h3 className="font-extrabold text-gray-900 dark:text-slate-50 text-sm">Assign Project</h3>
-          <button onClick={onClose} className="p-1.5 text-gray-400 dark:text-slate-500 hover:text-gray-700 hover:dark:text-slate-200 hover:bg-gray-50 hover:dark:bg-slate-800/60 rounded-lg cursor-pointer">
+          <button onClick={onClose} className="p-1.5 text-gray-400 dark:text-slate-500 hover:text-gray-700 hover:dark:text-slate-200 hover:bg-gray-50 hover:dark:bg-ink-800/60 rounded-lg cursor-pointer">
             <X size={16} />
           </button>
         </div>
@@ -635,7 +635,7 @@ function ReassignModal({
               value={selected}
               onChange={(e) => setSelected(e.target.value)}
               required
-              className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800/60 border border-gray-200 dark:border-slate-800 focus:border-indigo-650 focus:dark:border-blue-500/50 rounded-xl text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-indigo-650 focus:dark:ring-blue-500/50 transition"
+              className="w-full px-4 py-3 bg-gray-50 dark:bg-ink-800/60 border border-gray-200 dark:border-slate-800 focus:border-indigo-650 focus:dark:border-blue-500/50 rounded-xl text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-indigo-650 focus:dark:ring-blue-500/50 transition"
             >
               <option value="">Select a user…</option>
               {users.map((u) => (
