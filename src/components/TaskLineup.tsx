@@ -40,10 +40,10 @@ interface UserPendingSummary {
 }
 
 const PRIORITY_BADGE: Record<string, string> = {
-  X1: 'bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-400 border-red-100',
+  X1: 'bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-400 border-red-100 dark:border-red-500/20',
   X2: 'bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-100 dark:border-amber-500/20',
-  X3: 'bg-blue-50 text-blue-700 border-blue-100',
-  X4: 'bg-purple-50 text-purple-700 border-purple-100 dark:border-purple-500/20',
+  X3: 'bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-100 dark:border-blue-500/20',
+  X4: 'bg-purple-50 dark:bg-purple-500/10 text-purple-700 dark:text-purple-400 border-purple-100 dark:border-purple-500/20',
   X5: 'bg-gray-50 dark:bg-ink-800/60 text-gray-700 dark:text-slate-200 border-gray-150 dark:border-slate-800',
 };
 
