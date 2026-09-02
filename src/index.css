@@ -1,1 +1,53 @@
 @import "tailwindcss";
+
+/* Switch Tailwind's `dark:` variant from OS-preference-based to class-based,
+   so the in-app toggle (not just system settings) controls it. Applying the
+   `.dark` class on <html> is all that's needed — see src/lib/theme.ts. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  color-scheme: light;
+}
+
+.dark {
+  color-scheme: dark;
+  /* Tailwind's ring-offset utilities default to white; without this, every
+     focus/selected ring would keep a bright white halo in dark mode. */
+  --tw-ring-offset-color: #0f172a;
+}
+
+/* A smooth, cheap cross-fade when the theme is toggled. Scoped to color
+   properties only (not `all`) so it never touches layout and costs nothing
+   on normal interactions. */
+html {
+  transition: background-color 0.25s ease;
+}
+body,
+.dark body {
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+/* Logo assets in this app are dark-on-transparent; invert them so they stay
+   legible against dark surfaces. */
+.dark .dark-logo-invert {
+  filter: invert(1) brightness(1.8) contrast(0.9);
+}
+
+/* Slim, low-contrast scrollbars that fit the dark surface instead of the
+   default light-chrome scrollbar. */
+.dark ::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+.dark ::-webkit-scrollbar-track {
+  background: transparent;
+}
+.dark ::-webkit-scrollbar-thumb {
+  background-color: #1e293b;
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+.dark ::-webkit-scrollbar-thumb:hover {
+  background-color: #334155;
+}
