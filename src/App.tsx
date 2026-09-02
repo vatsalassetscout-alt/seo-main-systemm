@@ -1785,6 +1785,7 @@ export default function App() {
                   currentUserEmail={currentUserEmail}
                   allowedUsers={allowedUsers}
                   onViewLogs={() => setActiveTab('logs')}
+                  onViewTaskLineup={() => setActiveTab('task-lineup')}
                   customSubmissionTypes={customSubmissionTypes}
                   onSendAdminMessage={handleSendUserMessage}
                   preFill={assignmentPreFill}
