@@ -1292,10 +1292,10 @@ export default function DSRDashboard({
       let badgeStyle = 'bg-teal-50 text-teal-800 border-teal-100';
       if (val.backlinksCount > 250) {
         badge = 'Lead Reporter';
-        badgeStyle = 'bg-indigo-50 text-indigo-800 border-indigo-100';
+        badgeStyle = 'bg-indigo-50 dark:bg-blue-500/10 text-indigo-800 dark:text-blue-300 border-indigo-100 dark:border-blue-500/20';
       } else if (val.backlinksCount > 100) {
         badge = 'Power Contributor';
-        badgeStyle = 'bg-purple-50 text-purple-800 border-purple-100';
+        badgeStyle = 'bg-purple-50 text-purple-800 border-purple-100 dark:border-purple-500/20';
       }
 
       return {
@@ -1321,11 +1321,11 @@ export default function DSRDashboard({
     const totalSum = listingsSum + blogsSum + forumsSum + pdfsSum + imagesSum + videoPptsSum + profilesSum + linksSum;
 
     const distribution = [
-      { type: 'Blogs Submissions', count: blogsSum, color: 'bg-emerald-600', text: 'text-emerald-700' },
-      { type: 'Listings Backlinks', count: listingsSum, color: 'bg-indigo-600', text: 'text-indigo-700' },
+      { type: 'Blogs Submissions', count: blogsSum, color: 'bg-emerald-600', text: 'text-emerald-700 dark:text-emerald-400' },
+      { type: 'Listings Backlinks', count: listingsSum, color: 'bg-indigo-600 dark:bg-blue-600', text: 'text-indigo-700 dark:text-blue-400' },
       { type: 'Forum Submissions', count: forumsSum, color: 'bg-teal-600', text: 'text-teal-700' },
-      { type: 'PDF Press Releases', count: pdfsSum, color: 'bg-amber-600', text: 'text-amber-700' },
-      { type: 'Image Content Assets', count: imagesSum, color: 'bg-rose-500', text: 'text-rose-700' },
+      { type: 'PDF Press Releases', count: pdfsSum, color: 'bg-amber-600', text: 'text-amber-700 dark:text-amber-400' },
+      { type: 'Image Content Assets', count: imagesSum, color: 'bg-rose-500', text: 'text-rose-700 dark:text-rose-400' },
       { type: 'Video / PPT Uploads', count: videoPptsSum, color: 'bg-sky-600', text: 'text-sky-700' },
       { type: 'Profile Creations', count: profilesSum, color: 'bg-orange-600', text: 'text-orange-705' },
       { type: 'Link Submissions', count: linksSum, color: 'bg-fuchsia-600', text: 'text-fuchsia-700' }
@@ -1658,14 +1658,14 @@ export default function DSRDashboard({
       <div ref={stickyBarRef} className="sticky top-16 z-30 -mx-1 px-1 pt-2 pb-2.5 bg-gray-50/95 backdrop-blur-sm space-y-3">
 
       {/* Workspace Filters panel - ON TOP OF PAGE */}
-      <div className="bg-white p-3 rounded-2xl shadow-2xs space-y-2.5">
+      <div className="bg-white dark:bg-slate-900 p-3 rounded-2xl shadow-2xs space-y-2.5">
 
         {/* Search bar + Filters — single line, search bar fills remaining width */}
         <div className="flex flex-wrap items-center gap-2.5 pt-1">
 
           {/* Dynamic Common Search Bar — grows to fill the line */}
           <div className="relative flex-1 min-w-[220px]">
-            <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
+            <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400 dark:text-slate-500">
               <Search size={14} />
             </span>
             <input
@@ -1673,13 +1673,13 @@ export default function DSRDashboard({
               value={commonSearchTerm}
               onChange={(e) => setCommonSearchTerm(e.target.value)}
               placeholder="Search across project name, code, domain, location, users, task summaries..."
-              className="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-250 rounded-xl text-[13px] font-semibold placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 hover:bg-slate-100/50 transition cursor-text text-gray-950"
+              className="w-full pl-9 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-250 rounded-xl text-[13px] font-semibold placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:dark:ring-blue-500/50 hover:bg-slate-100/50 transition cursor-text text-gray-950 dark:text-slate-50"
             />
             {commonSearchTerm && (
               <button
                 type="button"
                 onClick={() => setCommonSearchTerm('')}
-                className="absolute inset-y-0 right-0 pr-3 flex items-center text-[10px] font-black text-indigo-600 hover:text-indigo-850"
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-[10px] font-black text-indigo-600 dark:text-blue-400 hover:text-indigo-850 hover:dark:text-blue-300"
               >
                 Clear
               </button>
@@ -1691,11 +1691,11 @@ export default function DSRDashboard({
             <div
               className={`relative flex items-center gap-1.5 pl-4 pr-3 py-2.5 rounded-xl border text-[13px] font-semibold whitespace-nowrap transition ${
                 dateFilterType !== 'all'
-                  ? 'border-indigo-200 bg-indigo-50 text-indigo-700'
-                  : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
+                  ? 'border-indigo-200 dark:border-blue-500/25 bg-indigo-50 dark:bg-blue-500/10 text-indigo-700 dark:text-blue-400'
+                  : 'border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-gray-700 dark:text-slate-200 hover:bg-gray-50 hover:dark:bg-slate-800/60'
               }`}
             >
-              <Calendar size={14} className={dateFilterType !== 'all' ? 'text-indigo-500' : 'text-gray-400'} />
+              <Calendar size={14} className={dateFilterType !== 'all' ? 'text-indigo-500' : 'text-gray-400 dark:text-slate-500'} />
               <span>Date:</span>
               <span className="max-w-[8rem] truncate">
                 {dateFilterType === 'all' && 'All Time'}
@@ -1704,7 +1704,7 @@ export default function DSRDashboard({
                 {dateFilterType === 'last_7_days' && 'Last 7 Days'}
                 {dateFilterType === 'custom' && 'Custom Range'}
               </span>
-              <ChevronDown size={14} className={dateFilterType !== 'all' ? 'text-indigo-400' : 'text-gray-400'} />
+              <ChevronDown size={14} className={dateFilterType !== 'all' ? 'text-indigo-400' : 'text-gray-400 dark:text-slate-500'} />
               <select
                 value={dateFilterType}
                 onChange={(e) => {
@@ -1724,19 +1724,19 @@ export default function DSRDashboard({
             </div>
 
             {dateFilterType === 'custom' && isCustomDatePanelOpen && (
-              <div className="absolute left-0 mt-1.5 z-50 flex flex-col gap-1 bg-white p-2 border border-indigo-100 rounded-xl shadow-lg w-48">
+              <div className="absolute left-0 mt-1.5 z-50 flex flex-col gap-1 bg-white dark:bg-slate-900 p-2 border border-indigo-100 dark:border-blue-500/20 rounded-xl shadow-lg w-48">
                 <input
                   type="date"
                   value={customStartDate}
                   onChange={(e) => setCustomStartDate(e.target.value)}
-                  className="w-full px-1.5 py-1 bg-gray-50 border border-gray-200 rounded text-[10px] font-bold text-gray-900 cursor-pointer"
+                  className="w-full px-1.5 py-1 bg-gray-50 dark:bg-slate-800/60 border border-gray-200 dark:border-slate-800 rounded text-[10px] font-bold text-gray-900 dark:text-slate-50 cursor-pointer"
                   title="Start Date"
                 />
                 <input
                   type="date"
                   value={customEndDate}
                   onChange={(e) => setCustomEndDate(e.target.value)}
-                  className="w-full px-1.5 py-1 bg-gray-50 border border-gray-200 rounded text-[10px] font-bold text-gray-900 cursor-pointer"
+                  className="w-full px-1.5 py-1 bg-gray-50 dark:bg-slate-800/60 border border-gray-200 dark:border-slate-800 rounded text-[10px] font-bold text-gray-900 dark:text-slate-50 cursor-pointer"
                   title="End Date"
                 />
               </div>
@@ -1744,8 +1744,8 @@ export default function DSRDashboard({
           </div>
 
           {/* Block 2: Region Control — label removed, just the segmented control */}
-          <div className="bg-slate-50/40 p-1.5 rounded-xl">
-            <div className="flex bg-gray-100 p-1.5 rounded-xl select-none h-[40px] items-center gap-1.5">
+          <div className="bg-slate-50/40 dark:bg-slate-800/35 p-1.5 rounded-xl">
+            <div className="flex bg-gray-100 dark:bg-slate-800 p-1.5 rounded-xl select-none h-[40px] items-center gap-1.5">
               {[
                 { label: 'WEST', value: 'West' },
                 { label: 'ALL', value: 'All' },
@@ -1757,8 +1757,8 @@ export default function DSRDashboard({
                   onClick={() => setRegionFilter(r.value)}
                   className={`flex-1 text-center py-2 px-3 text-[11px] tracking-wider font-extrabold transition-all duration-200 rounded-lg cursor-pointer ${
                     regionFilter === r.value
-                      ? 'bg-indigo-600 text-white shadow-xs font-black'
-                      : 'text-gray-500 hover:text-gray-800 hover:bg-gray-200/50'
+                      ? 'bg-indigo-600 dark:bg-blue-600 text-white shadow-xs font-black'
+                      : 'text-gray-500 dark:text-slate-400 hover:text-gray-800 hover:dark:text-slate-100 hover:bg-gray-200/50'
                   }`}
                 >
                   {r.label}
@@ -1779,28 +1779,28 @@ export default function DSRDashboard({
               }}
               className={`flex items-center gap-1.5 pl-4 pr-3 py-2.5 rounded-xl border text-[13px] font-semibold whitespace-nowrap transition cursor-pointer ${
                 selectedProjectIds.length > 0
-                  ? 'border-indigo-200 bg-indigo-50 text-indigo-700'
-                  : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
+                  ? 'border-indigo-200 dark:border-blue-500/25 bg-indigo-50 dark:bg-blue-500/10 text-indigo-700 dark:text-blue-400'
+                  : 'border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-gray-700 dark:text-slate-200 hover:bg-gray-50 hover:dark:bg-slate-800/60'
               }`}
             >
-              <Tag size={14} className={selectedProjectIds.length > 0 ? 'text-indigo-500' : 'text-gray-400'} />
+              <Tag size={14} className={selectedProjectIds.length > 0 ? 'text-indigo-500' : 'text-gray-400 dark:text-slate-500'} />
               <span>Project:</span>
               <span className="max-w-[8rem] truncate">
                 {selectedProjectIds.length === 0 ? 'All' : `${selectedProjectIds.length} selected`}
               </span>
-              <ChevronDown size={14} className={`transition-transform shrink-0 ${selectedProjectIds.length > 0 ? 'text-indigo-400' : 'text-gray-400'} ${isProjectDropdownOpen ? 'rotate-180' : ''}`} />
+              <ChevronDown size={14} className={`transition-transform shrink-0 ${selectedProjectIds.length > 0 ? 'text-indigo-400' : 'text-gray-400 dark:text-slate-500'} ${isProjectDropdownOpen ? 'rotate-180' : ''}`} />
             </button>
 
             {isProjectDropdownOpen && (
               <>
-                <div className="absolute left-0 mt-1.5 w-72 bg-white border border-gray-200 rounded-xl shadow-lg z-50 p-2.5 space-y-2 max-h-56 overflow-y-auto">
-                    <div className="flex items-center justify-between text-[9px] pb-1 border-b border-gray-100 font-bold text-gray-400">
+                <div className="absolute left-0 mt-1.5 w-72 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl shadow-lg z-50 p-2.5 space-y-2 max-h-56 overflow-y-auto">
+                    <div className="flex items-center justify-between text-[9px] pb-1 border-b border-gray-100 dark:border-slate-800/60 font-bold text-gray-400 dark:text-slate-500">
                       <span>PROJECTS</span>
                       <div className="flex gap-2">
                         <button 
                           type="button" 
                           onClick={(e) => { e.stopPropagation(); setSelectedProjectIds([]); }} 
-                          className="text-indigo-600 hover:text-indigo-850"
+                          className="text-indigo-600 dark:text-blue-400 hover:text-indigo-850 hover:dark:text-blue-300"
                         >
                           Clear
                         </button>
@@ -1808,7 +1808,7 @@ export default function DSRDashboard({
                         <button 
                           type="button" 
                           onClick={(e) => { e.stopPropagation(); setSelectedProjectIds(userProjects.map(p => p.id)); }} 
-                          className="text-indigo-600 hover:text-indigo-850"
+                          className="text-indigo-600 dark:text-blue-400 hover:text-indigo-850 hover:dark:text-blue-300"
                         >
                           All
                         </button>
@@ -1822,7 +1822,7 @@ export default function DSRDashboard({
                         value={projectSearchTerm}
                         onChange={(e) => setProjectSearchTerm(e.target.value)}
                         placeholder="Search project..."
-                        className="w-full px-2 py-1 bg-gray-50 border border-gray-200 rounded text-[10px] font-bold focus:outline-none focus:ring-1 focus:ring-indigo-555 text-gray-950 placeholder-gray-400"
+                        className="w-full px-2 py-1 bg-gray-50 dark:bg-slate-800/60 border border-gray-200 dark:border-slate-800 rounded text-[10px] font-bold focus:outline-none focus:ring-1 focus:ring-indigo-555 focus:dark:ring-blue-500/50 text-gray-950 dark:text-slate-50 placeholder-gray-400"
                       />
                     </div>
 
@@ -1832,8 +1832,8 @@ export default function DSRDashboard({
                         .map((p) => {
                           const isChecked = selectedProjectIds.includes(p.id);
                           return (
-                            <div key={p.id} className="flex items-center justify-between p-1 rounded hover:bg-gray-50 transition-colors">
-                              <label className="flex items-center gap-2 cursor-pointer text-xs text-gray-800 font-bold grow select-none">
+                            <div key={p.id} className="flex items-center justify-between p-1 rounded hover:bg-gray-50 hover:dark:bg-slate-800/60 transition-colors">
+                              <label className="flex items-center gap-2 cursor-pointer text-xs text-gray-800 dark:text-slate-100 font-bold grow select-none">
                                 <input
                                   type="checkbox"
                                   checked={isChecked}
@@ -1844,7 +1844,7 @@ export default function DSRDashboard({
                                       setSelectedProjectIds([...selectedProjectIds, p.id]);
                                     }
                                   }}
-                                  className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 w-3.5 h-3.5 cursor-pointer"
+                                  className="rounded border-gray-300 dark:border-slate-700 text-indigo-600 dark:text-blue-400 focus:ring-indigo-500 focus:dark:ring-blue-500/50 w-3.5 h-3.5 cursor-pointer"
                                 />
                                 <span className="truncate">{p.name}</span>
                               </label>
@@ -1869,28 +1869,28 @@ export default function DSRDashboard({
               }}
               className={`flex items-center gap-1.5 pl-4 pr-3 py-2.5 rounded-xl border text-[13px] font-semibold whitespace-nowrap transition cursor-pointer ${
                 selectedLocations.length > 0
-                  ? 'border-indigo-200 bg-indigo-50 text-indigo-700'
-                  : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
+                  ? 'border-indigo-200 dark:border-blue-500/25 bg-indigo-50 dark:bg-blue-500/10 text-indigo-700 dark:text-blue-400'
+                  : 'border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-gray-700 dark:text-slate-200 hover:bg-gray-50 hover:dark:bg-slate-800/60'
               }`}
             >
-              <MapPin size={14} className={selectedLocations.length > 0 ? 'text-indigo-500' : 'text-gray-400'} />
+              <MapPin size={14} className={selectedLocations.length > 0 ? 'text-indigo-500' : 'text-gray-400 dark:text-slate-500'} />
               <span>Location:</span>
               <span className="max-w-[8rem] truncate">
                 {selectedLocations.length === 0 ? 'All' : `${selectedLocations.length} selected`}
               </span>
-              <ChevronDown size={14} className={`transition-transform shrink-0 ${selectedLocations.length > 0 ? 'text-indigo-400' : 'text-gray-400'} ${isLocationDropdownOpen ? 'rotate-180' : ''}`} />
+              <ChevronDown size={14} className={`transition-transform shrink-0 ${selectedLocations.length > 0 ? 'text-indigo-400' : 'text-gray-400 dark:text-slate-500'} ${isLocationDropdownOpen ? 'rotate-180' : ''}`} />
             </button>
 
             {isLocationDropdownOpen && (
               <>
-                <div className="absolute left-0 mt-1.5 w-72 bg-white border border-gray-200 rounded-xl shadow-lg z-50 p-2.5 space-y-2 max-h-56 overflow-y-auto font-sans">
-                    <div className="flex items-center justify-between text-[9px] pb-1 border-b border-gray-100 font-bold text-gray-400">
+                <div className="absolute left-0 mt-1.5 w-72 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl shadow-lg z-50 p-2.5 space-y-2 max-h-56 overflow-y-auto font-sans">
+                    <div className="flex items-center justify-between text-[9px] pb-1 border-b border-gray-100 dark:border-slate-800/60 font-bold text-gray-400 dark:text-slate-500">
                       <span>LOCATIONS</span>
                       <div className="flex gap-2">
                         <button 
                           type="button" 
                           onClick={(e) => { e.stopPropagation(); setSelectedLocations([]); }} 
-                          className="text-indigo-600 hover:text-indigo-850"
+                          className="text-indigo-600 dark:text-blue-400 hover:text-indigo-850 hover:dark:text-blue-300"
                         >
                           Clear
                         </button>
@@ -1898,7 +1898,7 @@ export default function DSRDashboard({
                         <button 
                           type="button" 
                           onClick={(e) => { e.stopPropagation(); setSelectedLocations(availableLocations); }} 
-                          className="text-indigo-600 hover:text-indigo-850"
+                          className="text-indigo-600 dark:text-blue-400 hover:text-indigo-850 hover:dark:text-blue-300"
                         >
                           All
                         </button>
@@ -1912,7 +1912,7 @@ export default function DSRDashboard({
                         value={locationSearchTerm}
                         onChange={(e) => setLocationSearchTerm(e.target.value)}
                         placeholder="Search location..."
-                        className="w-full px-2 py-1 bg-gray-50 border border-gray-200 rounded text-[10px] font-bold focus:outline-none focus:ring-1 focus:ring-indigo-500 text-gray-950 placeholder-gray-400"
+                        className="w-full px-2 py-1 bg-gray-50 dark:bg-slate-800/60 border border-gray-200 dark:border-slate-800 rounded text-[10px] font-bold focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:dark:ring-blue-500/50 text-gray-950 dark:text-slate-50 placeholder-gray-400"
                       />
                     </div>
 
@@ -1922,8 +1922,8 @@ export default function DSRDashboard({
                         .map((loc) => {
                           const isChecked = selectedLocations.includes(loc);
                           return (
-                            <div key={loc} className="flex items-center justify-between p-1 rounded hover:bg-gray-50 transition-colors">
-                              <label className="flex items-center gap-2 cursor-pointer text-xs text-gray-800 font-bold grow select-none">
+                            <div key={loc} className="flex items-center justify-between p-1 rounded hover:bg-gray-50 hover:dark:bg-slate-800/60 transition-colors">
+                              <label className="flex items-center gap-2 cursor-pointer text-xs text-gray-800 dark:text-slate-100 font-bold grow select-none">
                                 <input
                                   type="checkbox"
                                   checked={isChecked}
@@ -1934,7 +1934,7 @@ export default function DSRDashboard({
                                       setSelectedLocations([...selectedLocations, loc]);
                                     }
                                   }}
-                                  className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 w-3.5 h-3.5 cursor-pointer"
+                                  className="rounded border-gray-300 dark:border-slate-700 text-indigo-600 dark:text-blue-400 focus:ring-indigo-500 focus:dark:ring-blue-500/50 w-3.5 h-3.5 cursor-pointer"
                                 />
                                 <span className="truncate">{loc}</span>
                               </label>
@@ -1959,28 +1959,28 @@ export default function DSRDashboard({
               }}
               className={`flex items-center gap-1.5 pl-4 pr-3 py-2.5 rounded-xl border text-[13px] font-semibold whitespace-nowrap transition cursor-pointer ${
                 selectedPriorities.length > 0
-                  ? 'border-indigo-200 bg-indigo-50 text-indigo-700'
-                  : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
+                  ? 'border-indigo-200 dark:border-blue-500/25 bg-indigo-50 dark:bg-blue-500/10 text-indigo-700 dark:text-blue-400'
+                  : 'border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-gray-700 dark:text-slate-200 hover:bg-gray-50 hover:dark:bg-slate-800/60'
               }`}
             >
-              <Tag size={14} className={selectedPriorities.length > 0 ? 'text-indigo-500' : 'text-gray-400'} />
+              <Tag size={14} className={selectedPriorities.length > 0 ? 'text-indigo-500' : 'text-gray-400 dark:text-slate-500'} />
               <span>Priority:</span>
               <span className="max-w-[8rem] truncate">
                 {selectedPriorities.length === 0 ? 'All' : `${selectedPriorities.length} selected`}
               </span>
-              <ChevronDown size={14} className={`transition-transform shrink-0 ${selectedPriorities.length > 0 ? 'text-indigo-400' : 'text-gray-400'} ${isPriorityDropdownOpen ? 'rotate-180' : ''}`} />
+              <ChevronDown size={14} className={`transition-transform shrink-0 ${selectedPriorities.length > 0 ? 'text-indigo-400' : 'text-gray-400 dark:text-slate-500'} ${isPriorityDropdownOpen ? 'rotate-180' : ''}`} />
             </button>
 
             {isPriorityDropdownOpen && (
               <>
-                <div className="absolute left-0 mt-1.5 w-72 bg-white border border-gray-200 rounded-xl shadow-lg z-50 p-2.5 space-y-2 max-h-56 overflow-y-auto">
-                    <div className="flex items-center justify-between text-[9px] pb-1 border-b border-gray-100 font-bold text-gray-400">
+                <div className="absolute left-0 mt-1.5 w-72 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl shadow-lg z-50 p-2.5 space-y-2 max-h-56 overflow-y-auto">
+                    <div className="flex items-center justify-between text-[9px] pb-1 border-b border-gray-100 dark:border-slate-800/60 font-bold text-gray-400 dark:text-slate-500">
                       <span>PRIORITY</span>
                       <div className="flex gap-2">
                         <button
                           type="button"
                           onClick={(e) => { e.stopPropagation(); setSelectedPriorities([]); }}
-                          className="text-indigo-600 hover:text-indigo-850"
+                          className="text-indigo-600 dark:text-blue-400 hover:text-indigo-850 hover:dark:text-blue-300"
                         >
                           Clear
                         </button>
@@ -1988,7 +1988,7 @@ export default function DSRDashboard({
                         <button
                           type="button"
                           onClick={(e) => { e.stopPropagation(); setSelectedPriorities(PRIORITY_OPTIONS); }}
-                          className="text-indigo-600 hover:text-indigo-850"
+                          className="text-indigo-600 dark:text-blue-400 hover:text-indigo-850 hover:dark:text-blue-300"
                         >
                           All
                         </button>
@@ -1999,8 +1999,8 @@ export default function DSRDashboard({
                       {PRIORITY_OPTIONS.map((pr) => {
                         const isChecked = selectedPriorities.includes(pr);
                         return (
-                          <div key={pr} className="flex items-center justify-between p-1 rounded hover:bg-gray-50 transition-colors">
-                            <label className="flex items-center gap-2 cursor-pointer text-xs text-gray-800 font-bold grow select-none">
+                          <div key={pr} className="flex items-center justify-between p-1 rounded hover:bg-gray-50 hover:dark:bg-slate-800/60 transition-colors">
+                            <label className="flex items-center gap-2 cursor-pointer text-xs text-gray-800 dark:text-slate-100 font-bold grow select-none">
                               <input
                                 type="checkbox"
                                 checked={isChecked}
@@ -2011,7 +2011,7 @@ export default function DSRDashboard({
                                     setSelectedPriorities([...selectedPriorities, pr]);
                                   }
                                 }}
-                                className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 w-3.5 h-3.5 cursor-pointer"
+                                className="rounded border-gray-300 dark:border-slate-700 text-indigo-600 dark:text-blue-400 focus:ring-indigo-500 focus:dark:ring-blue-500/50 w-3.5 h-3.5 cursor-pointer"
                               />
                               <span className="truncate">{pr}</span>
                             </label>
@@ -2037,28 +2037,28 @@ export default function DSRDashboard({
                 }}
                 className={`flex items-center gap-1.5 pl-4 pr-3 py-2.5 rounded-xl border text-[13px] font-semibold whitespace-nowrap transition cursor-pointer ${
                   selectedUsers.length > 0
-                    ? 'border-indigo-200 bg-indigo-50 text-indigo-700'
-                    : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
+                    ? 'border-indigo-200 dark:border-blue-500/25 bg-indigo-50 dark:bg-blue-500/10 text-indigo-700 dark:text-blue-400'
+                    : 'border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-gray-700 dark:text-slate-200 hover:bg-gray-50 hover:dark:bg-slate-800/60'
                 }`}
               >
-                <Users size={14} className={selectedUsers.length > 0 ? 'text-indigo-500' : 'text-gray-400'} />
+                <Users size={14} className={selectedUsers.length > 0 ? 'text-indigo-500' : 'text-gray-400 dark:text-slate-500'} />
                 <span>User:</span>
                 <span className="max-w-[8rem] truncate">
                   {selectedUsers.length === 0 ? 'All' : `${selectedUsers.length} selected`}
                 </span>
-                <ChevronDown size={14} className={`transition-transform shrink-0 ${selectedUsers.length > 0 ? 'text-indigo-400' : 'text-gray-400'} ${isUserDropdownOpen ? 'rotate-180' : ''}`} />
+                <ChevronDown size={14} className={`transition-transform shrink-0 ${selectedUsers.length > 0 ? 'text-indigo-400' : 'text-gray-400 dark:text-slate-500'} ${isUserDropdownOpen ? 'rotate-180' : ''}`} />
               </button>
 
               {isUserDropdownOpen && (
                 <>
-                  <div className="absolute right-0 mt-1.5 w-72 max-w-[calc(100vw-2rem)] bg-white border border-gray-200 rounded-xl shadow-lg z-50 p-2.5 space-y-2 max-h-56 overflow-y-auto">
-                      <div className="flex items-center justify-between text-[9px] pb-1 border-b border-gray-105 font-bold text-gray-400 font-sans">
+                  <div className="absolute right-0 mt-1.5 w-72 max-w-[calc(100vw-2rem)] bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl shadow-lg z-50 p-2.5 space-y-2 max-h-56 overflow-y-auto">
+                      <div className="flex items-center justify-between text-[9px] pb-1 border-b border-gray-105 font-bold text-gray-400 dark:text-slate-500 font-sans">
                         <span>USERS</span>
                         <div className="flex gap-2">
                           <button 
                             type="button" 
                             onClick={(e) => { e.stopPropagation(); setSelectedUsers([]); }} 
-                            className="text-indigo-600 hover:text-indigo-850"
+                            className="text-indigo-600 dark:text-blue-400 hover:text-indigo-850 hover:dark:text-blue-300"
                           >
                             Clear
                           </button>
@@ -2066,7 +2066,7 @@ export default function DSRDashboard({
                           <button 
                             type="button" 
                             onClick={(e) => { e.stopPropagation(); setSelectedUsers(allUsersList.flatMap(u => u.emails)); }} 
-                            className="text-indigo-600 hover:text-indigo-850"
+                            className="text-indigo-600 dark:text-blue-400 hover:text-indigo-850 hover:dark:text-blue-300"
                           >
                             All
                           </button>
@@ -2080,7 +2080,7 @@ export default function DSRDashboard({
                           value={userSearchTerm}
                           onChange={(e) => setUserSearchTerm(e.target.value)}
                           placeholder="Search user..."
-                          className="w-full px-2 py-1 bg-gray-50 border border-gray-200 rounded text-[10px] font-bold focus:outline-none focus:ring-1 focus:ring-indigo-500 text-gray-950 placeholder-gray-400"
+                          className="w-full px-2 py-1 bg-gray-50 dark:bg-slate-800/60 border border-gray-200 dark:border-slate-800 rounded text-[10px] font-bold focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:dark:ring-blue-500/50 text-gray-950 dark:text-slate-50 placeholder-gray-400"
                         />
                       </div>
 
@@ -2090,8 +2090,8 @@ export default function DSRDashboard({
                           .map((u) => {
                             const isChecked = u.emails.every(email => selectedUsers.includes(email));
                             return (
-                              <div key={u.emails[0]} className="flex items-center justify-between p-1 rounded hover:bg-gray-50 transition-colors">
-                                <label className="flex items-center gap-2 cursor-pointer text-[11px] text-gray-800 font-bold grow select-none">
+                              <div key={u.emails[0]} className="flex items-center justify-between p-1 rounded hover:bg-gray-50 hover:dark:bg-slate-800/60 transition-colors">
+                                <label className="flex items-center gap-2 cursor-pointer text-[11px] text-gray-800 dark:text-slate-100 font-bold grow select-none">
                                   <input
                                     type="checkbox"
                                     checked={isChecked}
@@ -2108,12 +2108,12 @@ export default function DSRDashboard({
                                         setSelectedUsers(newSelections);
                                       }
                                     }}
-                                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 w-3.5 h-3.5 cursor-pointer"
+                                    className="rounded border-gray-300 dark:border-slate-700 text-indigo-600 dark:text-blue-400 focus:ring-indigo-500 focus:dark:ring-blue-500/50 w-3.5 h-3.5 cursor-pointer"
                                   />
                                   {/* ID shown alongside the name so two different
                                       real users who happen to share the same
                                       display name are always distinguishable. */}
-                                  <span className="truncate">{u.name} <span className="text-gray-400 font-mono normal-case">· {u.emails[0]}</span></span>
+                                  <span className="truncate">{u.name} <span className="text-gray-400 dark:text-slate-500 font-mono normal-case">· {u.emails[0]}</span></span>
                                 </label>
                               </div>
                             );
@@ -2131,22 +2131,22 @@ export default function DSRDashboard({
       </div>
 
       {/* Content Section corresponding to Selected Tab */}
-      <div className={`bg-white rounded-2xl border border-gray-150 shadow-3xs ${activeTab === 'update_ranking' ? 'overflow-visible' : 'overflow-hidden'}`}>
+      <div className={`bg-white dark:bg-slate-900 rounded-2xl border border-gray-150 dark:border-slate-800 shadow-3xs ${activeTab === 'update_ranking' ? 'overflow-visible' : 'overflow-hidden'}`}>
         
         {activeTab === 'project_table' && (
           <div>
             {applySuccessMessage && (
-              <div className="bg-emerald-50 text-emerald-800 text-xs font-bold px-4 py-3 border-b border-emerald-150 flex items-center justify-between animate-fade-in">
+              <div className="bg-emerald-50 dark:bg-emerald-500/10 text-emerald-800 text-xs font-bold px-4 py-3 border-b border-emerald-150 flex items-center justify-between animate-fade-in">
                 <span className="flex items-center gap-1.5">
-                  <CheckCircle size={14} className="text-emerald-600" />
+                  <CheckCircle size={14} className="text-emerald-600 dark:text-emerald-400" />
                   {applySuccessMessage}
                 </span>
                 <button onClick={() => setApplySuccessMessage(null)} className="hover:text-emerald-950 font-black text-sm">&times;</button>
               </div>
             )}
-            <div className="p-4 bg-gray-50/50 border-b border-gray-150 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div className="p-4 bg-gray-50/50 dark:bg-slate-800/40 border-b border-gray-150 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div>
-                <h3 className="text-xs font-black text-gray-900 uppercase tracking-wider">Project Table</h3>
+                <h3 className="text-xs font-black text-gray-900 dark:text-slate-50 uppercase tracking-wider">Project Table</h3>
               </div>
               <div className="flex items-center gap-3">
                 {isAdmin && (
@@ -2155,8 +2155,8 @@ export default function DSRDashboard({
                     disabled={isSavingChanges || Object.keys(pendingChanges).length === 0}
                     className={`flex items-center gap-1.5 text-[11px] font-black px-3.5 py-1.5 rounded-xl border transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
                       Object.keys(pendingChanges).length > 0
-                        ? 'bg-indigo-600 hover:bg-indigo-700 text-white border-indigo-500 shadow-sm animate-pulse'
-                        : 'bg-gray-100 text-gray-400 border-gray-200'
+                        ? 'bg-indigo-600 dark:bg-blue-600 hover:bg-indigo-700 hover:dark:bg-blue-500 text-white border-indigo-500 dark:border-blue-500/50 shadow-sm animate-pulse'
+                        : 'bg-gray-100 dark:bg-slate-800 text-gray-400 dark:text-slate-500 border-gray-200 dark:border-slate-800'
                     }`}
                   >
                     <Save className="w-3.5 h-3.5" />
@@ -2164,11 +2164,11 @@ export default function DSRDashboard({
                   </button>
                 )}
                 <div className="flex items-center gap-1.5">
-                  <span className="text-[9px] font-black text-gray-400 uppercase tracking-wider">Sort by:</span>
+                  <span className="text-[9px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-wider">Sort by:</span>
                   <select
                     value={projectTableSortBy}
                     onChange={(e) => setProjectTableSortBy(e.target.value as any)}
-                    className="px-2 py-1.5 text-[10px] font-bold bg-white border border-gray-200 rounded-lg text-gray-800 cursor-pointer focus:outline-none"
+                    className="px-2 py-1.5 text-[10px] font-bold bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-lg text-gray-800 dark:text-slate-100 cursor-pointer focus:outline-none"
                     aria-label="Sort Project Table by"
                   >
                     <option value="default">Default</option>
@@ -2180,7 +2180,7 @@ export default function DSRDashboard({
                     <select
                       value={projectTableSortDir}
                       onChange={(e) => setProjectTableSortDir(e.target.value as any)}
-                      className="px-2 py-1.5 text-[10px] font-bold bg-white border border-gray-200 rounded-lg text-gray-800 cursor-pointer focus:outline-none"
+                      className="px-2 py-1.5 text-[10px] font-bold bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-lg text-gray-800 dark:text-slate-100 cursor-pointer focus:outline-none"
                       aria-label="Sort direction"
                     >
                       <option value="desc">High to Low</option>
@@ -2188,7 +2188,7 @@ export default function DSRDashboard({
                     </select>
                   )}
                 </div>
-                <div className="text-[10px] font-extrabold bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-xl border border-indigo-150 font-mono">
+                <div className="text-[10px] font-extrabold bg-indigo-50 dark:bg-blue-500/10 text-indigo-700 dark:text-blue-400 px-2.5 py-1 rounded-xl border border-indigo-150 dark:border-blue-500/20 font-mono">
                   Total Projects: {projectTableData.length}
                 </div>
               </div>
@@ -2209,57 +2209,57 @@ export default function DSRDashboard({
                   {isAdmin && <col style={{ width: '9%' }} />}
                   {isAdmin && <col style={{ width: '6%' }} />}
                 </colgroup>
-                <thead className="bg-slate-50 text-slate-500 font-bold text-[11px] uppercase tracking-normal border-b border-gray-150 sticky top-0 z-10">
+                <thead className="bg-slate-50 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 font-bold text-[11px] uppercase tracking-normal border-b border-gray-150 dark:border-slate-800 sticky top-0 z-10">
                   <tr>
-                    <th className="px-2 py-3 truncate bg-slate-50">Sr No.</th>
-                    <th className="px-2 py-3 truncate bg-slate-50">Project Name</th>
-                    <th className="px-2 py-3 truncate bg-slate-50">Domain</th>
-                    <th className="px-2 py-3 truncate bg-slate-50">Priority</th>
-                    <th className="px-2 py-3 text-center truncate bg-slate-50">Best Ranking</th>
-                    <th className="px-2 py-3 text-center truncate bg-slate-50">Worked / Not Worked</th>
-                    <th className="px-2 py-3 truncate bg-slate-50">Last Worked</th>
-                    <th className="px-2 py-3 text-center truncate bg-slate-50">Keywords</th>
-                    {isAdmin && <th className="px-2 py-3 truncate bg-slate-50">User</th>}
-                    {isAdmin && <th className="px-2 py-3 truncate bg-slate-50">Admin Actions</th>}
-                    {isAdmin && <th className="px-2 py-3 text-center truncate bg-slate-50">Action</th>}
+                    <th className="px-2 py-3 truncate bg-slate-50 dark:bg-slate-800/60">Sr No.</th>
+                    <th className="px-2 py-3 truncate bg-slate-50 dark:bg-slate-800/60">Project Name</th>
+                    <th className="px-2 py-3 truncate bg-slate-50 dark:bg-slate-800/60">Domain</th>
+                    <th className="px-2 py-3 truncate bg-slate-50 dark:bg-slate-800/60">Priority</th>
+                    <th className="px-2 py-3 text-center truncate bg-slate-50 dark:bg-slate-800/60">Best Ranking</th>
+                    <th className="px-2 py-3 text-center truncate bg-slate-50 dark:bg-slate-800/60">Worked / Not Worked</th>
+                    <th className="px-2 py-3 truncate bg-slate-50 dark:bg-slate-800/60">Last Worked</th>
+                    <th className="px-2 py-3 text-center truncate bg-slate-50 dark:bg-slate-800/60">Keywords</th>
+                    {isAdmin && <th className="px-2 py-3 truncate bg-slate-50 dark:bg-slate-800/60">User</th>}
+                    {isAdmin && <th className="px-2 py-3 truncate bg-slate-50 dark:bg-slate-800/60">Admin Actions</th>}
+                    {isAdmin && <th className="px-2 py-3 text-center truncate bg-slate-50 dark:bg-slate-800/60">Action</th>}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-150">
+                <tbody className="divide-y divide-gray-150 dark:divide-slate-800">
                   {sortedProjectTableData.map((item) => {
                     return (
                       <tr 
                         key={item.id}
                         className="hover:bg-slate-50/60 transition-colors"
                       >
-                        <td className="px-2 py-3 truncate font-semibold text-indigo-600">{item.srNo}</td>
+                        <td className="px-2 py-3 truncate font-semibold text-indigo-600 dark:text-blue-400">{item.srNo}</td>
                         <td className="px-2 py-3">
                           <div className="flex items-center gap-2 min-w-0">
-                            <span className="text-[13px] font-bold text-gray-900 truncate block" title={item.name}>{item.name}</span>
+                            <span className="text-[13px] font-bold text-gray-900 dark:text-slate-50 truncate block" title={item.name}>{item.name}</span>
                           </div>
                         </td>
-                        <td className="px-2 py-3 text-gray-600">
+                        <td className="px-2 py-3 text-gray-600 dark:text-slate-300">
                           {item.domain ? (
                             <a 
                               href={domainHref(item.domain)} 
                               target="_blank" 
                               rel="noreferrer" 
-                              className="text-[12px] text-indigo-700 hover:underline font-semibold truncate block"
+                              className="text-[12px] text-indigo-700 dark:text-blue-400 hover:underline font-semibold truncate block"
                               title={cleanDomain(item.domain)}
                             >
                               {cleanDomain(item.domain)}
                             </a>
                           ) : (
-                            <span className="text-gray-400 italic">—</span>
+                            <span className="text-gray-400 dark:text-slate-500 italic">—</span>
                           )}
                         </td>
                         <td className="px-2 py-3 truncate">
                           {item.priority === 'X1' && (
-                            <span className="inline-flex items-center gap-1 bg-red-50 text-red-700 text-[11px] font-black px-2.5 py-1 rounded border border-red-100 uppercase tracking-wider">
+                            <span className="inline-flex items-center gap-1 bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-400 text-[11px] font-black px-2.5 py-1 rounded border border-red-100 uppercase tracking-wider">
                                X1
                             </span>
                           )}
                           {item.priority === 'X2' && (
-                            <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-700 text-[11px] font-black px-2.5 py-1 rounded border border-amber-100 uppercase tracking-wider">
+                            <span className="inline-flex items-center gap-1 bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 text-[11px] font-black px-2.5 py-1 rounded border border-amber-100 dark:border-amber-500/20 uppercase tracking-wider">
                               X2
                             </span>
                           )}
@@ -2269,17 +2269,17 @@ export default function DSRDashboard({
                             </span>
                           )}
                           {item.priority === 'X4' && (
-                            <span className="inline-flex items-center gap-1 bg-purple-50 text-purple-700 text-[11px] font-black px-2.5 py-1 rounded border border-purple-100 uppercase tracking-wider">
+                            <span className="inline-flex items-center gap-1 bg-purple-50 text-purple-700 text-[11px] font-black px-2.5 py-1 rounded border border-purple-100 dark:border-purple-500/20 uppercase tracking-wider">
                               X4
                             </span>
                           )}
                           {item.priority === 'X5' && (
-                            <span className="inline-flex items-center gap-1 bg-gray-50 text-gray-700 text-[11px] font-black px-2.5 py-1 rounded border border-gray-150 uppercase tracking-wider">
+                            <span className="inline-flex items-center gap-1 bg-gray-50 dark:bg-slate-800/60 text-gray-700 dark:text-slate-200 text-[11px] font-black px-2.5 py-1 rounded border border-gray-150 dark:border-slate-800 uppercase tracking-wider">
                               X5
                             </span>
                           )}
                           {!['X1', 'X2', 'X3', 'X4', 'X5'].includes(item.priority || '') && (
-                            <span className="text-[11px] font-bold text-gray-400 italic">
+                            <span className="text-[11px] font-bold text-gray-400 dark:text-slate-500 italic">
                               — none —
                             </span>
                           )}
@@ -2288,26 +2288,26 @@ export default function DSRDashboard({
                           {item.bestRanking !== null && item.bestRanking !== undefined ? (
                             <span className={`inline-flex items-center justify-center font-bold text-[11px] px-1.5 py-1 rounded border whitespace-nowrap ${
                               item.bestRanking <= 10
-                                ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
+                                ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-100 dark:border-emerald-500/20'
                                 : item.bestRanking <= 30
-                                ? 'bg-amber-50 text-amber-700 border-amber-100'
-                                : 'bg-rose-50 text-rose-700 border-rose-100'
+                                ? 'bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-100 dark:border-amber-500/20'
+                                : 'bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-100'
                             }`}>
                               #{item.bestRanking}
                             </span>
                           ) : (
-                            <span className="text-[11px] font-bold text-gray-300 italic">—</span>
+                            <span className="text-[11px] font-bold text-gray-300 dark:text-slate-500 italic">—</span>
                           )}
                         </td>
-                        <td className="px-2 py-3 text-center font-semibold text-gray-700 truncate">
-                          <span className="text-emerald-700">{item.timesWorked}</span>
-                          <span className="text-gray-400"> / </span>
-                          <span className="text-red-600">{item.timesNotWorked}</span>
+                        <td className="px-2 py-3 text-center font-semibold text-gray-700 dark:text-slate-200 truncate">
+                          <span className="text-emerald-700 dark:text-emerald-400">{item.timesWorked}</span>
+                          <span className="text-gray-400 dark:text-slate-500"> / </span>
+                          <span className="text-red-600 dark:text-red-400">{item.timesNotWorked}</span>
                         </td>
                         <td className="px-2 py-3">
                           {(() => {
                             if (item.lastWorked === 'Never' || !item.lastWorkedAt) {
-                              return <span className="text-[12px] font-semibold text-gray-400 italic">Never</span>;
+                              return <span className="text-[12px] font-semibold text-gray-400 dark:text-slate-500 italic">Never</span>;
                             }
                             const d = new Date(item.lastWorkedAt);
                             const diffHrs = (Date.now() - d.getTime()) / (1000 * 60 * 60);
@@ -2323,8 +2323,8 @@ export default function DSRDashboard({
                             const timeLabel = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
                             return (
                               <div className="flex flex-col gap-0.5 min-w-0">
-                                <span className="text-[12px] font-bold text-gray-800 leading-tight truncate">{relLabel}</span>
-                                <span className="text-[11px] font-medium text-gray-600 leading-tight truncate">{dateLabel} &middot; {timeLabel}</span>
+                                <span className="text-[12px] font-bold text-gray-800 dark:text-slate-100 leading-tight truncate">{relLabel}</span>
+                                <span className="text-[11px] font-medium text-gray-600 dark:text-slate-300 leading-tight truncate">{dateLabel} &middot; {timeLabel}</span>
                               </div>
                             );
                           })()}
@@ -2335,8 +2335,8 @@ export default function DSRDashboard({
                             return (
                               <span className={`inline-flex items-center justify-center gap-1 font-bold text-[11px] px-2 py-1 rounded-full border whitespace-nowrap ${
                                 kwCount > 0
-                                  ? 'bg-indigo-50 text-indigo-700 border-indigo-150'
-                                  : 'bg-gray-50 text-gray-400 border-gray-150'
+                                  ? 'bg-indigo-50 dark:bg-blue-500/10 text-indigo-700 dark:text-blue-400 border-indigo-150 dark:border-blue-500/20'
+                                  : 'bg-gray-50 dark:bg-slate-800/60 text-gray-400 dark:text-slate-500 border-gray-150 dark:border-slate-800'
                               }`}>
                                 <Tag className="w-3 h-3" />
                                 {kwCount}
@@ -2349,7 +2349,7 @@ export default function DSRDashboard({
                             {(() => {
                               const names = getAssignedUsersForProject(item.id).split(',').map(n => n.trim()).filter(Boolean);
                               if (names.length === 0) {
-                                return <span className="text-gray-400 italic text-[11px]">Unassigned</span>;
+                                return <span className="text-gray-400 dark:text-slate-500 italic text-[11px]">Unassigned</span>;
                               }
                               // Show just the primary assigned user in a fixed, consistent avatar+name
                               // shape - looping over every assigned user made rows wrap unevenly.
@@ -2363,9 +2363,9 @@ export default function DSRDashboard({
                                   <span className={`w-6 h-6 rounded-full ${color} text-white text-[9px] font-black flex items-center justify-center shrink-0 leading-none`}>
                                     {initials}
                                   </span>
-                                  <span className="text-gray-900 text-[11px] font-bold truncate min-w-0" title={uname}>{uname}</span>
+                                  <span className="text-gray-900 dark:text-slate-50 text-[11px] font-bold truncate min-w-0" title={uname}>{uname}</span>
                                   {extraCount > 0 && (
-                                    <span className="text-[9px] font-black text-gray-400 bg-gray-100 rounded-full px-1.5 py-0.5 shrink-0">+{extraCount}</span>
+                                    <span className="text-[9px] font-black text-gray-400 dark:text-slate-500 bg-gray-100 dark:bg-slate-800 rounded-full px-1.5 py-0.5 shrink-0">+{extraCount}</span>
                                   )}
                                 </div>
                               );
@@ -2391,7 +2391,7 @@ export default function DSRDashboard({
                                     }
                                   }));
                                 }}
-                                className="w-full max-w-[88px] px-1 py-1 text-[9.5px] font-bold bg-white border border-gray-200 rounded text-gray-800 cursor-pointer focus:outline-none"
+                                className="w-full max-w-[88px] px-1 py-1 text-[9.5px] font-bold bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded text-gray-800 dark:text-slate-100 cursor-pointer focus:outline-none"
                               >
                                 <option value="">- Priority -</option>
                                 <option value="X1">X1</option>
@@ -2407,7 +2407,7 @@ export default function DSRDashboard({
                           <td className="px-2 py-3 text-center">
                             <button
                               onClick={() => setSelectedPlanProject(item)}
-                              className="inline-flex items-center gap-1 bg-indigo-50 text-indigo-750 font-black uppercase text-[9.5px] px-2 py-1.5 rounded-xl border border-indigo-200 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition shadow-3xs cursor-pointer whitespace-nowrap"
+                              className="inline-flex items-center gap-1 bg-indigo-50 dark:bg-blue-500/10 text-indigo-750 dark:text-blue-400 font-black uppercase text-[9.5px] px-2 py-1.5 rounded-xl border border-indigo-200 dark:border-blue-500/25 hover:bg-indigo-600 hover:dark:bg-blue-600 hover:text-white hover:border-indigo-600 hover:dark:border-blue-500/50 transition shadow-3xs cursor-pointer whitespace-nowrap"
                             >
                               Plan
                             </button>
@@ -2424,17 +2424,17 @@ export default function DSRDashboard({
 
         {activeTab === 'activity' && (
           <div>
-            <div className="p-4 bg-gray-50/50 border-b border-gray-150 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="p-4 bg-gray-50/50 dark:bg-slate-800/40 border-b border-gray-150 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <h3 className="text-xs font-black text-gray-900 uppercase tracking-wider flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-indigo-600 inline-block animate-pulse"></span>
+                <h3 className="text-xs font-black text-gray-900 dark:text-slate-50 uppercase tracking-wider flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-indigo-600 dark:bg-blue-600 inline-block animate-pulse"></span>
                   {isAdmin ? 'Team Activity Heatmap' : 'Personal Activity Calendar'}
                 </h3>
 
               </div>
 
               {/* Month Selector Controls */}
-              <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200/60 shadow-inner h-[32px] self-start sm:self-center">
+              <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200/60 shadow-inner h-[32px] self-start sm:self-center">
                 <button
                   type="button"
                   onClick={() => {
@@ -2445,11 +2445,11 @@ export default function DSRDashboard({
                       setHeatmapMonth(prev => prev - 1);
                     }
                   }}
-                  className="px-2 py-1 text-slate-500 hover:text-indigo-600 transition-colors cursor-pointer"
+                  className="px-2 py-1 text-slate-500 dark:text-slate-400 hover:text-indigo-600 hover:dark:text-blue-400 transition-colors cursor-pointer"
                 >
                   <ChevronDown className="rotate-90" size={13} />
                 </button>
-                <span className="font-extrabold text-[11px] uppercase tracking-wider text-slate-700 min-w-[110px] text-center select-none">
+                <span className="font-extrabold text-[11px] uppercase tracking-wider text-slate-700 dark:text-slate-200 min-w-[110px] text-center select-none">
                   {monthNames[heatmapMonth]} {heatmapYear}
                 </span>
                 <button
@@ -2462,7 +2462,7 @@ export default function DSRDashboard({
                       setHeatmapMonth(prev => prev + 1);
                     }
                   }}
-                  className="px-2 py-1 text-slate-500 hover:text-indigo-600 transition-colors cursor-pointer"
+                  className="px-2 py-1 text-slate-500 dark:text-slate-400 hover:text-indigo-600 hover:dark:text-blue-400 transition-colors cursor-pointer"
                 >
                   <ChevronUp className="rotate-90" size={13} />
                 </button>
@@ -2471,9 +2471,9 @@ export default function DSRDashboard({
 
             <div className="p-5 grid grid-cols-1 lg:grid-cols-12 gap-6">
               {/* Left Side: Calendar Heatmap Grid */}
-              <div className="lg:col-span-7 bg-slate-50/50 p-5 rounded-2xl border border-slate-150/60 shadow-inner">
+              <div className="lg:col-span-7 bg-slate-50/50 dark:bg-slate-800/40 p-5 rounded-2xl border border-slate-150/60 shadow-inner">
                 {/* Day labels header */}
-                <div className="grid grid-cols-7 gap-2 mb-3 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                <div className="grid grid-cols-7 gap-2 mb-3 text-center text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
                   <div>Sun</div>
                   <div>Mon</div>
                   <div>Tue</div>
@@ -2488,7 +2488,7 @@ export default function DSRDashboard({
                   {monthDays.blanks.map((_, idx) => (
                     <div 
                       key={`blank-${idx}`} 
-                      className="aspect-square bg-slate-50/30 rounded-xl border border-dashed border-slate-200/20 opacity-20 select-none"
+                      className="aspect-square bg-slate-50/30 dark:bg-slate-800/30 rounded-xl border border-dashed border-slate-200/20 opacity-20 select-none"
                     />
                   ))}
                   
@@ -2550,32 +2550,32 @@ export default function DSRDashboard({
                     // 9-tier graduated scale (plus "no work") for finer-grained intensity.
                     // Uses only standard Tailwind shade steps (50/100/200/300/400/500/600/700/800/900)
                     // so every class actually compiles/renders.
-                    let heatClass = 'bg-slate-50 hover:bg-slate-100/80 text-slate-400 border border-slate-200/50 hover:border-slate-300';
-                    let dayNumClass = 'text-slate-500';
+                    let heatClass = 'bg-slate-50 dark:bg-slate-800/60 hover:bg-slate-100/80 text-slate-400 dark:text-slate-500 border border-slate-200/50 hover:border-slate-300';
+                    let dayNumClass = 'text-slate-500 dark:text-slate-400';
                     if (totalUpdates > 0) {
                       if (totalUpdates === 1) {
-                        heatClass = 'bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100 shadow-2xs';
-                        dayNumClass = 'text-indigo-800 font-extrabold';
+                        heatClass = 'bg-indigo-50 dark:bg-blue-500/10 border border-indigo-200 dark:border-blue-500/25 text-indigo-700 dark:text-blue-400 hover:bg-indigo-100 hover:dark:bg-blue-500/15 shadow-2xs';
+                        dayNumClass = 'text-indigo-800 dark:text-blue-300 font-extrabold';
                       } else if (totalUpdates === 2) {
-                        heatClass = 'bg-indigo-100 border border-indigo-300 text-indigo-700 hover:bg-indigo-200 shadow-2xs';
-                        dayNumClass = 'text-indigo-800 font-extrabold';
+                        heatClass = 'bg-indigo-100 dark:bg-blue-500/15 border border-indigo-300 dark:border-blue-500/30 text-indigo-700 dark:text-blue-400 hover:bg-indigo-200 shadow-2xs';
+                        dayNumClass = 'text-indigo-800 dark:text-blue-300 font-extrabold';
                       } else if (totalUpdates === 3) {
-                        heatClass = 'bg-indigo-200 border border-indigo-300 text-indigo-800 hover:bg-indigo-300 shadow-2xs';
-                        dayNumClass = 'text-indigo-900 font-black';
+                        heatClass = 'bg-indigo-200 border border-indigo-300 dark:border-blue-500/30 text-indigo-800 dark:text-blue-300 hover:bg-indigo-300 shadow-2xs';
+                        dayNumClass = 'text-indigo-900 dark:text-blue-200 font-black';
                       } else if (totalUpdates === 4) {
-                        heatClass = 'bg-indigo-300 border border-indigo-400 text-indigo-900 hover:bg-indigo-400 shadow-2xs';
-                        dayNumClass = 'text-indigo-900 font-black';
+                        heatClass = 'bg-indigo-300 border border-indigo-400 text-indigo-900 dark:text-blue-200 hover:bg-indigo-400 shadow-2xs';
+                        dayNumClass = 'text-indigo-900 dark:text-blue-200 font-black';
                       } else if (totalUpdates === 5) {
-                        heatClass = 'bg-indigo-400 border border-indigo-500 text-white hover:bg-indigo-500 shadow-2xs';
+                        heatClass = 'bg-indigo-400 border border-indigo-500 dark:border-blue-500/50 text-white hover:bg-indigo-500 shadow-2xs';
                         dayNumClass = 'text-white font-black';
                       } else if (totalUpdates === 6) {
-                        heatClass = 'bg-indigo-500 border border-indigo-600 text-white hover:bg-indigo-600 shadow-xs';
+                        heatClass = 'bg-indigo-500 border border-indigo-600 dark:border-blue-500/50 text-white hover:bg-indigo-600 hover:dark:bg-blue-600 shadow-xs';
                         dayNumClass = 'text-white font-black';
                       } else if (totalUpdates === 7) {
-                        heatClass = 'bg-indigo-600 border border-indigo-700 text-white hover:bg-indigo-700 shadow-xs scale-102';
+                        heatClass = 'bg-indigo-600 dark:bg-blue-600 border border-indigo-700 text-white hover:bg-indigo-700 hover:dark:bg-blue-500 shadow-xs scale-102';
                         dayNumClass = 'text-indigo-50 font-black';
                       } else if (totalUpdates === 8) {
-                        heatClass = 'bg-indigo-700 border border-indigo-800 text-white hover:bg-indigo-800 shadow-xs scale-102';
+                        heatClass = 'bg-indigo-700 dark:bg-blue-500 border border-indigo-800 text-white hover:bg-indigo-800 shadow-xs scale-102';
                         dayNumClass = 'text-indigo-50 font-black';
                       } else {
                         heatClass = 'bg-indigo-900 border border-indigo-900 text-white hover:bg-indigo-950 shadow-xs scale-102';
@@ -2594,7 +2594,7 @@ export default function DSRDashboard({
                           setExpandedLogUser(isAdmin ? null : (currentUserEmail || '').trim().toLowerCase());
                         }}
                         className={`aspect-square rounded-2xl p-2.5 flex flex-col justify-between transition-all duration-300 ease-out cursor-pointer text-left select-none relative group hover:-translate-y-0.5 active:scale-95 ${heatClass} ${
-                          isSelected ? 'ring-3 ring-indigo-500 ring-offset-2 scale-105 z-20 font-bold' : ''
+                          isSelected ? 'ring-3 ring-indigo-500 dark:ring-blue-500/50 ring-offset-2 scale-105 z-20 font-bold' : ''
                         }`}
                       >
                         {/* Day Number */}
@@ -2605,7 +2605,7 @@ export default function DSRDashboard({
                         {/* Work indicator center counts */}
                         {uniqueProjectsCount > 0 && (
                           <div className="flex flex-col items-end leading-none text-right">
-                            <span className="text-sm sm:text-[17px] font-black tracking-tighter text-indigo-600 dark:text-inherit">
+                            <span className="text-sm sm:text-[17px] font-black tracking-tighter text-indigo-600 dark:text-blue-400 dark:text-inherit">
                               {uniqueProjectsCount}
                             </span>
                           </div>
@@ -2621,22 +2621,22 @@ export default function DSRDashboard({
                 </div>
 
                 {/* Heatmap intensity legend with Indigo representations */}
-                <div className="mt-5 pt-4 border-t border-slate-150 flex flex-col sm:flex-row gap-3 items-center justify-between text-[10px]">
-                  <div className="flex items-center gap-1.5 font-extrabold text-slate-400 uppercase tracking-wider">
-                    <Activity size={12} className="text-indigo-600 animate-pulse" />
+                <div className="mt-5 pt-4 border-t border-slate-150 dark:border-slate-800 flex flex-col sm:flex-row gap-3 items-center justify-between text-[10px]">
+                  <div className="flex items-center gap-1.5 font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                    <Activity size={12} className="text-indigo-600 dark:text-blue-400 animate-pulse" />
                     <span>Select any active grid block to view detailed task logging feed</span>
                   </div>
-                  <div className="flex items-center gap-1.5 font-bold text-slate-400">
+                  <div className="flex items-center gap-1.5 font-bold text-slate-400 dark:text-slate-500">
                     <span>No Work</span>
-                    <div className="w-3.5 h-3.5 rounded-lg bg-slate-50 border border-slate-200" />
-                    <div className="w-3.5 h-3.5 rounded-lg bg-indigo-50 border border-indigo-200" />
-                    <div className="w-3.5 h-3.5 rounded-lg bg-indigo-100 border border-indigo-250" />
-                    <div className="w-3.5 h-3.5 rounded-lg bg-indigo-200 border border-indigo-300" />
+                    <div className="w-3.5 h-3.5 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800" />
+                    <div className="w-3.5 h-3.5 rounded-lg bg-indigo-50 dark:bg-blue-500/10 border border-indigo-200 dark:border-blue-500/25" />
+                    <div className="w-3.5 h-3.5 rounded-lg bg-indigo-100 dark:bg-blue-500/15 border border-indigo-250" />
+                    <div className="w-3.5 h-3.5 rounded-lg bg-indigo-200 border border-indigo-300 dark:border-blue-500/30" />
                     <div className="w-3.5 h-3.5 rounded-lg bg-indigo-300 border border-indigo-400" />
-                    <div className="w-3.5 h-3.5 rounded-lg bg-indigo-400 border border-indigo-500" />
-                    <div className="w-3.5 h-3.5 rounded-lg bg-indigo-500 border border-indigo-600" />
-                    <div className="w-3.5 h-3.5 rounded-lg bg-indigo-600 border border-indigo-700" />
-                    <div className="w-3.5 h-3.5 rounded-lg bg-indigo-700 border border-indigo-800" />
+                    <div className="w-3.5 h-3.5 rounded-lg bg-indigo-400 border border-indigo-500 dark:border-blue-500/50" />
+                    <div className="w-3.5 h-3.5 rounded-lg bg-indigo-500 border border-indigo-600 dark:border-blue-500/50" />
+                    <div className="w-3.5 h-3.5 rounded-lg bg-indigo-600 dark:bg-blue-600 border border-indigo-700" />
+                    <div className="w-3.5 h-3.5 rounded-lg bg-indigo-700 dark:bg-blue-500 border border-indigo-800" />
                     <div className="w-3.5 h-3.5 rounded-lg bg-indigo-900 border border-indigo-950" />
                     <span>Peak Update Density</span>
                   </div>
@@ -2707,20 +2707,20 @@ export default function DSRDashboard({
                           </h4>
                         </div>
                         
-                        <div className="bg-indigo-50/40 p-4.5 rounded-2xl border border-indigo-100 shadow-2xs space-y-2.5">
-                          <span className="text-xs font-black text-indigo-700 tracking-tight block uppercase">
+                        <div className="bg-indigo-50/40 p-4.5 rounded-2xl border border-indigo-100 dark:border-blue-500/20 shadow-2xs space-y-2.5">
+                          <span className="text-xs font-black text-indigo-700 dark:text-blue-400 tracking-tight block uppercase">
                             {readableSelectedDate}
                           </span>
                           <div className="flex gap-3">
-                            <div className="text-center bg-white border border-slate-150 py-2 px-3 rounded-xl flex-1 shadow-3xs">
-                              <span className="block text-[8px] font-black uppercase text-slate-400 tracking-wider">Content Updates</span>
-                              <span className="text-sm font-black text-slate-800">
+                            <div className="text-center bg-white dark:bg-slate-900 border border-slate-150 dark:border-slate-800 py-2 px-3 rounded-xl flex-1 shadow-3xs">
+                              <span className="block text-[8px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-wider">Content Updates</span>
+                              <span className="text-sm font-black text-slate-800 dark:text-slate-100">
                                 {dayWorks.reduce((sum, w) => sum + (w.contentUpdates?.length || 0), 0)}
                               </span>
                             </div>
-                            <div className="text-center bg-white border border-slate-150 py-2 px-3 rounded-xl flex-1 shadow-3xs">
-                              <span className="block text-[8px] font-black uppercase text-indigo-600 tracking-wider">Backlinks</span>
-                              <span className="text-sm font-black text-indigo-700">
+                            <div className="text-center bg-white dark:bg-slate-900 border border-slate-150 dark:border-slate-800 py-2 px-3 rounded-xl flex-1 shadow-3xs">
+                              <span className="block text-[8px] font-black uppercase text-indigo-600 dark:text-blue-400 tracking-wider">Backlinks</span>
+                              <span className="text-sm font-black text-indigo-700 dark:text-blue-400">
                                 {/* Combined total backlinks (every type) for ALL users on this day */}
                                 {dayWorks.reduce((sum, w) => sum + sumBacklinksForWork(w), 0)}
                               </span>
@@ -2730,7 +2730,7 @@ export default function DSRDashboard({
 
                         <div className="space-y-4 flex-1 min-h-[220px] overflow-y-auto pr-1">
                           {dayWorks.length === 0 ? (
-                            <div className="text-center p-8 bg-slate-50/50 border border-dashed border-slate-200 rounded-xl text-[11px] text-slate-400 italic">
+                            <div className="text-center p-8 bg-slate-50/50 dark:bg-slate-800/40 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl text-[11px] text-slate-400 dark:text-slate-500 italic">
                               No submissions logged on this date.
                             </div>
                           ) : (() => {
@@ -2800,7 +2800,7 @@ export default function DSRDashboard({
                               const isUserExpanded = expandedLogUser === userEmail;
 
                               return (
-                                <div key={userEmail} className="bg-white p-5 rounded-2xl border border-slate-150 shadow-sm space-y-4 text-xs text-left">
+                                <div key={userEmail} className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-150 dark:border-slate-800 shadow-sm space-y-4 text-xs text-left">
                                   {/* User details at the top of the block - click to expand/collapse (accordion) */}
                                   <button
                                     type="button"
@@ -2808,24 +2808,24 @@ export default function DSRDashboard({
                                     className={`w-full flex items-center justify-between pb-2.5 ${isUserExpanded ? 'border-b border-slate-100' : ''}`}
                                   >
                                     <div className="text-left">
-                                      <span className="block text-[9px] font-black uppercase text-slate-400 tracking-wider">Submitted By</span>
-                                      <span className="text-sm font-black text-slate-800">{userName}</span>
+                                      <span className="block text-[9px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-wider">Submitted By</span>
+                                      <span className="text-sm font-black text-slate-800 dark:text-slate-100">{userName}</span>
                                     </div>
                                     <div className="flex items-center gap-2">
                                       {isAdmin && (
-                                        <span className="text-[9px] font-mono font-black border border-indigo-100 bg-indigo-50 px-2 py-0.5 rounded text-indigo-600 uppercase leading-none whitespace-nowrap">
+                                        <span className="text-[9px] font-mono font-black border border-indigo-100 dark:border-blue-500/20 bg-indigo-50 dark:bg-blue-500/10 px-2 py-0.5 rounded text-indigo-600 dark:text-blue-400 uppercase leading-none whitespace-nowrap">
                                           Project Worked = {userProjectIds.length}
                                         </span>
                                       )}
                                       {regionsInvolved.length > 0 && (
-                                        <span className="text-[9px] font-mono font-black border border-slate-200 bg-slate-50 px-2 py-0.5 rounded text-slate-500 uppercase leading-none">
+                                        <span className="text-[9px] font-mono font-black border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 px-2 py-0.5 rounded text-slate-500 dark:text-slate-400 uppercase leading-none">
                                           {regionsInvolved.join(' / ')}
                                         </span>
                                       )}
                                       {isUserExpanded ? (
-                                        <ChevronUp size={16} className="text-slate-400 shrink-0" />
+                                        <ChevronUp size={16} className="text-slate-400 dark:text-slate-500 shrink-0" />
                                       ) : (
-                                        <ChevronDown size={16} className="text-slate-400 shrink-0" />
+                                        <ChevronDown size={16} className="text-slate-400 dark:text-slate-500 shrink-0" />
                                       )}
                                     </div>
                                   </button>
@@ -2833,7 +2833,7 @@ export default function DSRDashboard({
                                   {/* Dropdown to switch projects if this user submitted to multiple projects */}
                                   {isUserExpanded && userProjectIds.length > 0 && (
                                     <div className="bg-slate-50/70 p-3 rounded-xl border border-slate-200/50 space-y-1.5">
-                                      <label className="block text-[9px] font-black uppercase text-slate-400 tracking-wider">
+                                      <label className="block text-[9px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-wider">
                                         Select Project ({userProjectIds.length} worked)
                                       </label>
                                       <select
@@ -2844,7 +2844,7 @@ export default function DSRDashboard({
                                             [userEmail]: e.target.value
                                           }));
                                         }}
-                                        className="w-full text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-xl px-3 py-2 cursor-pointer focus:outline-none focus:border-indigo-500 transition-colors"
+                                        className="w-full text-xs font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 cursor-pointer focus:outline-none focus:border-indigo-500 focus:dark:border-blue-500/50 transition-colors"
                                       >
                                         {userProjectIds.map(pId => {
                                           const proj = projects.find(p => p.id === pId);
@@ -2864,14 +2864,14 @@ export default function DSRDashboard({
                                     <div className="space-y-3 pt-1">
                                       <div className="flex justify-between items-center">
                                         <div className="font-extrabold text-slate-900 flex items-center flex-wrap gap-1.5 leading-tight">
-                                          <span className="text-xs font-black text-slate-700 uppercase tracking-wide">Active Project:</span>
-                                          <span className="text-xs font-black text-indigo-600">{projectName}</span>
+                                          <span className="text-xs font-black text-slate-700 dark:text-slate-200 uppercase tracking-wide">Active Project:</span>
+                                          <span className="text-xs font-black text-indigo-600 dark:text-blue-400">{projectName}</span>
                                           {projectDomain && (
                                             <a 
                                               href={domainHref(projectDomain)} 
                                               target="_blank" 
                                               rel="noreferrer" 
-                                              className="text-indigo-600 hover:underline font-bold text-[10px] ml-1 inline-flex items-center"
+                                              className="text-indigo-600 dark:text-blue-400 hover:underline font-bold text-[10px] ml-1 inline-flex items-center"
                                             >
                                               {cleanDomain(projectDomain)}
                                             </a>
@@ -2882,7 +2882,7 @@ export default function DSRDashboard({
                                       {summaries.length > 0 && (
                                         <div className="space-y-1.5">
                                           {summaries.map((summary, sIdx) => (
-                                            <p key={sIdx} className="text-[11px] font-medium text-slate-650 bg-slate-50 border border-slate-150 p-2.5 rounded-xl leading-relaxed">
+                                            <p key={sIdx} className="text-[11px] font-medium text-slate-650 bg-slate-50 dark:bg-slate-800/60 border border-slate-150 dark:border-slate-800 p-2.5 rounded-xl leading-relaxed">
                                               {summary}
                                             </p>
                                           ))}
@@ -2890,12 +2890,12 @@ export default function DSRDashboard({
                                       )}
 
                                       {/* Grid of backlinks count */}
-                                      <div className="grid grid-cols-4 sm:grid-cols-8 gap-1.5 text-[9px] font-black uppercase text-slate-400 tracking-tight text-center pt-1">
-                                        <div className="bg-emerald-50/20 p-1.5 rounded border border-emerald-100/40 text-emerald-700">
+                                      <div className="grid grid-cols-4 sm:grid-cols-8 gap-1.5 text-[9px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-tight text-center pt-1">
+                                        <div className="bg-emerald-50/20 p-1.5 rounded border border-emerald-100/40 text-emerald-700 dark:text-emerald-400">
                                           <span className="block text-[7px] font-bold text-emerald-400">Blogs</span>
                                           {blogCount}
                                         </div>
-                                        <div className="bg-indigo-50/20 p-1.5 rounded border border-indigo-100/40 text-indigo-700">
+                                        <div className="bg-indigo-50/20 p-1.5 rounded border border-indigo-100/40 text-indigo-700 dark:text-blue-400">
                                           <span className="block text-[7px] font-bold text-indigo-400">Listings</span>
                                           {listingCount}
                                         </div>
@@ -2903,11 +2903,11 @@ export default function DSRDashboard({
                                           <span className="block text-[7px] font-bold text-teal-400">Forum</span>
                                           {forumCount}
                                         </div>
-                                        <div className="bg-amber-50/20 p-1.5 rounded border border-amber-100/40 text-amber-700">
+                                        <div className="bg-amber-50/20 p-1.5 rounded border border-amber-100/40 text-amber-700 dark:text-amber-400">
                                           <span className="block text-[7px] font-bold text-amber-400">PDFs</span>
                                           {pdfCount}
                                         </div>
-                                        <div className="bg-rose-50/20 p-1.5 rounded border border-rose-100/40 text-rose-700">
+                                        <div className="bg-rose-50/20 p-1.5 rounded border border-rose-100/40 text-rose-700 dark:text-rose-400">
                                           <span className="block text-[7px] font-bold text-rose-455">Images</span>
                                           {imageCount}
                                         </div>
@@ -2938,7 +2938,7 @@ export default function DSRDashboard({
                                       {/* List of active content updates displayed underneath backlinks */}
                                       {projectContentUpdates.length > 0 && (
                                         <div className="flex flex-wrap gap-1 mt-2.5 pt-2 border-t border-slate-100">
-                                          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tight self-center mr-1">Content Updates:</span>
+                                          <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-tight self-center mr-1">Content Updates:</span>
                                           {projectContentUpdates.map(cu => {
                                             let label = cu;
                                             if (cu === 'meta_title_desc') label = 'Meta Title & Description';
@@ -2946,7 +2946,7 @@ export default function DSRDashboard({
                                             if (cu === 'section_update') label = 'Section Update';
                                             if (cu === 'restructure') label = 'Restructure';
                                             return (
-                                              <span key={cu} className="text-[9px] font-extrabold bg-slate-50 text-slate-600 px-1.5 py-0.5 rounded border border-slate-200">
+                                              <span key={cu} className="text-[9px] font-extrabold bg-slate-50 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-800">
                                                 {label}
                                               </span>
                                             );
@@ -2969,25 +2969,25 @@ export default function DSRDashboard({
                         {monthNames[heatmapMonth]} Summary
                       </h4>
                       
-                      <div className="bg-slate-50 p-5 rounded-2xl border border-slate-150/80 shadow-2xs space-y-4 flex-1 flex flex-col justify-between">
-                        <div className="flex gap-2 items-center text-slate-700">
-                          <Award size={15} className="shrink-0 text-indigo-600" />
-                          <span className="text-[10px] font-black uppercase tracking-wider text-slate-700">Monthly Aggregations</span>
+                      <div className="bg-slate-50 dark:bg-slate-800/60 p-5 rounded-2xl border border-slate-150/80 shadow-2xs space-y-4 flex-1 flex flex-col justify-between">
+                        <div className="flex gap-2 items-center text-slate-700 dark:text-slate-200">
+                          <Award size={15} className="shrink-0 text-indigo-600 dark:text-blue-400" />
+                          <span className="text-[10px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-200">Monthly Aggregations</span>
                         </div>
 
                         <div className="grid grid-cols-2 gap-3">
-                          <div className="bg-white p-3 rounded-xl border border-slate-150 shadow-3xs">
-                            <span className="block text-[9px] font-semibold text-slate-400 uppercase tracking-wider">Active Days</span>
-                            <span className="text-base font-black text-slate-800 leading-none block mt-1">
+                          <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-150 dark:border-slate-800 shadow-3xs">
+                            <span className="block text-[9px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Active Days</span>
+                            <span className="text-base font-black text-slate-800 dark:text-slate-100 leading-none block mt-1">
                               {new Set(enrichedWorks.filter(w => {
                                 const [y, m] = w.date.split('-');
                                 return Number(y) === heatmapYear && (Number(m) - 1) === heatmapMonth;
                               }).map(w => w.date)).size} days
                             </span>
                           </div>
-                          <div className="bg-white p-3 rounded-xl border border-slate-150 shadow-3xs">
-                            <span className="block text-[9px] font-semibold text-slate-400 uppercase tracking-wider">Total Tasks</span>
-                            <span className="text-base font-black text-slate-800 leading-none block mt-1">
+                          <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-150 dark:border-slate-800 shadow-3xs">
+                            <span className="block text-[9px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Total Tasks</span>
+                            <span className="text-base font-black text-slate-800 dark:text-slate-100 leading-none block mt-1">
                               {enrichedWorks.filter(w => {
                                 const [y, m] = w.date.split('-');
                                 return Number(y) === heatmapYear && (Number(m) - 1) === heatmapMonth;
@@ -2996,10 +2996,10 @@ export default function DSRDashboard({
                           </div>
                         </div>
 
-                        <div className="bg-white p-3.5 rounded-xl border border-slate-150 shadow-3xs space-y-1.5">
-                          <span className="block text-[9px] font-semibold text-slate-400 uppercase tracking-wider">Monthly Backlinks Logged</span>
+                        <div className="bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-slate-150 dark:border-slate-800 shadow-3xs space-y-1.5">
+                          <span className="block text-[9px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Monthly Backlinks Logged</span>
                           <div className="flex justify-between items-baseline">
-                            <span className="text-xl font-black text-indigo-600 leading-none block">
+                            <span className="text-xl font-black text-indigo-600 dark:text-blue-400 leading-none block">
                               {enrichedWorks.filter(w => {
                                 const [y, m] = w.date.split('-');
                                 return Number(y) === heatmapYear && (Number(m) - 1) === heatmapMonth;
@@ -3008,7 +3008,7 @@ export default function DSRDashboard({
                           </div>
                         </div>
 
-                        <div className="bg-indigo-50/50 p-3 rounded-xl border border-indigo-100 text-[10px] text-indigo-750 leading-relaxed font-bold">
+                        <div className="bg-indigo-50/50 dark:bg-blue-500/10 p-3 rounded-xl border border-indigo-100 dark:border-blue-500/20 text-[10px] text-indigo-750 dark:text-blue-400 leading-relaxed font-bold">
                           Click any colored cell in the month calendar grid to see granular project breakouts, individual submitters, and tasks logged on those dates.
                         </div>
                       </div>
@@ -3033,7 +3033,7 @@ export default function DSRDashboard({
 
           const allCategories = [
             { name: 'Blog / Article', count: blogsSum, color: 'bg-emerald-500 hover:bg-emerald-600' },
-            { name: 'Listings', count: listingsSum, color: 'bg-indigo-500 hover:bg-indigo-600' },
+            { name: 'Listings', count: listingsSum, color: 'bg-indigo-500 hover:bg-indigo-600 hover:dark:bg-blue-600' },
             { name: 'Forum', count: forumsSum, color: 'bg-teal-500 hover:bg-teal-600' },
             { name: 'PDF', count: pdfsSum, color: 'bg-amber-500 hover:bg-amber-600' },
             { name: 'Images', count: imagesSum, color: 'bg-rose-500 hover:bg-rose-600' },
@@ -3121,11 +3121,11 @@ export default function DSRDashboard({
 
           return (
             <div>
-              <div className="p-4 bg-gray-50/50 border-b border-gray-150 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                <h3 className="text-xs font-black text-gray-900 uppercase tracking-wider">Backlink Distribution</h3>
+              <div className="p-4 bg-gray-50/50 dark:bg-slate-800/40 border-b border-gray-150 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <h3 className="text-xs font-black text-gray-900 dark:text-slate-50 uppercase tracking-wider">Backlink Distribution</h3>
                 {isAdmin && (
-                  <div className="text-[10px] bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-lg border border-emerald-100 flex items-center gap-1.5 font-bold">
-                    <Users size={12} className="shrink-0 text-emerald-600" />
+                  <div className="text-[10px] bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 px-2.5 py-1 rounded-lg border border-emerald-100 dark:border-emerald-500/20 flex items-center gap-1.5 font-bold">
+                    <Users size={12} className="shrink-0 text-emerald-600 dark:text-emerald-400" />
                     <span>Combined dataset containing all team submissions</span>
                   </div>
                 )}
@@ -3133,16 +3133,16 @@ export default function DSRDashboard({
 
               <div className="p-5 space-y-8 text-left">
                 {/* 1. Horizontal bar graph */}
-                <div className="bg-slate-50/40 p-6 border border-gray-100 rounded-2xl shadow-3xs space-y-5">
+                <div className="bg-slate-50/40 dark:bg-slate-800/35 p-6 border border-gray-100 dark:border-slate-800/60 rounded-2xl shadow-3xs space-y-5">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
                     <div>
-                      <h4 className="text-xs font-black text-gray-900 uppercase tracking-wider">Work Type Ratio Distribution</h4>
+                      <h4 className="text-xs font-black text-gray-900 dark:text-slate-50 uppercase tracking-wider">Work Type Ratio Distribution</h4>
                     </div>
                   </div>
 
                   <div className="space-y-4 pt-2">
                     {activeCategories.length === 0 ? (
-                      <div className="text-center py-10 text-xs text-gray-400 font-mono italic">
+                      <div className="text-center py-10 text-xs text-gray-400 dark:text-slate-500 font-mono italic">
                         No report submissions with non-zero backlinks logged in the selected timeframe.
                       </div>
                     ) : (
@@ -3151,13 +3151,13 @@ export default function DSRDashboard({
 
                         return (
                           <div key={idx} className="space-y-1.5">
-                            <div className="flex items-center justify-between text-xs font-bold text-gray-700">
+                            <div className="flex items-center justify-between text-xs font-bold text-gray-700 dark:text-slate-200">
                               <span className="flex items-center gap-2">
-                                <span className="text-gray-900 font-extrabold">{cat.name}</span>
+                                <span className="text-gray-900 dark:text-slate-50 font-extrabold">{cat.name}</span>
                               </span>
-                              <span className="font-mono text-gray-800 text-xs font-black bg-white px-2 py-0.5 rounded border border-gray-150 shadow-3xs">{cat.count} backlinks</span>
+                              <span className="font-mono text-gray-800 dark:text-slate-100 text-xs font-black bg-white dark:bg-slate-900 px-2 py-0.5 rounded border border-gray-150 dark:border-slate-800 shadow-3xs">{cat.count} backlinks</span>
                             </div>
-                            <div className="h-4 w-full bg-gray-100 rounded-lg overflow-hidden border border-gray-200/60 p-0.5">
+                            <div className="h-4 w-full bg-gray-100 dark:bg-slate-800 rounded-lg overflow-hidden border border-gray-200/60 p-0.5">
                               <div 
                                 className={`h-full ${cat.color} rounded-md transition-all duration-500`}
                                 style={{ width: `${Math.max(percentage, 4)}%` }}
@@ -3173,49 +3173,49 @@ export default function DSRDashboard({
                 {/* 2. Project counts distribution table (excluding 0 count items) */}
                 <div className="space-y-4">
                   <div>
-                    <h4 className="text-xs font-black text-gray-900 uppercase tracking-wider">
+                    <h4 className="text-xs font-black text-gray-900 dark:text-slate-50 uppercase tracking-wider">
                       Project Backlink Type Distribution
                     </h4>
                   </div>
 
-                  <div className="overflow-x-auto overflow-y-auto border border-gray-150 rounded-2xl shadow-3xs bg-white" style={{ maxHeight: dynamicTableMaxHeight }}>
+                  <div className="overflow-x-auto overflow-y-auto border border-gray-150 dark:border-slate-800 rounded-2xl shadow-3xs bg-white dark:bg-slate-900" style={{ maxHeight: dynamicTableMaxHeight }}>
                     <table className="w-full text-left text-xs min-w-[700px]">
-                      <thead className="bg-slate-50 border-b border-gray-150 text-[10px] text-gray-400 uppercase font-black tracking-wider sticky top-0 z-10">
+                      <thead className="bg-slate-50 dark:bg-slate-800/60 border-b border-gray-150 dark:border-slate-800 text-[10px] text-gray-400 dark:text-slate-500 uppercase font-black tracking-wider sticky top-0 z-10">
                         <tr>
-                          <th className="px-4 py-3.5 w-16 bg-slate-50">Sr No.</th>
-                          <th className="pl-4 pr-1 py-3.5 w-40 bg-slate-50">Project Name</th>
-                          <th className="pl-1 pr-3 py-3.5 w-48 bg-slate-50">Domain</th>
-                          {isAdmin && <th className="px-4 py-3.5 text-left bg-slate-50">User</th>}
+                          <th className="px-4 py-3.5 w-16 bg-slate-50 dark:bg-slate-800/60">Sr No.</th>
+                          <th className="pl-4 pr-1 py-3.5 w-40 bg-slate-50 dark:bg-slate-800/60">Project Name</th>
+                          <th className="pl-1 pr-3 py-3.5 w-48 bg-slate-50 dark:bg-slate-800/60">Domain</th>
+                          {isAdmin && <th className="px-4 py-3.5 text-left bg-slate-50 dark:bg-slate-800/60">User</th>}
                           {activeColumns.map((col, cIdx) => (
-                            <th key={cIdx} className="px-4 py-3.5 text-center font-bold bg-slate-50">{col.label}</th>
+                            <th key={cIdx} className="px-4 py-3.5 text-center font-bold bg-slate-50 dark:bg-slate-800/60">{col.label}</th>
                           ))}
-                          <th className="px-4 py-3.5 text-center bg-indigo-50/40 text-indigo-900 font-extrabold font-mono">Total</th>
+                          <th className="px-4 py-3.5 text-center bg-indigo-50/40 text-indigo-900 dark:text-blue-200 font-extrabold font-mono">Total</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-gray-150 font-semibold text-gray-700">
+                      <tbody className="divide-y divide-gray-150 dark:divide-slate-800 font-semibold text-gray-700 dark:text-slate-200">
                         {projectRows.map((row, idx) => (
-                          <tr key={row.id} className="hover:bg-slate-50/50 transition">
-                            <td className="px-4 py-3.5 font-mono text-gray-400 font-bold">{idx + 1}</td>
+                          <tr key={row.id} className="hover:bg-slate-50/50 hover:dark:bg-slate-800/40 transition">
+                            <td className="px-4 py-3.5 font-mono text-gray-400 dark:text-slate-500 font-bold">{idx + 1}</td>
                             <td className="pl-4 pr-1 py-3.5 w-40">
-                              <span className="font-bold text-gray-900 block truncate">{row.name}</span>
+                              <span className="font-bold text-gray-900 dark:text-slate-50 block truncate">{row.name}</span>
                             </td>
-                            <td className="pl-1 pr-3 py-3.5 w-48 font-mono text-gray-500 whitespace-nowrap">
+                            <td className="pl-1 pr-3 py-3.5 w-48 font-mono text-gray-500 dark:text-slate-400 whitespace-nowrap">
                               {row.domain ? (
                                 <a 
                                   href={domainHref(row.domain)} 
                                   target="_blank" 
                                   rel="noreferrer" 
-                                  className="text-indigo-600 hover:underline font-bold whitespace-nowrap"
+                                  className="text-indigo-600 dark:text-blue-400 hover:underline font-bold whitespace-nowrap"
                                 >
                                   {cleanDomain(row.domain)}
                                 </a>
                               ) : (
-                                <span className="text-gray-300 italic font-normal text-[11px]">No Domain</span>
+                                <span className="text-gray-300 dark:text-slate-500 italic font-normal text-[11px]">No Domain</span>
                               )}
                             </td>
                             {isAdmin && (
-                              <td className="px-4 py-3.5 font-bold text-gray-800 text-left">
-                                <span className="text-gray-900 bg-slate-50 border border-slate-200/50 rounded px-2.5 py-1 text-[10px] select-all font-bold">
+                              <td className="px-4 py-3.5 font-bold text-gray-800 dark:text-slate-100 text-left">
+                                <span className="text-gray-900 dark:text-slate-50 bg-slate-50 dark:bg-slate-800/60 border border-slate-200/50 rounded px-2.5 py-1 text-[10px] select-all font-bold">
                                   {getAssignedUsersForProject(row.id)}
                                 </span>
                               </td>
@@ -3225,7 +3225,7 @@ export default function DSRDashboard({
                               return (
                                 <td key={cIdx} className="px-4 py-3.5 text-center font-mono font-bold">
                                   {count > 0 ? (
-                                    <span className="text-gray-900 text-xs font-extrabold">{count}</span>
+                                    <span className="text-gray-900 dark:text-slate-50 text-xs font-extrabold">{count}</span>
                                   ) : (
                                     <span className="text-gray-250 font-normal">-</span>
                                   )}
@@ -3233,7 +3233,7 @@ export default function DSRDashboard({
                               );
                             })}
                             <td className="px-4 py-3.5 text-center bg-indigo-50/10">
-                              <span className="font-mono font-black text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-lg text-xs border border-indigo-100 shadow-3xs">
+                              <span className="font-mono font-black text-indigo-700 dark:text-blue-400 bg-indigo-50 dark:bg-blue-500/10 px-2.5 py-1 rounded-lg text-xs border border-indigo-100 dark:border-blue-500/20 shadow-3xs">
                                 {row.total}
                               </span>
                             </td>
@@ -3241,7 +3241,7 @@ export default function DSRDashboard({
                         ))}
                         {projectRows.length === 0 && (
                           <tr>
-                            <td colSpan={3 + activeColumns.length + 1 + (isAdmin ? 1 : 0)} className="px-4 py-10 text-center text-gray-400 font-medium font-mono italic">
+                            <td colSpan={3 + activeColumns.length + 1 + (isAdmin ? 1 : 0)} className="px-4 py-10 text-center text-gray-400 dark:text-slate-500 font-medium font-mono italic">
                               No backlink metrics logged for active projects in the selected timeframe.
                             </td>
                           </tr>
@@ -3257,42 +3257,42 @@ export default function DSRDashboard({
 
         {activeTab === 'unworked_project' && (
           <div>
-            <div className="p-4 bg-gray-50/50 border-b border-gray-150 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="p-4 bg-gray-50/50 dark:bg-slate-800/40 border-b border-gray-150 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <h3 className="text-xs font-black text-gray-900 uppercase tracking-wider">Idle Projects</h3>
+                <h3 className="text-xs font-black text-gray-900 dark:text-slate-50 uppercase tracking-wider">Idle Projects</h3>
               </div>
             </div>
 
             {unworkedProjects.length === 0 ? (
-              <div className="p-12 text-center text-xs text-gray-600 font-bold space-y-1 bg-slate-50/40 rounded-b-2xl border-t border-slate-150">
+              <div className="p-12 text-center text-xs text-gray-600 dark:text-slate-300 font-bold space-y-1 bg-slate-50/40 dark:bg-slate-800/35 rounded-b-2xl border-t border-slate-150 dark:border-slate-800">
                 <CheckCircle size={22} className="text-emerald-500 block mx-auto mb-2.5 animate-bounce" />
                 <p>No projects found.</p>
               </div>
             ) : (
               <div className="overflow-x-auto overflow-y-auto" style={{ maxHeight: dynamicTableMaxHeight }}>
                 <table className="w-auto min-w-full text-left text-[15px] table-auto">
-                  <thead className="bg-slate-50 text-slate-500 font-bold text-[12px] uppercase tracking-normal border-b border-gray-150 sticky top-0 z-10">
+                  <thead className="bg-slate-50 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 font-bold text-[12px] uppercase tracking-normal border-b border-gray-150 dark:border-slate-800 sticky top-0 z-10">
                     <tr>
-                      <th className="px-5 py-4 text-center whitespace-nowrap bg-slate-50">Sr No.</th>
-                      <th className="px-5 py-4 whitespace-nowrap bg-slate-50">Project Name</th>
-                      <th className="px-5 py-4 whitespace-nowrap bg-slate-50">Domain</th>
-                      <th className="px-5 py-4 text-center whitespace-nowrap bg-slate-50">Priority</th>
-                      <th className="px-5 py-4 whitespace-nowrap bg-slate-50">Last Worked</th>
-                      <th className="px-5 py-4 text-center whitespace-nowrap bg-slate-50">Best Ranking</th>
-                      <th className="px-5 py-4 text-center whitespace-nowrap bg-slate-50">Last Rank Checked</th>
-                      {isAdmin && <th className="px-5 py-4 whitespace-nowrap bg-slate-50">User</th>}
-                      {isAdmin && <th className="px-5 py-4 text-center whitespace-nowrap bg-slate-50">Action</th>}
+                      <th className="px-5 py-4 text-center whitespace-nowrap bg-slate-50 dark:bg-slate-800/60">Sr No.</th>
+                      <th className="px-5 py-4 whitespace-nowrap bg-slate-50 dark:bg-slate-800/60">Project Name</th>
+                      <th className="px-5 py-4 whitespace-nowrap bg-slate-50 dark:bg-slate-800/60">Domain</th>
+                      <th className="px-5 py-4 text-center whitespace-nowrap bg-slate-50 dark:bg-slate-800/60">Priority</th>
+                      <th className="px-5 py-4 whitespace-nowrap bg-slate-50 dark:bg-slate-800/60">Last Worked</th>
+                      <th className="px-5 py-4 text-center whitespace-nowrap bg-slate-50 dark:bg-slate-800/60">Best Ranking</th>
+                      <th className="px-5 py-4 text-center whitespace-nowrap bg-slate-50 dark:bg-slate-800/60">Last Rank Checked</th>
+                      {isAdmin && <th className="px-5 py-4 whitespace-nowrap bg-slate-50 dark:bg-slate-800/60">User</th>}
+                      {isAdmin && <th className="px-5 py-4 text-center whitespace-nowrap bg-slate-50 dark:bg-slate-800/60">Action</th>}
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-150">
+                  <tbody className="divide-y divide-gray-150 dark:divide-slate-800">
                     {unworkedProjects.map((proj) => (
-                      <tr key={proj.id} className="hover:bg-slate-50/40">
-                        <td className="px-5 py-5 whitespace-nowrap font-semibold text-gray-500 text-center">{proj.srNo}</td>
+                      <tr key={proj.id} className="hover:bg-slate-50/40 hover:dark:bg-slate-800/35">
+                        <td className="px-5 py-5 whitespace-nowrap font-semibold text-gray-500 dark:text-slate-400 text-center">{proj.srNo}</td>
                         
                         {/* Project Name column */}
-                        <td className="px-5 py-5 whitespace-nowrap font-bold text-gray-900 text-left">
+                        <td className="px-5 py-5 whitespace-nowrap font-bold text-gray-900 dark:text-slate-50 text-left">
                           <div className="flex items-center gap-2">
-                            <span className="text-[15px] text-gray-900 font-bold">{proj.name}</span>
+                            <span className="text-[15px] text-gray-900 dark:text-slate-50 font-bold">{proj.name}</span>
                           </div>
                         </td>
 
@@ -3303,24 +3303,24 @@ export default function DSRDashboard({
                               href={domainHref(proj.domain)} 
                               target="_blank" 
                               rel="noreferrer" 
-                              className="text-indigo-700 hover:underline text-[14px] font-semibold inline-flex items-center gap-1 whitespace-nowrap"
+                              className="text-indigo-700 dark:text-blue-400 hover:underline text-[14px] font-semibold inline-flex items-center gap-1 whitespace-nowrap"
                             >
                               {cleanDomain(proj.domain)}
                             </a>
                           ) : (
-                            <span className="text-gray-300 italic text-[13px] font-normal">No Domain Assigned</span>
+                            <span className="text-gray-300 dark:text-slate-500 italic text-[13px] font-normal">No Domain Assigned</span>
                           )}
                         </td>
 
                         {/* Priority column */}
                         <td className="px-5 py-5 whitespace-nowrap text-center">
                           {proj.priority === 'X1' && (
-                            <span className="inline-flex items-center gap-1 bg-red-50 text-red-700 text-[11px] font-black px-2.5 py-1 rounded border border-red-100 uppercase tracking-wider whitespace-nowrap">
+                            <span className="inline-flex items-center gap-1 bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-400 text-[11px] font-black px-2.5 py-1 rounded border border-red-100 uppercase tracking-wider whitespace-nowrap">
                               X1
                             </span>
                           )}
                           {proj.priority === 'X2' && (
-                            <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-700 text-[11px] font-black px-2.5 py-1 rounded border border-amber-100 uppercase tracking-wider whitespace-nowrap">
+                            <span className="inline-flex items-center gap-1 bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 text-[11px] font-black px-2.5 py-1 rounded border border-amber-100 dark:border-amber-500/20 uppercase tracking-wider whitespace-nowrap">
                               X2
                             </span>
                           )}
@@ -3330,17 +3330,17 @@ export default function DSRDashboard({
                             </span>
                           )}
                           {proj.priority === 'X4' && (
-                            <span className="inline-flex items-center gap-1 bg-purple-50 text-purple-700 text-[11px] font-black px-2.5 py-1 rounded border border-purple-100 uppercase tracking-wider whitespace-nowrap">
+                            <span className="inline-flex items-center gap-1 bg-purple-50 text-purple-700 text-[11px] font-black px-2.5 py-1 rounded border border-purple-100 dark:border-purple-500/20 uppercase tracking-wider whitespace-nowrap">
                               X4
                             </span>
                           )}
                           {proj.priority === 'X5' && (
-                            <span className="inline-flex items-center gap-1 bg-gray-50 text-gray-700 text-[11px] font-black px-2.5 py-1 rounded border border-gray-150 uppercase tracking-wider whitespace-nowrap">
+                            <span className="inline-flex items-center gap-1 bg-gray-50 dark:bg-slate-800/60 text-gray-700 dark:text-slate-200 text-[11px] font-black px-2.5 py-1 rounded border border-gray-150 dark:border-slate-800 uppercase tracking-wider whitespace-nowrap">
                               X5
                             </span>
                           )}
                           {!['X1', 'X2', 'X3', 'X4', 'X5'].includes(proj.priority || '') && (
-                            <span className="text-[11px] font-bold text-gray-300 italic">—</span>
+                            <span className="text-[11px] font-bold text-gray-300 dark:text-slate-500 italic">—</span>
                           )}
                         </td>
 
@@ -3352,7 +3352,7 @@ export default function DSRDashboard({
                             const days = proj.daysSinceLastWorked;
                             if (days === Infinity || days === undefined || proj.lastWorkedDate === 'Never') {
                               return (
-                                <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded bg-rose-50 text-rose-700 border border-rose-100/50 text-[11px] font-black uppercase tracking-wider">
+                                <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-100/50 text-[11px] font-black uppercase tracking-wider">
                                   Never
                                 </span>
                               );
@@ -3370,16 +3370,16 @@ export default function DSRDashboard({
 
                             const daysLabel = days === 0 ? 'Today' : `${days} ${days === 1 ? 'day' : 'days'} ago`;
                             const colorClass = days === 0
-                              ? 'text-emerald-600'
+                              ? 'text-emerald-600 dark:text-emerald-400'
                               : days < 7
-                              ? 'text-amber-600'
+                              ? 'text-amber-600 dark:text-amber-400'
                               : days < 30
                               ? 'text-rose-650'
-                              : 'text-rose-800';
+                              : 'text-rose-800 dark:text-rose-300';
 
                             return (
                               <span className={`font-bold text-[14px] whitespace-nowrap ${colorClass}`}>
-                                {dateLabel} <span className="font-semibold text-gray-400">({daysLabel})</span>
+                                {dateLabel} <span className="font-semibold text-gray-400 dark:text-slate-500">({daysLabel})</span>
                               </span>
                             );
                           })()}
@@ -3390,15 +3390,15 @@ export default function DSRDashboard({
                           {proj.bestRanking !== null && proj.bestRanking !== undefined ? (
                             <span className={`inline-flex items-center justify-center font-bold text-[12px] px-2.5 py-1 rounded border whitespace-nowrap ${
                               proj.bestRanking <= 10
-                                ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
+                                ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-100 dark:border-emerald-500/20'
                                 : proj.bestRanking <= 30
-                                ? 'bg-amber-50 text-amber-700 border-amber-100'
-                                : 'bg-rose-50 text-rose-700 border-rose-100'
+                                ? 'bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-100 dark:border-amber-500/20'
+                                : 'bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-100'
                             }`}>
                               #{proj.bestRanking}
                             </span>
                           ) : (
-                            <span className="text-[11px] font-bold text-gray-300 italic">—</span>
+                            <span className="text-[11px] font-bold text-gray-300 dark:text-slate-500 italic">—</span>
                           )}
                         </td>
 
@@ -3407,21 +3407,21 @@ export default function DSRDashboard({
                         <td className="px-5 py-5 whitespace-nowrap text-center">
                           {(() => {
                             if (!proj.bestRankingLastChecked) {
-                              return <span className="text-gray-400 font-bold">—</span>;
+                              return <span className="text-gray-400 dark:text-slate-500 font-bold">—</span>;
                             }
 
                             try {
                               const d = new Date(proj.bestRankingLastChecked);
                               if (isNaN(d.getTime())) {
-                                return <span className="text-gray-800 font-bold text-[13px]">{proj.bestRankingLastChecked}</span>;
+                                return <span className="text-gray-800 dark:text-slate-100 font-bold text-[13px]">{proj.bestRankingLastChecked}</span>;
                               }
                               return (
-                                <span className="text-gray-800 font-bold text-[13px]">
+                                <span className="text-gray-800 dark:text-slate-100 font-bold text-[13px]">
                                   {d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
                                 </span>
                               );
                             } catch {
-                              return <span className="text-gray-800 font-bold text-[13px]">{proj.bestRankingLastChecked}</span>;
+                              return <span className="text-gray-800 dark:text-slate-100 font-bold text-[13px]">{proj.bestRankingLastChecked}</span>;
                             }
                           })()}
                         </td>
@@ -3432,7 +3432,7 @@ export default function DSRDashboard({
                             {(() => {
                               const names = getAssignedUsersForProject(proj.id).split(',').map(n => n.trim()).filter(Boolean);
                               if (names.length === 0) {
-                                return <span className="text-gray-400 italic text-[12px]">Unassigned</span>;
+                                return <span className="text-gray-400 dark:text-slate-500 italic text-[12px]">Unassigned</span>;
                               }
                               const uname = names[0];
                               const extraCount = names.length - 1;
@@ -3444,9 +3444,9 @@ export default function DSRDashboard({
                                   <span className={`w-7 h-7 rounded-full ${color} text-white text-[11px] font-black flex items-center justify-center shrink-0 leading-none`}>
                                     {initials}
                                   </span>
-                                  <span className="text-gray-900 text-[13px] font-bold truncate max-w-[140px]">{uname}</span>
+                                  <span className="text-gray-900 dark:text-slate-50 text-[13px] font-bold truncate max-w-[140px]">{uname}</span>
                                   {extraCount > 0 && (
-                                    <span className="text-[10px] font-black text-gray-400 bg-gray-100 rounded-full px-1.5 py-0.5 shrink-0">+{extraCount}</span>
+                                    <span className="text-[10px] font-black text-gray-400 dark:text-slate-500 bg-gray-100 dark:bg-slate-800 rounded-full px-1.5 py-0.5 shrink-0">+{extraCount}</span>
                                   )}
                                 </div>
                               );
@@ -3459,7 +3459,7 @@ export default function DSRDashboard({
                           <td className="px-5 py-5 whitespace-nowrap text-center">
                             <button
                               onClick={() => setSelectedPlanProject(proj)}
-                              className="inline-flex items-center gap-1 bg-indigo-50 text-indigo-750 font-black uppercase text-[11px] px-3.5 py-1.5 rounded-xl border border-indigo-200 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition shadow-3xs cursor-pointer"
+                              className="inline-flex items-center gap-1 bg-indigo-50 dark:bg-blue-500/10 text-indigo-750 dark:text-blue-400 font-black uppercase text-[11px] px-3.5 py-1.5 rounded-xl border border-indigo-200 dark:border-blue-500/25 hover:bg-indigo-600 hover:dark:bg-blue-600 hover:text-white hover:border-indigo-600 hover:dark:border-blue-500/50 transition shadow-3xs cursor-pointer"
                             >
                                Plan
                             </button>
@@ -3476,9 +3476,9 @@ export default function DSRDashboard({
 
         {activeTab === 'keyword_section' && (
           <div>
-            <div className="p-4 bg-gray-50/50 border-b border-gray-150 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="p-4 bg-gray-50/50 dark:bg-slate-800/40 border-b border-gray-150 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <h3 className="text-xs font-black text-gray-900 uppercase tracking-wider">Project Ranking Section</h3>
+                <h3 className="text-xs font-black text-gray-900 dark:text-slate-50 uppercase tracking-wider">Project Ranking Section</h3>
               </div>
               
               <div className="flex items-center gap-2 w-full sm:w-auto">
@@ -3487,7 +3487,7 @@ export default function DSRDashboard({
                     type="button"
                     onClick={handleCheckAllRankings}
                     disabled={isCheckingAllRankings || filteredProjectKeywordGroups.length === 0}
-                    className="inline-flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black uppercase text-[10px] px-3 py-2 rounded-xl transition shadow-3xs cursor-pointer whitespace-nowrap"
+                    className="inline-flex items-center gap-1.5 bg-indigo-600 dark:bg-blue-600 hover:bg-indigo-700 hover:dark:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black uppercase text-[10px] px-3 py-2 rounded-xl transition shadow-3xs cursor-pointer whitespace-nowrap"
                     title="Check live SERP ranking for every project currently listed below (respects the search box if you've typed something)"
                   >
                     {isCheckingAllRankings ? (
@@ -3501,7 +3501,7 @@ export default function DSRDashboard({
                   </button>
                 )}
                 <div className="relative w-full sm:w-64">
-                  <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-400">
+                  <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-400 dark:text-slate-500">
                     <Search size={14} />
                   </span>
                   <input
@@ -3509,16 +3509,16 @@ export default function DSRDashboard({
                     value={keywordSearchTerm}
                     onChange={(e) => setKeywordSearchTerm(e.target.value)}
                     placeholder="Search projects or keywords..."
-                    className="w-full text-xs pl-9 pr-3 py-2 border border-gray-200 rounded-xl focus:outline-hidden focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 bg-white"
+                    className="w-full text-xs pl-9 pr-3 py-2 border border-gray-200 dark:border-slate-800 rounded-xl focus:outline-hidden focus:ring-1 focus:ring-indigo-500 focus:dark:ring-blue-500/50 focus:border-indigo-500 focus:dark:border-blue-500/50 bg-white dark:bg-slate-900"
                   />
                 </div>
               </div>
             </div>
 
             {rankingCheckError && (
-              <div className="mx-4 mt-4 p-3.5 bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold rounded-xl flex items-center justify-between gap-2 shadow-3xs animate-fade-in">
+              <div className="mx-4 mt-4 p-3.5 bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/25 text-rose-800 dark:text-rose-300 text-xs font-semibold rounded-xl flex items-center justify-between gap-2 shadow-3xs animate-fade-in">
                 <div className="flex items-center gap-2">
-                  <span className="text-rose-600">⚠️</span>
+                  <span className="text-rose-600 dark:text-rose-400">⚠️</span>
                   <span>{rankingCheckError}</span>
                 </div>
                 <button 
@@ -3531,23 +3531,23 @@ export default function DSRDashboard({
             )}
 
             {filteredProjectKeywordGroups.length === 0 ? (
-              <div className="p-12 text-center text-xs text-gray-500 font-bold space-y-1 bg-slate-50/40 rounded-b-2xl border-t border-slate-150">
+              <div className="p-12 text-center text-xs text-gray-500 dark:text-slate-400 font-bold space-y-1 bg-slate-50/40 dark:bg-slate-800/35 rounded-b-2xl border-t border-slate-150 dark:border-slate-800">
                 <p>No projects found matching the search criteria.</p>
               </div>
             ) : (
               <div className="overflow-x-auto overflow-y-auto" style={{ maxHeight: dynamicTableMaxHeight }}>
                 <table className="w-auto min-w-full text-left text-[15px] table-auto">
-                  <thead className="bg-slate-50 text-slate-500 font-bold text-[12px] uppercase tracking-normal border-b border-gray-150 sticky top-0 z-10">
+                  <thead className="bg-slate-50 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 font-bold text-[12px] uppercase tracking-normal border-b border-gray-150 dark:border-slate-800 sticky top-0 z-10">
                     <tr>
-                      <th className="px-5 py-4 text-center whitespace-nowrap bg-slate-50">Sr No.</th>
-                      <th className="px-5 py-4 whitespace-nowrap bg-slate-50">Project Name</th>
-                      <th className="px-5 py-4 whitespace-nowrap bg-slate-50">Domain</th>
-                      <th className="px-5 py-4 text-center whitespace-nowrap bg-slate-50">Total Keywords</th>
-                      <th className="px-5 py-4 whitespace-nowrap bg-slate-50">User</th>
-                      <th className="px-5 py-4 whitespace-nowrap bg-slate-50">Last Check</th>
+                      <th className="px-5 py-4 text-center whitespace-nowrap bg-slate-50 dark:bg-slate-800/60">Sr No.</th>
+                      <th className="px-5 py-4 whitespace-nowrap bg-slate-50 dark:bg-slate-800/60">Project Name</th>
+                      <th className="px-5 py-4 whitespace-nowrap bg-slate-50 dark:bg-slate-800/60">Domain</th>
+                      <th className="px-5 py-4 text-center whitespace-nowrap bg-slate-50 dark:bg-slate-800/60">Total Keywords</th>
+                      <th className="px-5 py-4 whitespace-nowrap bg-slate-50 dark:bg-slate-800/60">User</th>
+                      <th className="px-5 py-4 whitespace-nowrap bg-slate-50 dark:bg-slate-800/60">Last Check</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-150">
+                  <tbody className="divide-y divide-gray-150 dark:divide-slate-800">
                     {filteredProjectKeywordGroups.map((proj) => {
                       const isExpanded = !!expandedRankingProjects[proj.id];
                       return (
@@ -3562,15 +3562,15 @@ export default function DSRDashboard({
                             className="hover:bg-slate-50/60 transition-colors cursor-pointer select-none"
                           >
                             {/* Sr No. */}
-                            <td className="px-5 py-5 whitespace-nowrap font-semibold text-gray-500 text-center">{proj.srNo}</td>
+                            <td className="px-5 py-5 whitespace-nowrap font-semibold text-gray-500 dark:text-slate-400 text-center">{proj.srNo}</td>
                             
                             {/* Project Name */}
-                            <td className="px-5 py-5 whitespace-nowrap font-bold text-gray-950">
+                            <td className="px-5 py-5 whitespace-nowrap font-bold text-gray-950 dark:text-slate-50">
                               <div className="flex items-center gap-2">
                                 <ChevronDown 
                                   size={14} 
-                                  className={`text-gray-400 transition-transform ${
-                                    isExpanded ? 'rotate-180 text-indigo-600 font-black' : ''
+                                  className={`text-gray-400 dark:text-slate-500 transition-transform ${
+                                    isExpanded ? 'rotate-180 text-indigo-600 dark:text-blue-400 font-black' : ''
                                   }`} 
                                 />
                                 <span className="text-[15px]">{proj.name}</span>
@@ -3578,13 +3578,13 @@ export default function DSRDashboard({
                             </td>
 
                             {/* Domain Column */}
-                            <td className="px-5 py-5 whitespace-nowrap text-indigo-700 font-semibold text-[14px] select-all">
-                              {cleanDomain(proj.domain) || <span className="text-gray-300 font-normal">—</span>}
+                            <td className="px-5 py-5 whitespace-nowrap text-indigo-700 dark:text-blue-400 font-semibold text-[14px] select-all">
+                              {cleanDomain(proj.domain) || <span className="text-gray-300 dark:text-slate-500 font-normal">—</span>}
                             </td>
 
                             {/* Total Keywords */}
                             <td className="px-5 py-5 whitespace-nowrap text-center">
-                              <span className="inline-flex items-center justify-center gap-1.5 font-bold text-[12px] px-3 py-1.5 rounded-full border bg-indigo-50 text-indigo-700 border-indigo-150 whitespace-nowrap">
+                              <span className="inline-flex items-center justify-center gap-1.5 font-bold text-[12px] px-3 py-1.5 rounded-full border bg-indigo-50 dark:bg-blue-500/10 text-indigo-700 dark:text-blue-400 border-indigo-150 dark:border-blue-500/20 whitespace-nowrap">
                                 <Tag className="w-3 h-3" />
                                 {Array.isArray(proj.keywords) ? proj.keywords.length : 0}
                               </span>
@@ -3595,7 +3595,7 @@ export default function DSRDashboard({
                               {(() => {
                                 const names = getAssignedUsersForProject(proj.id).split(',').map(n => n.trim()).filter(Boolean);
                                 if (names.length === 0) {
-                                  return <span className="text-gray-400 italic text-[12px]">Unassigned</span>;
+                                  return <span className="text-gray-400 dark:text-slate-500 italic text-[12px]">Unassigned</span>;
                                 }
                                 const uname = names[0];
                                 const extraCount = names.length - 1;
@@ -3607,9 +3607,9 @@ export default function DSRDashboard({
                                     <span className={`w-7 h-7 rounded-full ${color} text-white text-[11px] font-black flex items-center justify-center shrink-0 leading-none`}>
                                       {initials}
                                     </span>
-                                    <span className="text-gray-900 text-[13px] font-bold truncate max-w-[140px]">{uname}</span>
+                                    <span className="text-gray-900 dark:text-slate-50 text-[13px] font-bold truncate max-w-[140px]">{uname}</span>
                                     {extraCount > 0 && (
-                                      <span className="text-[10px] font-black text-gray-400 bg-gray-100 rounded-full px-1.5 py-0.5 shrink-0">+{extraCount}</span>
+                                      <span className="text-[10px] font-black text-gray-400 dark:text-slate-500 bg-gray-100 dark:bg-slate-800 rounded-full px-1.5 py-0.5 shrink-0">+{extraCount}</span>
                                     )}
                                   </div>
                                 );
@@ -3621,10 +3621,10 @@ export default function DSRDashboard({
                                 log date). */}
                             <td className="px-5 py-5 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                               <div className="flex items-center justify-between gap-3">
-                                <div className="text-gray-800 font-bold text-[14px]">
+                                <div className="text-gray-800 dark:text-slate-100 font-bold text-[14px]">
                                   {(() => {
                                     if (!proj.lastCheckedDate) {
-                                      return <span className="text-gray-400 font-bold">—</span>;
+                                      return <span className="text-gray-400 dark:text-slate-500 font-bold">—</span>;
                                     }
                                     
                                     try {
@@ -3649,7 +3649,7 @@ export default function DSRDashboard({
                                       await checkProjectRanking(proj);
                                     }}
                                     disabled={checkingProjectIds.includes(proj.id)}
-                                    className="inline-flex items-center gap-1 bg-amber-50 hover:bg-amber-100 disabled:opacity-50 disabled:cursor-not-allowed text-amber-800 font-black uppercase text-[11px] px-2.5 py-1.5 rounded border border-amber-200 transition shadow-3xs cursor-pointer whitespace-nowrap"
+                                    className="inline-flex items-center gap-1 bg-amber-50 dark:bg-amber-500/10 hover:bg-amber-100 disabled:opacity-50 disabled:cursor-not-allowed text-amber-800 dark:text-amber-300 font-black uppercase text-[11px] px-2.5 py-1.5 rounded border border-amber-200 transition shadow-3xs cursor-pointer whitespace-nowrap"
                                     title="Check all keywords ranking live on Google SERP"
                                   >
                                     {checkingProjectIds.includes(proj.id) ? (
@@ -3665,19 +3665,19 @@ export default function DSRDashboard({
 
                           {/* Sub-table Dropdown for Keywords of this project */}
                           {isExpanded && (
-                            <tr className="bg-slate-50/50">
-                              <td colSpan={6} className="px-6 py-4 border-t border-b border-gray-150">
+                            <tr className="bg-slate-50/50 dark:bg-slate-800/40">
+                              <td colSpan={6} className="px-6 py-4 border-t border-b border-gray-150 dark:border-slate-800">
                                 <div className="space-y-2">
                                   <div className="text-[10px] uppercase font-black text-gray-450 tracking-wider">
                                     Keyword Rankings &amp; Search Visibility Details
                                   </div>
 
                                   {proj.keywords.length === 0 ? (
-                                    <p className="text-xs text-gray-400 italic">No keywords mapped for this project.</p>
+                                    <p className="text-xs text-gray-400 dark:text-slate-500 italic">No keywords mapped for this project.</p>
                                   ) : (
-                                    <div className="overflow-hidden border border-gray-150 rounded-xl bg-white shadow-3xs">
+                                    <div className="overflow-hidden border border-gray-150 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 shadow-3xs">
                                       <table className="w-full text-left text-xs border-collapse">
-                                        <thead className="bg-gray-50 text-[9px] uppercase font-bold text-gray-500 border-b border-gray-150">
+                                        <thead className="bg-gray-50 dark:bg-slate-800/60 text-[9px] uppercase font-bold text-gray-500 dark:text-slate-400 border-b border-gray-150 dark:border-slate-800">
                                           <tr>
                                             <th className="px-3 py-2">Keyword</th>
                                             <th className="px-3 py-2">Domain</th>
@@ -3686,12 +3686,12 @@ export default function DSRDashboard({
                                             <th className="px-3 py-2 w-32">Last Worked</th>
                                           </tr>
                                         </thead>
-                                        <tbody className="divide-y divide-gray-150">
+                                        <tbody className="divide-y divide-gray-150 dark:divide-slate-800">
                                           {proj.keywords.map((kwItem) => (
-                                            <tr key={kwItem.keyword} className="hover:bg-slate-50/30 transition-colors">
+                                            <tr key={kwItem.keyword} className="hover:bg-slate-50/30 hover:dark:bg-slate-800/30 transition-colors">
                                               {/* Keyword */}
-                                              <td className="px-3 py-2.5 font-semibold text-gray-900">
-                                                <span className="inline-block bg-amber-50 text-amber-900 font-extrabold px-2 py-0.5 rounded border border-amber-100 text-[11px] font-mono shadow-3xs">
+                                              <td className="px-3 py-2.5 font-semibold text-gray-900 dark:text-slate-50">
+                                                <span className="inline-block bg-amber-50 dark:bg-amber-500/10 text-amber-900 dark:text-amber-300 font-extrabold px-2 py-0.5 rounded border border-amber-100 dark:border-amber-500/20 text-[11px] font-mono shadow-3xs">
                                                   {kwItem.keyword}
                                                 </span>
                                               </td>
@@ -3704,19 +3704,19 @@ export default function DSRDashboard({
                                                     target="_blank" 
                                                     rel="noreferrer" 
                                                     onClick={(e) => e.stopPropagation()}
-                                                    className="font-mono text-indigo-600 hover:underline text-[10px] font-bold bg-indigo-50/30 border border-indigo-100/50 px-2 py-0.5 rounded"
+                                                    className="font-mono text-indigo-600 dark:text-blue-400 hover:underline text-[10px] font-bold bg-indigo-50/30 border border-indigo-100/50 px-2 py-0.5 rounded"
                                                   >
                                                     {cleanDomain(kwItem.domain)}
                                                   </a>
                                                 ) : (
-                                                  <span className="text-gray-300 italic text-[10px]">—</span>
+                                                  <span className="text-gray-300 dark:text-slate-500 italic text-[10px]">—</span>
                                                 )}
                                               </td>
 
                                               {/* Ranking */}
-                                              <td className="px-3 py-2.5 text-gray-550 font-mono text-xs font-bold">
+                                              <td className="px-3 py-2.5 text-gray-550 dark:text-slate-300 font-mono text-xs font-bold">
                                                 <div className="flex items-center gap-2">
-                                                  <span className="text-gray-900 bg-slate-100 px-1.5 py-0.5 rounded font-black text-xs min-w-[20px] text-center">
+                                                  <span className="text-gray-900 dark:text-slate-50 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded font-black text-xs min-w-[20px] text-center">
                                                     {kwItem.ranking}
                                                   </span>
                                                   {isAdmin && (
@@ -3763,7 +3763,7 @@ export default function DSRDashboard({
                                                         }
                                                       }}
                                                       disabled={checkingKeywords.includes(`${proj.id}_${kwItem.keyword}`)}
-                                                      className="p-1 text-gray-400 hover:text-amber-600 hover:bg-amber-50 disabled:opacity-50 disabled:cursor-not-allowed bg-slate-50 border border-slate-200/50 hover:border-amber-200 rounded transition cursor-pointer"
+                                                      className="p-1 text-gray-400 dark:text-slate-500 hover:text-amber-600 hover:dark:text-amber-400 hover:bg-amber-50 hover:dark:bg-amber-500/10 disabled:opacity-50 disabled:cursor-not-allowed bg-slate-50 dark:bg-slate-800/60 border border-slate-200/50 hover:border-amber-200 rounded transition cursor-pointer"
                                                       title={kwItem.lastChecked ? `Last Checked: ${new Date(kwItem.lastChecked).toLocaleString()}\nClick to refresh live SERP ranking` : "Click to check live SERP ranking"}
                                                     >
                                                       {checkingKeywords.includes(`${proj.id}_${kwItem.keyword}`) ? (
@@ -3774,7 +3774,7 @@ export default function DSRDashboard({
                                                     </button>
                                                   )}
                                                   {kwItem.lastChecked && (
-                                                    <span className="text-[9px] text-gray-400 font-normal hidden md:inline" title={new Date(kwItem.lastChecked).toLocaleString()}>
+                                                    <span className="text-[9px] text-gray-400 dark:text-slate-500 font-normal hidden md:inline" title={new Date(kwItem.lastChecked).toLocaleString()}>
                                                       ({new Date(kwItem.lastChecked).toLocaleDateString(undefined, { month: '2-digit', day: '2-digit' })})
                                                     </span>
                                                   )}
@@ -3785,8 +3785,8 @@ export default function DSRDashboard({
                                               <td className="px-3 py-2.5 text-center pl-8">
                                                 <span className={`inline-flex items-center justify-center font-bold px-2 rounded-full text-[10px] h-5 min-w-5 leading-none font-mono ${
                                                   kwItem.timesWorked > 0 
-                                                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-150' 
-                                                    : 'bg-gray-100 text-gray-400'
+                                                    ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-150' 
+                                                    : 'bg-gray-100 dark:bg-slate-800 text-gray-400 dark:text-slate-500'
                                                 }`}>
                                                   {kwItem.timesWorked}
                                                 </span>
@@ -3796,17 +3796,17 @@ export default function DSRDashboard({
                                               <td className="px-3 py-2.5">
                                                 {(() => {
                                                   if (kwItem.lastWorked === 'Never') {
-                                                    return <span className="text-gray-400 font-bold font-mono text-[11px]">—</span>;
+                                                    return <span className="text-gray-400 dark:text-slate-500 font-bold font-mono text-[11px]">—</span>;
                                                   }
                                                   try {
                                                     const d = new Date(kwItem.lastWorked);
                                                     return (
-                                                      <span className="text-gray-800 font-extrabold font-mono text-[11px]">
+                                                      <span className="text-gray-800 dark:text-slate-100 font-extrabold font-mono text-[11px]">
                                                         {d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
                                                       </span>
                                                     );
                                                   } catch {
-                                                    return <span className="text-gray-800 font-extrabold font-mono text-[11px]">{kwItem.lastWorked}</span>;
+                                                    return <span className="text-gray-800 dark:text-slate-100 font-extrabold font-mono text-[11px]">{kwItem.lastWorked}</span>;
                                                   }
                                                 })()}
                                               </td>
@@ -3857,20 +3857,20 @@ export default function DSRDashboard({
                 initial={{ scale: 0.95, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.95, opacity: 0 }}
-                className="bg-white rounded-3xl border border-slate-150 shadow-2xl max-w-md w-full overflow-hidden"
+                className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-150 dark:border-slate-800 shadow-2xl max-w-md w-full overflow-hidden"
               >
-                <div className="p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50/80">
+                <div className="p-5 border-b border-gray-100 dark:border-slate-800/60 flex justify-between items-center bg-gray-50/80">
                   <div>
-                    <h3 className="font-extrabold text-sm text-gray-900 uppercase tracking-wider flex items-center gap-1.5">
+                    <h3 className="font-extrabold text-sm text-gray-900 dark:text-slate-50 uppercase tracking-wider flex items-center gap-1.5">
                        Setup Recovery Plan
                     </h3>
-                    <p className="text-[10px] text-gray-500 font-bold font-mono mt-0.5">
+                    <p className="text-[10px] text-gray-500 dark:text-slate-400 font-bold font-mono mt-0.5">
                       PROJECT: {selectedPlanProject.name}
                     </p>
                   </div>
                   <button 
                     onClick={() => { setSelectedPlanProject(null); setPlanMessage(''); }}
-                    className="p-1.5 hover:bg-slate-200/60 rounded-lg text-gray-400 hover:text-gray-700 transition"
+                    className="p-1.5 hover:bg-slate-200/60 rounded-lg text-gray-400 dark:text-slate-500 hover:text-gray-700 hover:dark:text-slate-200 transition"
                   >
                     &times;
                   </button>
@@ -3878,7 +3878,7 @@ export default function DSRDashboard({
 
                 <div className="p-6 space-y-4">
                   <div className="space-y-1.5">
-                    <label className="block text-[11px] font-black text-gray-500 uppercase tracking-wider">
+                    <label className="block text-[11px] font-black text-gray-500 dark:text-slate-400 uppercase tracking-wider">
                       Message / Recovery Steps for Team
                     </label>
                     <textarea
@@ -3886,7 +3886,7 @@ export default function DSRDashboard({
                       value={planMessage}
                       onChange={(e) => setPlanMessage(e.target.value)}
                       placeholder="e.g., We need to speed up submissions on this campaign! Please focus on building 10 High-Quality Blogs and 5 PDF press releases tomorrow morning."
-                      className="w-full text-xs p-3.5 border border-gray-200 rounded-2xl bg-slate-50/30 focus:outline-hidden focus:ring-2 focus:ring-indigo-150 focus:border-indigo-600 transition-all font-semibold text-gray-800 leading-relaxed"
+                      className="w-full text-xs p-3.5 border border-gray-200 dark:border-slate-800 rounded-2xl bg-slate-50/30 dark:bg-slate-800/30 focus:outline-hidden focus:ring-2 focus:ring-indigo-150 focus:dark:ring-blue-500/20 focus:border-indigo-600 focus:dark:border-blue-500/50 transition-all font-semibold text-gray-800 dark:text-slate-100 leading-relaxed"
                     />
                   </div>
 
@@ -3901,9 +3901,9 @@ export default function DSRDashboard({
                         </p>
                       </div>
                     ) : (
-                      <div className="bg-amber-50 p-3 rounded-2xl border border-amber-100 flex gap-2">
+                      <div className="bg-amber-50 dark:bg-amber-500/10 p-3 rounded-2xl border border-amber-100 dark:border-amber-500/20 flex gap-2">
                         <span className="text-xs">⚠️</span>
-                        <p className="text-[10px] text-amber-800 font-semibold leading-relaxed">
+                        <p className="text-[10px] text-amber-800 dark:text-amber-300 font-semibold leading-relaxed">
                           No user is assigned to this project yet, so this alert can't be sent to anyone. Assign a user to the project first.
                         </p>
                       </div>
@@ -3911,10 +3911,10 @@ export default function DSRDashboard({
                   })()}
                 </div>
 
-                <div className="p-4 bg-gray-50/50 border-t border-gray-100 flex justify-end gap-2.5">
+                <div className="p-4 bg-gray-50/50 dark:bg-slate-800/40 border-t border-gray-100 dark:border-slate-800/60 flex justify-end gap-2.5">
                   <button
                     onClick={() => { setSelectedPlanProject(null); setPlanMessage(''); }}
-                    className="px-4 py-2 text-xs font-bold text-gray-550 hover:bg-slate-100 rounded-xl transition cursor-pointer"
+                    className="px-4 py-2 text-xs font-bold text-gray-550 dark:text-slate-300 hover:bg-slate-100 hover:dark:bg-slate-800 rounded-xl transition cursor-pointer"
                   >
                     Cancel
                   </button>
@@ -3946,7 +3946,7 @@ export default function DSRDashboard({
                       setPlanMessage('');
                     }}
                     disabled={!planMessage.trim() || getAssignedEmailsForProject(selectedPlanProject.id).length === 0}
-                    className="px-4 py-2 text-xs font-black bg-indigo-600 border border-indigo-700 hover:bg-indigo-700 text-white rounded-xl shadow-2xs cursor-pointer transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-4 py-2 text-xs font-black bg-indigo-600 dark:bg-blue-600 border border-indigo-700 hover:bg-indigo-700 hover:dark:bg-blue-500 text-white rounded-xl shadow-2xs cursor-pointer transition disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                      Publish Alert Plan
                   </button>
