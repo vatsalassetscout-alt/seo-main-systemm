@@ -250,7 +250,7 @@ export default function UserManagementPanel({
 
       <div className="overflow-x-auto border border-gray-150 dark:border-slate-800 rounded-2xl bg-white dark:bg-ink-900 max-h-[32rem] overflow-y-auto">
         <table className="w-full text-left border-collapse">
-          <thead className="sticky top-0 bg-gray-50/95 backdrop-blur-sm">
+          <thead className="sticky top-0 bg-gray-50/95 dark:bg-ink-900/95 backdrop-blur-sm">
             <tr className="border-b border-gray-150 dark:border-slate-800 text-[9px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-widest">
               <th className="py-3 px-4">Name</th>
               <th className="py-3 px-4">User ID (Login)</th>
@@ -276,7 +276,7 @@ export default function UserManagementPanel({
               </tr>
             )}
             {mergedUsers.map((u) => (
-              <tr key={u.email} className="hover:bg-slate-50/45 transition text-xs">
+              <tr key={u.email} className="hover:bg-slate-50/45 hover:dark:bg-ink-800/60 transition text-xs">
                 <td className="py-3 px-4 font-extrabold text-gray-900 dark:text-slate-50">{u.name}</td>
                 <td className="py-3 px-4 font-mono font-semibold text-gray-500 dark:text-slate-400">{u.email}</td>
                 <td className="py-3 px-4">
