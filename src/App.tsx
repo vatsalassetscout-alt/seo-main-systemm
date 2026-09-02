@@ -1100,7 +1100,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50/50 dark:bg-ink-800/40 text-gray-900 dark:text-slate-50 font-sans selection:bg-indigo-105 selection:text-indigo-900 selection:dark:text-blue-200">
+    <div className="min-h-screen bg-gray-50/50 dark:bg-ink-950 text-gray-900 dark:text-slate-50 font-sans selection:bg-indigo-105 selection:text-indigo-900 selection:dark:text-blue-200">
 
       {/* Main header block */}
       <header className="sticky top-0 z-40 bg-white/90 dark:bg-ink-950/90 backdrop-blur-md border-b border-gray-150 dark:border-slate-800">
