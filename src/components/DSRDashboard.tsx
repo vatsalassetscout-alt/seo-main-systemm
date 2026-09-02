@@ -2264,12 +2264,12 @@ export default function DSRDashboard({
                             </span>
                           )}
                           {item.priority === 'X3' && (
-                            <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-700 text-[11px] font-black px-2.5 py-1 rounded border border-blue-100 uppercase tracking-wider">
+                            <span className="inline-flex items-center gap-1 bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 text-[11px] font-black px-2.5 py-1 rounded border border-blue-100 dark:border-blue-500/20 uppercase tracking-wider">
                               X3
                             </span>
                           )}
                           {item.priority === 'X4' && (
-                            <span className="inline-flex items-center gap-1 bg-purple-50 text-purple-700 text-[11px] font-black px-2.5 py-1 rounded border border-purple-100 dark:border-purple-500/20 uppercase tracking-wider">
+                            <span className="inline-flex items-center gap-1 bg-purple-50 dark:bg-purple-500/10 text-purple-700 dark:text-purple-400 text-[11px] font-black px-2.5 py-1 rounded border border-purple-100 dark:border-purple-500/20 uppercase tracking-wider">
                               X4
                             </span>
                           )}
@@ -3325,12 +3325,12 @@ export default function DSRDashboard({
                             </span>
                           )}
                           {proj.priority === 'X3' && (
-                            <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-700 text-[11px] font-black px-2.5 py-1 rounded border border-blue-100 uppercase tracking-wider whitespace-nowrap">
+                            <span className="inline-flex items-center gap-1 bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 text-[11px] font-black px-2.5 py-1 rounded border border-blue-100 dark:border-blue-500/20 uppercase tracking-wider whitespace-nowrap">
                               X3
                             </span>
                           )}
                           {proj.priority === 'X4' && (
-                            <span className="inline-flex items-center gap-1 bg-purple-50 text-purple-700 text-[11px] font-black px-2.5 py-1 rounded border border-purple-100 dark:border-purple-500/20 uppercase tracking-wider whitespace-nowrap">
+                            <span className="inline-flex items-center gap-1 bg-purple-50 dark:bg-purple-500/10 text-purple-700 dark:text-purple-400 text-[11px] font-black px-2.5 py-1 rounded border border-purple-100 dark:border-purple-500/20 uppercase tracking-wider whitespace-nowrap">
                               X4
                             </span>
                           )}
