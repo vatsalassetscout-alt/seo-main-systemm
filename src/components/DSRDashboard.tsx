@@ -1655,10 +1655,10 @@ export default function DSRDashboard({
 
 
       {/* Sticky wrapper: keeps filters + tab bar visible while scrolling */}
-      <div ref={stickyBarRef} className="sticky top-16 z-30 -mx-1 px-1 pt-2 pb-2.5 bg-gray-50/95 dark:bg-slate-900/95 backdrop-blur-sm space-y-3">
+      <div ref={stickyBarRef} className="sticky top-16 z-30 -mx-1 px-1 pt-2 pb-2.5 bg-gray-50/95 dark:bg-ink-900/95 backdrop-blur-sm space-y-3">
 
       {/* Workspace Filters panel - ON TOP OF PAGE */}
-      <div className="bg-white dark:bg-slate-900 p-3 rounded-2xl shadow-2xs space-y-2.5">
+      <div className="bg-white dark:bg-ink-900 p-3 rounded-2xl shadow-2xs space-y-2.5">
 
         {/* Search bar + Filters — single line, search bar fills remaining width */}
         <div className="flex flex-wrap items-center gap-2.5 pt-1">
@@ -1673,7 +1673,7 @@ export default function DSRDashboard({
               value={commonSearchTerm}
               onChange={(e) => setCommonSearchTerm(e.target.value)}
               placeholder="Search across project name, code, domain, location, users, task summaries..."
-              className="w-full pl-9 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-250 rounded-xl text-[13px] font-semibold placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:dark:ring-blue-500/50 hover:bg-slate-100/50 transition cursor-text text-gray-950 dark:text-slate-50"
+              className="w-full pl-9 pr-4 py-2.5 bg-slate-50 dark:bg-ink-800/60 border border-slate-250 rounded-xl text-[13px] font-semibold placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:dark:ring-blue-500/50 hover:bg-slate-100/50 transition cursor-text text-gray-950 dark:text-slate-50"
             />
             {commonSearchTerm && (
               <button
@@ -1692,7 +1692,7 @@ export default function DSRDashboard({
               className={`relative flex items-center gap-1.5 pl-4 pr-3 py-2.5 rounded-xl border text-[13px] font-semibold whitespace-nowrap transition ${
                 dateFilterType !== 'all'
                   ? 'border-indigo-200 dark:border-blue-500/25 bg-indigo-50 dark:bg-blue-500/10 text-indigo-700 dark:text-blue-400'
-                  : 'border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-gray-700 dark:text-slate-200 hover:bg-gray-50 hover:dark:bg-slate-800/60'
+                  : 'border-gray-200 dark:border-slate-800 bg-white dark:bg-ink-900 text-gray-700 dark:text-slate-200 hover:bg-gray-50 hover:dark:bg-ink-800/60'
               }`}
             >
               <Calendar size={14} className={dateFilterType !== 'all' ? 'text-indigo-500' : 'text-gray-400 dark:text-slate-500'} />
@@ -1724,19 +1724,19 @@ export default function DSRDashboard({
             </div>
 
             {dateFilterType === 'custom' && isCustomDatePanelOpen && (
-              <div className="absolute left-0 mt-1.5 z-50 flex flex-col gap-1 bg-white dark:bg-slate-900 p-2 border border-indigo-100 dark:border-blue-500/20 rounded-xl shadow-lg w-48">
+              <div className="absolute left-0 mt-1.5 z-50 flex flex-col gap-1 bg-white dark:bg-ink-900 p-2 border border-indigo-100 dark:border-blue-500/20 rounded-xl shadow-lg w-48">
                 <input
                   type="date"
                   value={customStartDate}
                   onChange={(e) => setCustomStartDate(e.target.value)}
-                  className="w-full px-1.5 py-1 bg-gray-50 dark:bg-slate-800/60 border border-gray-200 dark:border-slate-800 rounded text-[10px] font-bold text-gray-900 dark:text-slate-50 cursor-pointer"
+                  className="w-full px-1.5 py-1 bg-gray-50 dark:bg-ink-800/60 border border-gray-200 dark:border-slate-800 rounded text-[10px] font-bold text-gray-900 dark:text-slate-50 cursor-pointer"
                   title="Start Date"
                 />
                 <input
                   type="date"
                   value={customEndDate}
                   onChange={(e) => setCustomEndDate(e.target.value)}
-                  className="w-full px-1.5 py-1 bg-gray-50 dark:bg-slate-800/60 border border-gray-200 dark:border-slate-800 rounded text-[10px] font-bold text-gray-900 dark:text-slate-50 cursor-pointer"
+                  className="w-full px-1.5 py-1 bg-gray-50 dark:bg-ink-800/60 border border-gray-200 dark:border-slate-800 rounded text-[10px] font-bold text-gray-900 dark:text-slate-50 cursor-pointer"
                   title="End Date"
                 />
               </div>
@@ -1744,8 +1744,8 @@ export default function DSRDashboard({
           </div>
 
           {/* Block 2: Region Control — label removed, just the segmented control */}
-          <div className="bg-slate-50/40 dark:bg-slate-800/35 p-1.5 rounded-xl">
-            <div className="flex bg-gray-100 dark:bg-slate-800 p-1.5 rounded-xl select-none h-[40px] items-center gap-1.5">
+          <div className="bg-slate-50/40 dark:bg-ink-800/35 p-1.5 rounded-xl">
+            <div className="flex bg-gray-100 dark:bg-ink-800 p-1.5 rounded-xl select-none h-[40px] items-center gap-1.5">
               {[
                 { label: 'WEST', value: 'West' },
                 { label: 'ALL', value: 'All' },
@@ -1758,7 +1758,7 @@ export default function DSRDashboard({
                   className={`flex-1 text-center py-2 px-3 text-[11px] tracking-wider font-extrabold transition-all duration-200 rounded-lg cursor-pointer ${
                     regionFilter === r.value
                       ? 'bg-indigo-600 dark:bg-blue-600 text-white shadow-xs font-black'
-                      : 'text-gray-500 dark:text-slate-400 hover:text-gray-800 hover:dark:text-slate-100 hover:bg-gray-200/50 hover:dark:bg-slate-700/50'
+                      : 'text-gray-500 dark:text-slate-400 hover:text-gray-800 hover:dark:text-slate-100 hover:bg-gray-200/50 hover:dark:bg-ink-700/50'
                   }`}
                 >
                   {r.label}
@@ -1780,7 +1780,7 @@ export default function DSRDashboard({
               className={`flex items-center gap-1.5 pl-4 pr-3 py-2.5 rounded-xl border text-[13px] font-semibold whitespace-nowrap transition cursor-pointer ${
                 selectedProjectIds.length > 0
                   ? 'border-indigo-200 dark:border-blue-500/25 bg-indigo-50 dark:bg-blue-500/10 text-indigo-700 dark:text-blue-400'
-                  : 'border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-gray-700 dark:text-slate-200 hover:bg-gray-50 hover:dark:bg-slate-800/60'
+                  : 'border-gray-200 dark:border-slate-800 bg-white dark:bg-ink-900 text-gray-700 dark:text-slate-200 hover:bg-gray-50 hover:dark:bg-ink-800/60'
               }`}
             >
               <Tag size={14} className={selectedProjectIds.length > 0 ? 'text-indigo-500' : 'text-gray-400 dark:text-slate-500'} />
@@ -1793,7 +1793,7 @@ export default function DSRDashboard({
 
             {isProjectDropdownOpen && (
               <>
-                <div className="absolute left-0 mt-1.5 w-72 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl shadow-lg z-50 p-2.5 space-y-2 max-h-56 overflow-y-auto">
+                <div className="absolute left-0 mt-1.5 w-72 bg-white dark:bg-ink-900 border border-gray-200 dark:border-slate-800 rounded-xl shadow-lg z-50 p-2.5 space-y-2 max-h-56 overflow-y-auto">
                     <div className="flex items-center justify-between text-[9px] pb-1 border-b border-gray-100 dark:border-slate-800/60 font-bold text-gray-400 dark:text-slate-500">
                       <span>PROJECTS</span>
                       <div className="flex gap-2">
@@ -1822,7 +1822,7 @@ export default function DSRDashboard({
                         value={projectSearchTerm}
                         onChange={(e) => setProjectSearchTerm(e.target.value)}
                         placeholder="Search project..."
-                        className="w-full px-2 py-1 bg-gray-50 dark:bg-slate-800/60 border border-gray-200 dark:border-slate-800 rounded text-[10px] font-bold focus:outline-none focus:ring-1 focus:ring-indigo-555 focus:dark:ring-blue-500/50 text-gray-950 dark:text-slate-50 placeholder-gray-400"
+                        className="w-full px-2 py-1 bg-gray-50 dark:bg-ink-800/60 border border-gray-200 dark:border-slate-800 rounded text-[10px] font-bold focus:outline-none focus:ring-1 focus:ring-indigo-555 focus:dark:ring-blue-500/50 text-gray-950 dark:text-slate-50 placeholder-gray-400"
                       />
                     </div>
 
@@ -1832,7 +1832,7 @@ export default function DSRDashboard({
                         .map((p) => {
                           const isChecked = selectedProjectIds.includes(p.id);
                           return (
-                            <div key={p.id} className="flex items-center justify-between p-1 rounded hover:bg-gray-50 hover:dark:bg-slate-800/60 transition-colors">
+                            <div key={p.id} className="flex items-center justify-between p-1 rounded hover:bg-gray-50 hover:dark:bg-ink-800/60 transition-colors">
                               <label className="flex items-center gap-2 cursor-pointer text-xs text-gray-800 dark:text-slate-100 font-bold grow select-none">
                                 <input
                                   type="checkbox"
@@ -1870,7 +1870,7 @@ export default function DSRDashboard({
               className={`flex items-center gap-1.5 pl-4 pr-3 py-2.5 rounded-xl border text-[13px] font-semibold whitespace-nowrap transition cursor-pointer ${
                 selectedLocations.length > 0
                   ? 'border-indigo-200 dark:border-blue-500/25 bg-indigo-50 dark:bg-blue-500/10 text-indigo-700 dark:text-blue-400'
-                  : 'border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-gray-700 dark:text-slate-200 hover:bg-gray-50 hover:dark:bg-slate-800/60'
+                  : 'border-gray-200 dark:border-slate-800 bg-white dark:bg-ink-900 text-gray-700 dark:text-slate-200 hover:bg-gray-50 hover:dark:bg-ink-800/60'
               }`}
             >
               <MapPin size={14} className={selectedLocations.length > 0 ? 'text-indigo-500' : 'text-gray-400 dark:text-slate-500'} />
@@ -1883,7 +1883,7 @@ export default function DSRDashboard({
 
             {isLocationDropdownOpen && (
               <>
-                <div className="absolute left-0 mt-1.5 w-72 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl shadow-lg z-50 p-2.5 space-y-2 max-h-56 overflow-y-auto font-sans">
+                <div className="absolute left-0 mt-1.5 w-72 bg-white dark:bg-ink-900 border border-gray-200 dark:border-slate-800 rounded-xl shadow-lg z-50 p-2.5 space-y-2 max-h-56 overflow-y-auto font-sans">
                     <div className="flex items-center justify-between text-[9px] pb-1 border-b border-gray-100 dark:border-slate-800/60 font-bold text-gray-400 dark:text-slate-500">
                       <span>LOCATIONS</span>
                       <div className="flex gap-2">
@@ -1912,7 +1912,7 @@ export default function DSRDashboard({
                         value={locationSearchTerm}
                         onChange={(e) => setLocationSearchTerm(e.target.value)}
                         placeholder="Search location..."
-                        className="w-full px-2 py-1 bg-gray-50 dark:bg-slate-800/60 border border-gray-200 dark:border-slate-800 rounded text-[10px] font-bold focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:dark:ring-blue-500/50 text-gray-950 dark:text-slate-50 placeholder-gray-400"
+                        className="w-full px-2 py-1 bg-gray-50 dark:bg-ink-800/60 border border-gray-200 dark:border-slate-800 rounded text-[10px] font-bold focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:dark:ring-blue-500/50 text-gray-950 dark:text-slate-50 placeholder-gray-400"
                       />
                     </div>
 
@@ -1922,7 +1922,7 @@ export default function DSRDashboard({
                         .map((loc) => {
                           const isChecked = selectedLocations.includes(loc);
                           return (
-                            <div key={loc} className="flex items-center justify-between p-1 rounded hover:bg-gray-50 hover:dark:bg-slate-800/60 transition-colors">
+                            <div key={loc} className="flex items-center justify-between p-1 rounded hover:bg-gray-50 hover:dark:bg-ink-800/60 transition-colors">
                               <label className="flex items-center gap-2 cursor-pointer text-xs text-gray-800 dark:text-slate-100 font-bold grow select-none">
                                 <input
                                   type="checkbox"
@@ -1960,7 +1960,7 @@ export default function DSRDashboard({
               className={`flex items-center gap-1.5 pl-4 pr-3 py-2.5 rounded-xl border text-[13px] font-semibold whitespace-nowrap transition cursor-pointer ${
                 selectedPriorities.length > 0
                   ? 'border-indigo-200 dark:border-blue-500/25 bg-indigo-50 dark:bg-blue-500/10 text-indigo-700 dark:text-blue-400'
-                  : 'border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-gray-700 dark:text-slate-200 hover:bg-gray-50 hover:dark:bg-slate-800/60'
+                  : 'border-gray-200 dark:border-slate-800 bg-white dark:bg-ink-900 text-gray-700 dark:text-slate-200 hover:bg-gray-50 hover:dark:bg-ink-800/60'
               }`}
             >
               <Tag size={14} className={selectedPriorities.length > 0 ? 'text-indigo-500' : 'text-gray-400 dark:text-slate-500'} />
@@ -1973,7 +1973,7 @@ export default function DSRDashboard({
 
             {isPriorityDropdownOpen && (
               <>
-                <div className="absolute left-0 mt-1.5 w-72 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl shadow-lg z-50 p-2.5 space-y-2 max-h-56 overflow-y-auto">
+                <div className="absolute left-0 mt-1.5 w-72 bg-white dark:bg-ink-900 border border-gray-200 dark:border-slate-800 rounded-xl shadow-lg z-50 p-2.5 space-y-2 max-h-56 overflow-y-auto">
                     <div className="flex items-center justify-between text-[9px] pb-1 border-b border-gray-100 dark:border-slate-800/60 font-bold text-gray-400 dark:text-slate-500">
                       <span>PRIORITY</span>
                       <div className="flex gap-2">
@@ -1999,7 +1999,7 @@ export default function DSRDashboard({
                       {PRIORITY_OPTIONS.map((pr) => {
                         const isChecked = selectedPriorities.includes(pr);
                         return (
-                          <div key={pr} className="flex items-center justify-between p-1 rounded hover:bg-gray-50 hover:dark:bg-slate-800/60 transition-colors">
+                          <div key={pr} className="flex items-center justify-between p-1 rounded hover:bg-gray-50 hover:dark:bg-ink-800/60 transition-colors">
                             <label className="flex items-center gap-2 cursor-pointer text-xs text-gray-800 dark:text-slate-100 font-bold grow select-none">
                               <input
                                 type="checkbox"
@@ -2038,7 +2038,7 @@ export default function DSRDashboard({
                 className={`flex items-center gap-1.5 pl-4 pr-3 py-2.5 rounded-xl border text-[13px] font-semibold whitespace-nowrap transition cursor-pointer ${
                   selectedUsers.length > 0
                     ? 'border-indigo-200 dark:border-blue-500/25 bg-indigo-50 dark:bg-blue-500/10 text-indigo-700 dark:text-blue-400'
-                    : 'border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-gray-700 dark:text-slate-200 hover:bg-gray-50 hover:dark:bg-slate-800/60'
+                    : 'border-gray-200 dark:border-slate-800 bg-white dark:bg-ink-900 text-gray-700 dark:text-slate-200 hover:bg-gray-50 hover:dark:bg-ink-800/60'
                 }`}
               >
                 <Users size={14} className={selectedUsers.length > 0 ? 'text-indigo-500' : 'text-gray-400 dark:text-slate-500'} />
@@ -2051,7 +2051,7 @@ export default function DSRDashboard({
 
               {isUserDropdownOpen && (
                 <>
-                  <div className="absolute right-0 mt-1.5 w-72 max-w-[calc(100vw-2rem)] bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl shadow-lg z-50 p-2.5 space-y-2 max-h-56 overflow-y-auto">
+                  <div className="absolute right-0 mt-1.5 w-72 max-w-[calc(100vw-2rem)] bg-white dark:bg-ink-900 border border-gray-200 dark:border-slate-800 rounded-xl shadow-lg z-50 p-2.5 space-y-2 max-h-56 overflow-y-auto">
                       <div className="flex items-center justify-between text-[9px] pb-1 border-b border-gray-105 font-bold text-gray-400 dark:text-slate-500 font-sans">
                         <span>USERS</span>
                         <div className="flex gap-2">
@@ -2080,7 +2080,7 @@ export default function DSRDashboard({
                           value={userSearchTerm}
                           onChange={(e) => setUserSearchTerm(e.target.value)}
                           placeholder="Search user..."
-                          className="w-full px-2 py-1 bg-gray-50 dark:bg-slate-800/60 border border-gray-200 dark:border-slate-800 rounded text-[10px] font-bold focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:dark:ring-blue-500/50 text-gray-950 dark:text-slate-50 placeholder-gray-400"
+                          className="w-full px-2 py-1 bg-gray-50 dark:bg-ink-800/60 border border-gray-200 dark:border-slate-800 rounded text-[10px] font-bold focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:dark:ring-blue-500/50 text-gray-950 dark:text-slate-50 placeholder-gray-400"
                         />
                       </div>
 
@@ -2090,7 +2090,7 @@ export default function DSRDashboard({
                           .map((u) => {
                             const isChecked = u.emails.every(email => selectedUsers.includes(email));
                             return (
-                              <div key={u.emails[0]} className="flex items-center justify-between p-1 rounded hover:bg-gray-50 hover:dark:bg-slate-800/60 transition-colors">
+                              <div key={u.emails[0]} className="flex items-center justify-between p-1 rounded hover:bg-gray-50 hover:dark:bg-ink-800/60 transition-colors">
                                 <label className="flex items-center gap-2 cursor-pointer text-[11px] text-gray-800 dark:text-slate-100 font-bold grow select-none">
                                   <input
                                     type="checkbox"
@@ -2131,7 +2131,7 @@ export default function DSRDashboard({
       </div>
 
       {/* Content Section corresponding to Selected Tab */}
-      <div className={`bg-white dark:bg-slate-900 rounded-2xl border border-gray-150 dark:border-slate-800 shadow-3xs ${activeTab === 'update_ranking' ? 'overflow-visible' : 'overflow-hidden'}`}>
+      <div className={`bg-white dark:bg-ink-900 rounded-2xl border border-gray-150 dark:border-slate-800 shadow-3xs ${activeTab === 'update_ranking' ? 'overflow-visible' : 'overflow-hidden'}`}>
         
         {activeTab === 'project_table' && (
           <div>
@@ -2144,7 +2144,7 @@ export default function DSRDashboard({
                 <button onClick={() => setApplySuccessMessage(null)} className="hover:text-emerald-950 font-black text-sm">&times;</button>
               </div>
             )}
-            <div className="p-4 bg-gray-50/50 dark:bg-slate-800/40 border-b border-gray-150 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div className="p-4 bg-gray-50/50 dark:bg-ink-800/40 border-b border-gray-150 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div>
                 <h3 className="text-xs font-black text-gray-900 dark:text-slate-50 uppercase tracking-wider">Project Table</h3>
               </div>
@@ -2156,7 +2156,7 @@ export default function DSRDashboard({
                     className={`flex items-center gap-1.5 text-[11px] font-black px-3.5 py-1.5 rounded-xl border transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
                       Object.keys(pendingChanges).length > 0
                         ? 'bg-indigo-600 dark:bg-blue-600 hover:bg-indigo-700 hover:dark:bg-blue-500 text-white border-indigo-500 dark:border-blue-500/50 shadow-sm animate-pulse'
-                        : 'bg-gray-100 dark:bg-slate-800 text-gray-400 dark:text-slate-500 border-gray-200 dark:border-slate-800'
+                        : 'bg-gray-100 dark:bg-ink-800 text-gray-400 dark:text-slate-500 border-gray-200 dark:border-slate-800'
                     }`}
                   >
                     <Save className="w-3.5 h-3.5" />
@@ -2168,7 +2168,7 @@ export default function DSRDashboard({
                   <select
                     value={projectTableSortBy}
                     onChange={(e) => setProjectTableSortBy(e.target.value as any)}
-                    className="px-2 py-1.5 text-[10px] font-bold bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-lg text-gray-800 dark:text-slate-100 cursor-pointer focus:outline-none"
+                    className="px-2 py-1.5 text-[10px] font-bold bg-white dark:bg-ink-900 border border-gray-200 dark:border-slate-800 rounded-lg text-gray-800 dark:text-slate-100 cursor-pointer focus:outline-none"
                     aria-label="Sort Project Table by"
                   >
                     <option value="default">Default</option>
@@ -2180,7 +2180,7 @@ export default function DSRDashboard({
                     <select
                       value={projectTableSortDir}
                       onChange={(e) => setProjectTableSortDir(e.target.value as any)}
-                      className="px-2 py-1.5 text-[10px] font-bold bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-lg text-gray-800 dark:text-slate-100 cursor-pointer focus:outline-none"
+                      className="px-2 py-1.5 text-[10px] font-bold bg-white dark:bg-ink-900 border border-gray-200 dark:border-slate-800 rounded-lg text-gray-800 dark:text-slate-100 cursor-pointer focus:outline-none"
                       aria-label="Sort direction"
                     >
                       <option value="desc">High to Low</option>
@@ -2209,19 +2209,19 @@ export default function DSRDashboard({
                   {isAdmin && <col style={{ width: '9%' }} />}
                   {isAdmin && <col style={{ width: '6%' }} />}
                 </colgroup>
-                <thead className="bg-slate-50 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 font-bold text-[11px] uppercase tracking-normal border-b border-gray-150 dark:border-slate-800 sticky top-0 z-10">
+                <thead className="bg-slate-50 dark:bg-ink-800/60 text-slate-500 dark:text-slate-400 font-bold text-[11px] uppercase tracking-normal border-b border-gray-150 dark:border-slate-800 sticky top-0 z-10">
                   <tr>
-                    <th className="px-2 py-3 truncate bg-slate-50 dark:bg-slate-800/60">Sr No.</th>
-                    <th className="px-2 py-3 truncate bg-slate-50 dark:bg-slate-800/60">Project Name</th>
-                    <th className="px-2 py-3 truncate bg-slate-50 dark:bg-slate-800/60">Domain</th>
-                    <th className="px-2 py-3 truncate bg-slate-50 dark:bg-slate-800/60">Priority</th>
-                    <th className="px-2 py-3 text-center truncate bg-slate-50 dark:bg-slate-800/60">Best Ranking</th>
-                    <th className="px-2 py-3 text-center truncate bg-slate-50 dark:bg-slate-800/60">Worked / Not Worked</th>
-                    <th className="px-2 py-3 truncate bg-slate-50 dark:bg-slate-800/60">Last Worked</th>
-                    <th className="px-2 py-3 text-center truncate bg-slate-50 dark:bg-slate-800/60">Keywords</th>
-                    {isAdmin && <th className="px-2 py-3 truncate bg-slate-50 dark:bg-slate-800/60">User</th>}
-                    {isAdmin && <th className="px-2 py-3 truncate bg-slate-50 dark:bg-slate-800/60">Admin Actions</th>}
-                    {isAdmin && <th className="px-2 py-3 text-center truncate bg-slate-50 dark:bg-slate-800/60">Action</th>}
+                    <th className="px-2 py-3 truncate bg-slate-50 dark:bg-ink-800/60">Sr No.</th>
+                    <th className="px-2 py-3 truncate bg-slate-50 dark:bg-ink-800/60">Project Name</th>
+                    <th className="px-2 py-3 truncate bg-slate-50 dark:bg-ink-800/60">Domain</th>
+                    <th className="px-2 py-3 truncate bg-slate-50 dark:bg-ink-800/60">Priority</th>
+                    <th className="px-2 py-3 text-center truncate bg-slate-50 dark:bg-ink-800/60">Best Ranking</th>
+                    <th className="px-2 py-3 text-center truncate bg-slate-50 dark:bg-ink-800/60">Worked / Not Worked</th>
+                    <th className="px-2 py-3 truncate bg-slate-50 dark:bg-ink-800/60">Last Worked</th>
+                    <th className="px-2 py-3 text-center truncate bg-slate-50 dark:bg-ink-800/60">Keywords</th>
+                    {isAdmin && <th className="px-2 py-3 truncate bg-slate-50 dark:bg-ink-800/60">User</th>}
+                    {isAdmin && <th className="px-2 py-3 truncate bg-slate-50 dark:bg-ink-800/60">Admin Actions</th>}
+                    {isAdmin && <th className="px-2 py-3 text-center truncate bg-slate-50 dark:bg-ink-800/60">Action</th>}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-150 dark:divide-slate-800">
@@ -2229,7 +2229,7 @@ export default function DSRDashboard({
                     return (
                       <tr 
                         key={item.id}
-                        className="hover:bg-slate-50/60 hover:dark:bg-slate-800/60 transition-colors"
+                        className="hover:bg-slate-50/60 hover:dark:bg-ink-800/60 transition-colors"
                       >
                         <td className="px-2 py-3 truncate font-semibold text-indigo-600 dark:text-blue-400">{item.srNo}</td>
                         <td className="px-2 py-3">
@@ -2274,7 +2274,7 @@ export default function DSRDashboard({
                             </span>
                           )}
                           {item.priority === 'X5' && (
-                            <span className="inline-flex items-center gap-1 bg-gray-50 dark:bg-slate-800/60 text-gray-700 dark:text-slate-200 text-[11px] font-black px-2.5 py-1 rounded border border-gray-150 dark:border-slate-800 uppercase tracking-wider">
+                            <span className="inline-flex items-center gap-1 bg-gray-50 dark:bg-ink-800/60 text-gray-700 dark:text-slate-200 text-[11px] font-black px-2.5 py-1 rounded border border-gray-150 dark:border-slate-800 uppercase tracking-wider">
                               X5
                             </span>
                           )}
@@ -2336,7 +2336,7 @@ export default function DSRDashboard({
                               <span className={`inline-flex items-center justify-center gap-1 font-bold text-[11px] px-2 py-1 rounded-full border whitespace-nowrap ${
                                 kwCount > 0
                                   ? 'bg-indigo-50 dark:bg-blue-500/10 text-indigo-700 dark:text-blue-400 border-indigo-150 dark:border-blue-500/20'
-                                  : 'bg-gray-50 dark:bg-slate-800/60 text-gray-400 dark:text-slate-500 border-gray-150 dark:border-slate-800'
+                                  : 'bg-gray-50 dark:bg-ink-800/60 text-gray-400 dark:text-slate-500 border-gray-150 dark:border-slate-800'
                               }`}>
                                 <Tag className="w-3 h-3" />
                                 {kwCount}
@@ -2365,7 +2365,7 @@ export default function DSRDashboard({
                                   </span>
                                   <span className="text-gray-900 dark:text-slate-50 text-[11px] font-bold truncate min-w-0" title={uname}>{uname}</span>
                                   {extraCount > 0 && (
-                                    <span className="text-[9px] font-black text-gray-400 dark:text-slate-500 bg-gray-100 dark:bg-slate-800 rounded-full px-1.5 py-0.5 shrink-0">+{extraCount}</span>
+                                    <span className="text-[9px] font-black text-gray-400 dark:text-slate-500 bg-gray-100 dark:bg-ink-800 rounded-full px-1.5 py-0.5 shrink-0">+{extraCount}</span>
                                   )}
                                 </div>
                               );
@@ -2391,7 +2391,7 @@ export default function DSRDashboard({
                                     }
                                   }));
                                 }}
-                                className="w-full max-w-[88px] px-1 py-1 text-[9.5px] font-bold bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded text-gray-800 dark:text-slate-100 cursor-pointer focus:outline-none"
+                                className="w-full max-w-[88px] px-1 py-1 text-[9.5px] font-bold bg-white dark:bg-ink-900 border border-gray-200 dark:border-slate-800 rounded text-gray-800 dark:text-slate-100 cursor-pointer focus:outline-none"
                               >
                                 <option value="">- Priority -</option>
                                 <option value="X1">X1</option>
@@ -2424,7 +2424,7 @@ export default function DSRDashboard({
 
         {activeTab === 'activity' && (
           <div>
-            <div className="p-4 bg-gray-50/50 dark:bg-slate-800/40 border-b border-gray-150 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="p-4 bg-gray-50/50 dark:bg-ink-800/40 border-b border-gray-150 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <h3 className="text-xs font-black text-gray-900 dark:text-slate-50 uppercase tracking-wider flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-indigo-600 dark:bg-blue-600 inline-block animate-pulse"></span>
@@ -2434,7 +2434,7 @@ export default function DSRDashboard({
               </div>
 
               {/* Month Selector Controls */}
-              <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200/60 shadow-inner h-[32px] self-start sm:self-center">
+              <div className="flex items-center gap-1 bg-slate-100 dark:bg-ink-800 p-1 rounded-xl border border-slate-200/60 shadow-inner h-[32px] self-start sm:self-center">
                 <button
                   type="button"
                   onClick={() => {
@@ -2471,7 +2471,7 @@ export default function DSRDashboard({
 
             <div className="p-5 grid grid-cols-1 lg:grid-cols-12 gap-6">
               {/* Left Side: Calendar Heatmap Grid */}
-              <div className="lg:col-span-7 bg-slate-50/50 dark:bg-slate-800/40 p-5 rounded-2xl border border-slate-150/60 shadow-inner">
+              <div className="lg:col-span-7 bg-slate-50/50 dark:bg-ink-800/40 p-5 rounded-2xl border border-slate-150/60 shadow-inner">
                 {/* Day labels header */}
                 <div className="grid grid-cols-7 gap-2 mb-3 text-center text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
                   <div>Sun</div>
@@ -2488,7 +2488,7 @@ export default function DSRDashboard({
                   {monthDays.blanks.map((_, idx) => (
                     <div 
                       key={`blank-${idx}`} 
-                      className="aspect-square bg-slate-50/30 dark:bg-slate-800/30 rounded-xl border border-dashed border-slate-200/20 opacity-20 select-none"
+                      className="aspect-square bg-slate-50/30 dark:bg-ink-800/30 rounded-xl border border-dashed border-slate-200/20 opacity-20 select-none"
                     />
                   ))}
                   
@@ -2550,7 +2550,7 @@ export default function DSRDashboard({
                     // 9-tier graduated scale (plus "no work") for finer-grained intensity.
                     // Uses only standard Tailwind shade steps (50/100/200/300/400/500/600/700/800/900)
                     // so every class actually compiles/renders.
-                    let heatClass = 'bg-slate-50 dark:bg-slate-800/60 hover:bg-slate-100/80 text-slate-400 dark:text-slate-500 border border-slate-200/50 hover:border-slate-300';
+                    let heatClass = 'bg-slate-50 dark:bg-ink-800/60 hover:bg-slate-100/80 text-slate-400 dark:text-slate-500 border border-slate-200/50 hover:border-slate-300';
                     let dayNumClass = 'text-slate-500 dark:text-slate-400';
                     if (totalUpdates > 0) {
                       if (totalUpdates === 1) {
@@ -2628,7 +2628,7 @@ export default function DSRDashboard({
                   </div>
                   <div className="flex items-center gap-1.5 font-bold text-slate-400 dark:text-slate-500">
                     <span>No Work</span>
-                    <div className="w-3.5 h-3.5 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800" />
+                    <div className="w-3.5 h-3.5 rounded-lg bg-slate-50 dark:bg-ink-800/60 border border-slate-200 dark:border-slate-800" />
                     <div className="w-3.5 h-3.5 rounded-lg bg-indigo-50 dark:bg-blue-500/10 border border-indigo-200 dark:border-blue-500/25" />
                     <div className="w-3.5 h-3.5 rounded-lg bg-indigo-100 dark:bg-blue-500/15 border border-indigo-250" />
                     <div className="w-3.5 h-3.5 rounded-lg bg-indigo-200 border border-indigo-300 dark:border-blue-500/30" />
@@ -2712,13 +2712,13 @@ export default function DSRDashboard({
                             {readableSelectedDate}
                           </span>
                           <div className="flex gap-3">
-                            <div className="text-center bg-white dark:bg-slate-900 border border-slate-150 dark:border-slate-800 py-2 px-3 rounded-xl flex-1 shadow-3xs">
+                            <div className="text-center bg-white dark:bg-ink-900 border border-slate-150 dark:border-slate-800 py-2 px-3 rounded-xl flex-1 shadow-3xs">
                               <span className="block text-[8px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-wider">Content Updates</span>
                               <span className="text-sm font-black text-slate-800 dark:text-slate-100">
                                 {dayWorks.reduce((sum, w) => sum + (w.contentUpdates?.length || 0), 0)}
                               </span>
                             </div>
-                            <div className="text-center bg-white dark:bg-slate-900 border border-slate-150 dark:border-slate-800 py-2 px-3 rounded-xl flex-1 shadow-3xs">
+                            <div className="text-center bg-white dark:bg-ink-900 border border-slate-150 dark:border-slate-800 py-2 px-3 rounded-xl flex-1 shadow-3xs">
                               <span className="block text-[8px] font-black uppercase text-indigo-600 dark:text-blue-400 tracking-wider">Backlinks</span>
                               <span className="text-sm font-black text-indigo-700 dark:text-blue-400">
                                 {/* Combined total backlinks (every type) for ALL users on this day */}
@@ -2730,7 +2730,7 @@ export default function DSRDashboard({
 
                         <div className="space-y-4 flex-1 min-h-[220px] overflow-y-auto pr-1">
                           {dayWorks.length === 0 ? (
-                            <div className="text-center p-8 bg-slate-50/50 dark:bg-slate-800/40 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl text-[11px] text-slate-400 dark:text-slate-500 italic">
+                            <div className="text-center p-8 bg-slate-50/50 dark:bg-ink-800/40 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl text-[11px] text-slate-400 dark:text-slate-500 italic">
                               No submissions logged on this date.
                             </div>
                           ) : (() => {
@@ -2800,7 +2800,7 @@ export default function DSRDashboard({
                               const isUserExpanded = expandedLogUser === userEmail;
 
                               return (
-                                <div key={userEmail} className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-150 dark:border-slate-800 shadow-sm space-y-4 text-xs text-left">
+                                <div key={userEmail} className="bg-white dark:bg-ink-900 p-5 rounded-2xl border border-slate-150 dark:border-slate-800 shadow-sm space-y-4 text-xs text-left">
                                   {/* User details at the top of the block - click to expand/collapse (accordion) */}
                                   <button
                                     type="button"
@@ -2818,7 +2818,7 @@ export default function DSRDashboard({
                                         </span>
                                       )}
                                       {regionsInvolved.length > 0 && (
-                                        <span className="text-[9px] font-mono font-black border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 px-2 py-0.5 rounded text-slate-500 dark:text-slate-400 uppercase leading-none">
+                                        <span className="text-[9px] font-mono font-black border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-ink-800/60 px-2 py-0.5 rounded text-slate-500 dark:text-slate-400 uppercase leading-none">
                                           {regionsInvolved.join(' / ')}
                                         </span>
                                       )}
@@ -2832,7 +2832,7 @@ export default function DSRDashboard({
 
                                   {/* Dropdown to switch projects if this user submitted to multiple projects */}
                                   {isUserExpanded && userProjectIds.length > 0 && (
-                                    <div className="bg-slate-50/70 dark:bg-slate-800/40 p-3 rounded-xl border border-slate-200/50 dark:border-slate-800 space-y-1.5">
+                                    <div className="bg-slate-50/70 dark:bg-ink-800/40 p-3 rounded-xl border border-slate-200/50 dark:border-slate-800 space-y-1.5">
                                       <label className="block text-[9px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-wider">
                                         Select Project ({userProjectIds.length} worked)
                                       </label>
@@ -2844,7 +2844,7 @@ export default function DSRDashboard({
                                             [userEmail]: e.target.value
                                           }));
                                         }}
-                                        className="w-full text-xs font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 cursor-pointer focus:outline-none focus:border-indigo-500 focus:dark:border-blue-500/50 transition-colors"
+                                        className="w-full text-xs font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-ink-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 cursor-pointer focus:outline-none focus:border-indigo-500 focus:dark:border-blue-500/50 transition-colors"
                                       >
                                         {userProjectIds.map(pId => {
                                           const proj = projects.find(p => p.id === pId);
@@ -2882,7 +2882,7 @@ export default function DSRDashboard({
                                       {summaries.length > 0 && (
                                         <div className="space-y-1.5">
                                           {summaries.map((summary, sIdx) => (
-                                            <p key={sIdx} className="text-[11px] font-medium text-slate-650 bg-slate-50 dark:bg-slate-800/60 border border-slate-150 dark:border-slate-800 p-2.5 rounded-xl leading-relaxed">
+                                            <p key={sIdx} className="text-[11px] font-medium text-slate-650 bg-slate-50 dark:bg-ink-800/60 border border-slate-150 dark:border-slate-800 p-2.5 rounded-xl leading-relaxed">
                                               {summary}
                                             </p>
                                           ))}
@@ -2946,7 +2946,7 @@ export default function DSRDashboard({
                                             if (cu === 'section_update') label = 'Section Update';
                                             if (cu === 'restructure') label = 'Restructure';
                                             return (
-                                              <span key={cu} className="text-[9px] font-extrabold bg-slate-50 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-800">
+                                              <span key={cu} className="text-[9px] font-extrabold bg-slate-50 dark:bg-ink-800/60 text-slate-600 dark:text-slate-300 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-800">
                                                 {label}
                                               </span>
                                             );
@@ -2969,14 +2969,14 @@ export default function DSRDashboard({
                         {monthNames[heatmapMonth]} Summary
                       </h4>
                       
-                      <div className="bg-slate-50 dark:bg-slate-800/60 p-5 rounded-2xl border border-slate-150/80 shadow-2xs space-y-4 flex-1 flex flex-col justify-between">
+                      <div className="bg-slate-50 dark:bg-ink-800/60 p-5 rounded-2xl border border-slate-150/80 shadow-2xs space-y-4 flex-1 flex flex-col justify-between">
                         <div className="flex gap-2 items-center text-slate-700 dark:text-slate-200">
                           <Award size={15} className="shrink-0 text-indigo-600 dark:text-blue-400" />
                           <span className="text-[10px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-200">Monthly Aggregations</span>
                         </div>
 
                         <div className="grid grid-cols-2 gap-3">
-                          <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-150 dark:border-slate-800 shadow-3xs">
+                          <div className="bg-white dark:bg-ink-900 p-3 rounded-xl border border-slate-150 dark:border-slate-800 shadow-3xs">
                             <span className="block text-[9px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Active Days</span>
                             <span className="text-base font-black text-slate-800 dark:text-slate-100 leading-none block mt-1">
                               {new Set(enrichedWorks.filter(w => {
@@ -2985,7 +2985,7 @@ export default function DSRDashboard({
                               }).map(w => w.date)).size} days
                             </span>
                           </div>
-                          <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-150 dark:border-slate-800 shadow-3xs">
+                          <div className="bg-white dark:bg-ink-900 p-3 rounded-xl border border-slate-150 dark:border-slate-800 shadow-3xs">
                             <span className="block text-[9px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Total Tasks</span>
                             <span className="text-base font-black text-slate-800 dark:text-slate-100 leading-none block mt-1">
                               {enrichedWorks.filter(w => {
@@ -2996,7 +2996,7 @@ export default function DSRDashboard({
                           </div>
                         </div>
 
-                        <div className="bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-slate-150 dark:border-slate-800 shadow-3xs space-y-1.5">
+                        <div className="bg-white dark:bg-ink-900 p-3.5 rounded-xl border border-slate-150 dark:border-slate-800 shadow-3xs space-y-1.5">
                           <span className="block text-[9px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Monthly Backlinks Logged</span>
                           <div className="flex justify-between items-baseline">
                             <span className="text-xl font-black text-indigo-600 dark:text-blue-400 leading-none block">
@@ -3121,7 +3121,7 @@ export default function DSRDashboard({
 
           return (
             <div>
-              <div className="p-4 bg-gray-50/50 dark:bg-slate-800/40 border-b border-gray-150 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div className="p-4 bg-gray-50/50 dark:bg-ink-800/40 border-b border-gray-150 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <h3 className="text-xs font-black text-gray-900 dark:text-slate-50 uppercase tracking-wider">Backlink Distribution</h3>
                 {isAdmin && (
                   <div className="text-[10px] bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 px-2.5 py-1 rounded-lg border border-emerald-100 dark:border-emerald-500/20 flex items-center gap-1.5 font-bold">
@@ -3133,7 +3133,7 @@ export default function DSRDashboard({
 
               <div className="p-5 space-y-8 text-left">
                 {/* 1. Horizontal bar graph */}
-                <div className="bg-slate-50/40 dark:bg-slate-800/35 p-6 border border-gray-100 dark:border-slate-800/60 rounded-2xl shadow-3xs space-y-5">
+                <div className="bg-slate-50/40 dark:bg-ink-800/35 p-6 border border-gray-100 dark:border-slate-800/60 rounded-2xl shadow-3xs space-y-5">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
                     <div>
                       <h4 className="text-xs font-black text-gray-900 dark:text-slate-50 uppercase tracking-wider">Work Type Ratio Distribution</h4>
@@ -3155,9 +3155,9 @@ export default function DSRDashboard({
                               <span className="flex items-center gap-2">
                                 <span className="text-gray-900 dark:text-slate-50 font-extrabold">{cat.name}</span>
                               </span>
-                              <span className="font-mono text-gray-800 dark:text-slate-100 text-xs font-black bg-white dark:bg-slate-900 px-2 py-0.5 rounded border border-gray-150 dark:border-slate-800 shadow-3xs">{cat.count} backlinks</span>
+                              <span className="font-mono text-gray-800 dark:text-slate-100 text-xs font-black bg-white dark:bg-ink-900 px-2 py-0.5 rounded border border-gray-150 dark:border-slate-800 shadow-3xs">{cat.count} backlinks</span>
                             </div>
-                            <div className="h-4 w-full bg-gray-100 dark:bg-slate-800 rounded-lg overflow-hidden border border-gray-200/60 p-0.5">
+                            <div className="h-4 w-full bg-gray-100 dark:bg-ink-800 rounded-lg overflow-hidden border border-gray-200/60 p-0.5">
                               <div 
                                 className={`h-full ${cat.color} rounded-md transition-all duration-500`}
                                 style={{ width: `${Math.max(percentage, 4)}%` }}
@@ -3178,23 +3178,23 @@ export default function DSRDashboard({
                     </h4>
                   </div>
 
-                  <div className="overflow-x-auto overflow-y-auto border border-gray-150 dark:border-slate-800 rounded-2xl shadow-3xs bg-white dark:bg-slate-900" style={{ maxHeight: dynamicTableMaxHeight }}>
+                  <div className="overflow-x-auto overflow-y-auto border border-gray-150 dark:border-slate-800 rounded-2xl shadow-3xs bg-white dark:bg-ink-900" style={{ maxHeight: dynamicTableMaxHeight }}>
                     <table className="w-full text-left text-xs min-w-[700px]">
-                      <thead className="bg-slate-50 dark:bg-slate-800/60 border-b border-gray-150 dark:border-slate-800 text-[10px] text-gray-400 dark:text-slate-500 uppercase font-black tracking-wider sticky top-0 z-10">
+                      <thead className="bg-slate-50 dark:bg-ink-800/60 border-b border-gray-150 dark:border-slate-800 text-[10px] text-gray-400 dark:text-slate-500 uppercase font-black tracking-wider sticky top-0 z-10">
                         <tr>
-                          <th className="px-4 py-3.5 w-16 bg-slate-50 dark:bg-slate-800/60">Sr No.</th>
-                          <th className="pl-4 pr-1 py-3.5 w-40 bg-slate-50 dark:bg-slate-800/60">Project Name</th>
-                          <th className="pl-1 pr-3 py-3.5 w-48 bg-slate-50 dark:bg-slate-800/60">Domain</th>
-                          {isAdmin && <th className="px-4 py-3.5 text-left bg-slate-50 dark:bg-slate-800/60">User</th>}
+                          <th className="px-4 py-3.5 w-16 bg-slate-50 dark:bg-ink-800/60">Sr No.</th>
+                          <th className="pl-4 pr-1 py-3.5 w-40 bg-slate-50 dark:bg-ink-800/60">Project Name</th>
+                          <th className="pl-1 pr-3 py-3.5 w-48 bg-slate-50 dark:bg-ink-800/60">Domain</th>
+                          {isAdmin && <th className="px-4 py-3.5 text-left bg-slate-50 dark:bg-ink-800/60">User</th>}
                           {activeColumns.map((col, cIdx) => (
-                            <th key={cIdx} className="px-4 py-3.5 text-center font-bold bg-slate-50 dark:bg-slate-800/60">{col.label}</th>
+                            <th key={cIdx} className="px-4 py-3.5 text-center font-bold bg-slate-50 dark:bg-ink-800/60">{col.label}</th>
                           ))}
                           <th className="px-4 py-3.5 text-center bg-indigo-50/40 text-indigo-900 dark:text-blue-200 font-extrabold font-mono">Total</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-150 dark:divide-slate-800 font-semibold text-gray-700 dark:text-slate-200">
                         {projectRows.map((row, idx) => (
-                          <tr key={row.id} className="hover:bg-slate-50/50 hover:dark:bg-slate-800/40 transition">
+                          <tr key={row.id} className="hover:bg-slate-50/50 hover:dark:bg-ink-800/40 transition">
                             <td className="px-4 py-3.5 font-mono text-gray-400 dark:text-slate-500 font-bold">{idx + 1}</td>
                             <td className="pl-4 pr-1 py-3.5 w-40">
                               <span className="font-bold text-gray-900 dark:text-slate-50 block truncate">{row.name}</span>
@@ -3215,7 +3215,7 @@ export default function DSRDashboard({
                             </td>
                             {isAdmin && (
                               <td className="px-4 py-3.5 font-bold text-gray-800 dark:text-slate-100 text-left">
-                                <span className="text-gray-900 dark:text-slate-50 bg-slate-50 dark:bg-slate-800/60 border border-slate-200/50 rounded px-2.5 py-1 text-[10px] select-all font-bold">
+                                <span className="text-gray-900 dark:text-slate-50 bg-slate-50 dark:bg-ink-800/60 border border-slate-200/50 rounded px-2.5 py-1 text-[10px] select-all font-bold">
                                   {getAssignedUsersForProject(row.id)}
                                 </span>
                               </td>
@@ -3257,36 +3257,36 @@ export default function DSRDashboard({
 
         {activeTab === 'unworked_project' && (
           <div>
-            <div className="p-4 bg-gray-50/50 dark:bg-slate-800/40 border-b border-gray-150 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="p-4 bg-gray-50/50 dark:bg-ink-800/40 border-b border-gray-150 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <h3 className="text-xs font-black text-gray-900 dark:text-slate-50 uppercase tracking-wider">Idle Projects</h3>
               </div>
             </div>
 
             {unworkedProjects.length === 0 ? (
-              <div className="p-12 text-center text-xs text-gray-600 dark:text-slate-300 font-bold space-y-1 bg-slate-50/40 dark:bg-slate-800/35 rounded-b-2xl border-t border-slate-150 dark:border-slate-800">
+              <div className="p-12 text-center text-xs text-gray-600 dark:text-slate-300 font-bold space-y-1 bg-slate-50/40 dark:bg-ink-800/35 rounded-b-2xl border-t border-slate-150 dark:border-slate-800">
                 <CheckCircle size={22} className="text-emerald-500 block mx-auto mb-2.5 animate-bounce" />
                 <p>No projects found.</p>
               </div>
             ) : (
               <div className="overflow-x-auto overflow-y-auto" style={{ maxHeight: dynamicTableMaxHeight }}>
                 <table className="w-auto min-w-full text-left text-[15px] table-auto">
-                  <thead className="bg-slate-50 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 font-bold text-[12px] uppercase tracking-normal border-b border-gray-150 dark:border-slate-800 sticky top-0 z-10">
+                  <thead className="bg-slate-50 dark:bg-ink-800/60 text-slate-500 dark:text-slate-400 font-bold text-[12px] uppercase tracking-normal border-b border-gray-150 dark:border-slate-800 sticky top-0 z-10">
                     <tr>
-                      <th className="px-5 py-4 text-center whitespace-nowrap bg-slate-50 dark:bg-slate-800/60">Sr No.</th>
-                      <th className="px-5 py-4 whitespace-nowrap bg-slate-50 dark:bg-slate-800/60">Project Name</th>
-                      <th className="px-5 py-4 whitespace-nowrap bg-slate-50 dark:bg-slate-800/60">Domain</th>
-                      <th className="px-5 py-4 text-center whitespace-nowrap bg-slate-50 dark:bg-slate-800/60">Priority</th>
-                      <th className="px-5 py-4 whitespace-nowrap bg-slate-50 dark:bg-slate-800/60">Last Worked</th>
-                      <th className="px-5 py-4 text-center whitespace-nowrap bg-slate-50 dark:bg-slate-800/60">Best Ranking</th>
-                      <th className="px-5 py-4 text-center whitespace-nowrap bg-slate-50 dark:bg-slate-800/60">Last Rank Checked</th>
-                      {isAdmin && <th className="px-5 py-4 whitespace-nowrap bg-slate-50 dark:bg-slate-800/60">User</th>}
-                      {isAdmin && <th className="px-5 py-4 text-center whitespace-nowrap bg-slate-50 dark:bg-slate-800/60">Action</th>}
+                      <th className="px-5 py-4 text-center whitespace-nowrap bg-slate-50 dark:bg-ink-800/60">Sr No.</th>
+                      <th className="px-5 py-4 whitespace-nowrap bg-slate-50 dark:bg-ink-800/60">Project Name</th>
+                      <th className="px-5 py-4 whitespace-nowrap bg-slate-50 dark:bg-ink-800/60">Domain</th>
+                      <th className="px-5 py-4 text-center whitespace-nowrap bg-slate-50 dark:bg-ink-800/60">Priority</th>
+                      <th className="px-5 py-4 whitespace-nowrap bg-slate-50 dark:bg-ink-800/60">Last Worked</th>
+                      <th className="px-5 py-4 text-center whitespace-nowrap bg-slate-50 dark:bg-ink-800/60">Best Ranking</th>
+                      <th className="px-5 py-4 text-center whitespace-nowrap bg-slate-50 dark:bg-ink-800/60">Last Rank Checked</th>
+                      {isAdmin && <th className="px-5 py-4 whitespace-nowrap bg-slate-50 dark:bg-ink-800/60">User</th>}
+                      {isAdmin && <th className="px-5 py-4 text-center whitespace-nowrap bg-slate-50 dark:bg-ink-800/60">Action</th>}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-150 dark:divide-slate-800">
                     {unworkedProjects.map((proj) => (
-                      <tr key={proj.id} className="hover:bg-slate-50/40 hover:dark:bg-slate-800/35">
+                      <tr key={proj.id} className="hover:bg-slate-50/40 hover:dark:bg-ink-800/35">
                         <td className="px-5 py-5 whitespace-nowrap font-semibold text-gray-500 dark:text-slate-400 text-center">{proj.srNo}</td>
                         
                         {/* Project Name column */}
@@ -3335,7 +3335,7 @@ export default function DSRDashboard({
                             </span>
                           )}
                           {proj.priority === 'X5' && (
-                            <span className="inline-flex items-center gap-1 bg-gray-50 dark:bg-slate-800/60 text-gray-700 dark:text-slate-200 text-[11px] font-black px-2.5 py-1 rounded border border-gray-150 dark:border-slate-800 uppercase tracking-wider whitespace-nowrap">
+                            <span className="inline-flex items-center gap-1 bg-gray-50 dark:bg-ink-800/60 text-gray-700 dark:text-slate-200 text-[11px] font-black px-2.5 py-1 rounded border border-gray-150 dark:border-slate-800 uppercase tracking-wider whitespace-nowrap">
                               X5
                             </span>
                           )}
@@ -3446,7 +3446,7 @@ export default function DSRDashboard({
                                   </span>
                                   <span className="text-gray-900 dark:text-slate-50 text-[13px] font-bold truncate max-w-[140px]">{uname}</span>
                                   {extraCount > 0 && (
-                                    <span className="text-[10px] font-black text-gray-400 dark:text-slate-500 bg-gray-100 dark:bg-slate-800 rounded-full px-1.5 py-0.5 shrink-0">+{extraCount}</span>
+                                    <span className="text-[10px] font-black text-gray-400 dark:text-slate-500 bg-gray-100 dark:bg-ink-800 rounded-full px-1.5 py-0.5 shrink-0">+{extraCount}</span>
                                   )}
                                 </div>
                               );
@@ -3476,7 +3476,7 @@ export default function DSRDashboard({
 
         {activeTab === 'keyword_section' && (
           <div>
-            <div className="p-4 bg-gray-50/50 dark:bg-slate-800/40 border-b border-gray-150 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="p-4 bg-gray-50/50 dark:bg-ink-800/40 border-b border-gray-150 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <h3 className="text-xs font-black text-gray-900 dark:text-slate-50 uppercase tracking-wider">Project Ranking Section</h3>
               </div>
@@ -3509,7 +3509,7 @@ export default function DSRDashboard({
                     value={keywordSearchTerm}
                     onChange={(e) => setKeywordSearchTerm(e.target.value)}
                     placeholder="Search projects or keywords..."
-                    className="w-full text-xs pl-9 pr-3 py-2 border border-gray-200 dark:border-slate-800 rounded-xl focus:outline-hidden focus:ring-1 focus:ring-indigo-500 focus:dark:ring-blue-500/50 focus:border-indigo-500 focus:dark:border-blue-500/50 bg-white dark:bg-slate-900"
+                    className="w-full text-xs pl-9 pr-3 py-2 border border-gray-200 dark:border-slate-800 rounded-xl focus:outline-hidden focus:ring-1 focus:ring-indigo-500 focus:dark:ring-blue-500/50 focus:border-indigo-500 focus:dark:border-blue-500/50 bg-white dark:bg-ink-900"
                   />
                 </div>
               </div>
@@ -3531,20 +3531,20 @@ export default function DSRDashboard({
             )}
 
             {filteredProjectKeywordGroups.length === 0 ? (
-              <div className="p-12 text-center text-xs text-gray-500 dark:text-slate-400 font-bold space-y-1 bg-slate-50/40 dark:bg-slate-800/35 rounded-b-2xl border-t border-slate-150 dark:border-slate-800">
+              <div className="p-12 text-center text-xs text-gray-500 dark:text-slate-400 font-bold space-y-1 bg-slate-50/40 dark:bg-ink-800/35 rounded-b-2xl border-t border-slate-150 dark:border-slate-800">
                 <p>No projects found matching the search criteria.</p>
               </div>
             ) : (
               <div className="overflow-x-auto overflow-y-auto" style={{ maxHeight: dynamicTableMaxHeight }}>
                 <table className="w-auto min-w-full text-left text-[15px] table-auto">
-                  <thead className="bg-slate-50 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 font-bold text-[12px] uppercase tracking-normal border-b border-gray-150 dark:border-slate-800 sticky top-0 z-10">
+                  <thead className="bg-slate-50 dark:bg-ink-800/60 text-slate-500 dark:text-slate-400 font-bold text-[12px] uppercase tracking-normal border-b border-gray-150 dark:border-slate-800 sticky top-0 z-10">
                     <tr>
-                      <th className="px-5 py-4 text-center whitespace-nowrap bg-slate-50 dark:bg-slate-800/60">Sr No.</th>
-                      <th className="px-5 py-4 whitespace-nowrap bg-slate-50 dark:bg-slate-800/60">Project Name</th>
-                      <th className="px-5 py-4 whitespace-nowrap bg-slate-50 dark:bg-slate-800/60">Domain</th>
-                      <th className="px-5 py-4 text-center whitespace-nowrap bg-slate-50 dark:bg-slate-800/60">Total Keywords</th>
-                      <th className="px-5 py-4 whitespace-nowrap bg-slate-50 dark:bg-slate-800/60">User</th>
-                      <th className="px-5 py-4 whitespace-nowrap bg-slate-50 dark:bg-slate-800/60">Last Check</th>
+                      <th className="px-5 py-4 text-center whitespace-nowrap bg-slate-50 dark:bg-ink-800/60">Sr No.</th>
+                      <th className="px-5 py-4 whitespace-nowrap bg-slate-50 dark:bg-ink-800/60">Project Name</th>
+                      <th className="px-5 py-4 whitespace-nowrap bg-slate-50 dark:bg-ink-800/60">Domain</th>
+                      <th className="px-5 py-4 text-center whitespace-nowrap bg-slate-50 dark:bg-ink-800/60">Total Keywords</th>
+                      <th className="px-5 py-4 whitespace-nowrap bg-slate-50 dark:bg-ink-800/60">User</th>
+                      <th className="px-5 py-4 whitespace-nowrap bg-slate-50 dark:bg-ink-800/60">Last Check</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-150 dark:divide-slate-800">
@@ -3559,7 +3559,7 @@ export default function DSRDashboard({
                                 [proj.id]: !prev[proj.id]
                               }));
                             }}
-                            className="hover:bg-slate-50/60 hover:dark:bg-slate-800/60 transition-colors cursor-pointer select-none"
+                            className="hover:bg-slate-50/60 hover:dark:bg-ink-800/60 transition-colors cursor-pointer select-none"
                           >
                             {/* Sr No. */}
                             <td className="px-5 py-5 whitespace-nowrap font-semibold text-gray-500 dark:text-slate-400 text-center">{proj.srNo}</td>
@@ -3609,7 +3609,7 @@ export default function DSRDashboard({
                                     </span>
                                     <span className="text-gray-900 dark:text-slate-50 text-[13px] font-bold truncate max-w-[140px]">{uname}</span>
                                     {extraCount > 0 && (
-                                      <span className="text-[10px] font-black text-gray-400 dark:text-slate-500 bg-gray-100 dark:bg-slate-800 rounded-full px-1.5 py-0.5 shrink-0">+{extraCount}</span>
+                                      <span className="text-[10px] font-black text-gray-400 dark:text-slate-500 bg-gray-100 dark:bg-ink-800 rounded-full px-1.5 py-0.5 shrink-0">+{extraCount}</span>
                                     )}
                                   </div>
                                 );
@@ -3665,7 +3665,7 @@ export default function DSRDashboard({
 
                           {/* Sub-table Dropdown for Keywords of this project */}
                           {isExpanded && (
-                            <tr className="bg-slate-50/50 dark:bg-slate-800/40">
+                            <tr className="bg-slate-50/50 dark:bg-ink-800/40">
                               <td colSpan={6} className="px-6 py-4 border-t border-b border-gray-150 dark:border-slate-800">
                                 <div className="space-y-2">
                                   <div className="text-[10px] uppercase font-black text-gray-450 tracking-wider">
@@ -3675,9 +3675,9 @@ export default function DSRDashboard({
                                   {proj.keywords.length === 0 ? (
                                     <p className="text-xs text-gray-400 dark:text-slate-500 italic">No keywords mapped for this project.</p>
                                   ) : (
-                                    <div className="overflow-hidden border border-gray-150 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 shadow-3xs">
+                                    <div className="overflow-hidden border border-gray-150 dark:border-slate-800 rounded-xl bg-white dark:bg-ink-900 shadow-3xs">
                                       <table className="w-full text-left text-xs border-collapse">
-                                        <thead className="bg-gray-50 dark:bg-slate-800/60 text-[9px] uppercase font-bold text-gray-500 dark:text-slate-400 border-b border-gray-150 dark:border-slate-800">
+                                        <thead className="bg-gray-50 dark:bg-ink-800/60 text-[9px] uppercase font-bold text-gray-500 dark:text-slate-400 border-b border-gray-150 dark:border-slate-800">
                                           <tr>
                                             <th className="px-3 py-2">Keyword</th>
                                             <th className="px-3 py-2">Domain</th>
@@ -3688,7 +3688,7 @@ export default function DSRDashboard({
                                         </thead>
                                         <tbody className="divide-y divide-gray-150 dark:divide-slate-800">
                                           {proj.keywords.map((kwItem) => (
-                                            <tr key={kwItem.keyword} className="hover:bg-slate-50/30 hover:dark:bg-slate-800/30 transition-colors">
+                                            <tr key={kwItem.keyword} className="hover:bg-slate-50/30 hover:dark:bg-ink-800/30 transition-colors">
                                               {/* Keyword */}
                                               <td className="px-3 py-2.5 font-semibold text-gray-900 dark:text-slate-50">
                                                 <span className="inline-block bg-amber-50 dark:bg-amber-500/10 text-amber-900 dark:text-amber-300 font-extrabold px-2 py-0.5 rounded border border-amber-100 dark:border-amber-500/20 text-[11px] font-mono shadow-3xs">
@@ -3716,7 +3716,7 @@ export default function DSRDashboard({
                                               {/* Ranking */}
                                               <td className="px-3 py-2.5 text-gray-550 dark:text-slate-300 font-mono text-xs font-bold">
                                                 <div className="flex items-center gap-2">
-                                                  <span className="text-gray-900 dark:text-slate-50 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded font-black text-xs min-w-[20px] text-center">
+                                                  <span className="text-gray-900 dark:text-slate-50 bg-slate-100 dark:bg-ink-800 px-1.5 py-0.5 rounded font-black text-xs min-w-[20px] text-center">
                                                     {kwItem.ranking}
                                                   </span>
                                                   {isAdmin && (
@@ -3763,7 +3763,7 @@ export default function DSRDashboard({
                                                         }
                                                       }}
                                                       disabled={checkingKeywords.includes(`${proj.id}_${kwItem.keyword}`)}
-                                                      className="p-1 text-gray-400 dark:text-slate-500 hover:text-amber-600 hover:dark:text-amber-400 hover:bg-amber-50 hover:dark:bg-amber-500/10 disabled:opacity-50 disabled:cursor-not-allowed bg-slate-50 dark:bg-slate-800/60 border border-slate-200/50 hover:border-amber-200 rounded transition cursor-pointer"
+                                                      className="p-1 text-gray-400 dark:text-slate-500 hover:text-amber-600 hover:dark:text-amber-400 hover:bg-amber-50 hover:dark:bg-amber-500/10 disabled:opacity-50 disabled:cursor-not-allowed bg-slate-50 dark:bg-ink-800/60 border border-slate-200/50 hover:border-amber-200 rounded transition cursor-pointer"
                                                       title={kwItem.lastChecked ? `Last Checked: ${new Date(kwItem.lastChecked).toLocaleString()}\nClick to refresh live SERP ranking` : "Click to check live SERP ranking"}
                                                     >
                                                       {checkingKeywords.includes(`${proj.id}_${kwItem.keyword}`) ? (
@@ -3786,7 +3786,7 @@ export default function DSRDashboard({
                                                 <span className={`inline-flex items-center justify-center font-bold px-2 rounded-full text-[10px] h-5 min-w-5 leading-none font-mono ${
                                                   kwItem.timesWorked > 0 
                                                     ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-150' 
-                                                    : 'bg-gray-100 dark:bg-slate-800 text-gray-400 dark:text-slate-500'
+                                                    : 'bg-gray-100 dark:bg-ink-800 text-gray-400 dark:text-slate-500'
                                                 }`}>
                                                   {kwItem.timesWorked}
                                                 </span>
@@ -3857,7 +3857,7 @@ export default function DSRDashboard({
                 initial={{ scale: 0.95, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.95, opacity: 0 }}
-                className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-150 dark:border-slate-800 shadow-2xl max-w-md w-full overflow-hidden"
+                className="bg-white dark:bg-ink-900 rounded-3xl border border-slate-150 dark:border-slate-800 shadow-2xl max-w-md w-full overflow-hidden"
               >
                 <div className="p-5 border-b border-gray-100 dark:border-slate-800/60 flex justify-between items-center bg-gray-50/80">
                   <div>
@@ -3886,7 +3886,7 @@ export default function DSRDashboard({
                       value={planMessage}
                       onChange={(e) => setPlanMessage(e.target.value)}
                       placeholder="e.g., We need to speed up submissions on this campaign! Please focus on building 10 High-Quality Blogs and 5 PDF press releases tomorrow morning."
-                      className="w-full text-xs p-3.5 border border-gray-200 dark:border-slate-800 rounded-2xl bg-slate-50/30 dark:bg-slate-800/30 focus:outline-hidden focus:ring-2 focus:ring-indigo-150 focus:dark:ring-blue-500/20 focus:border-indigo-600 focus:dark:border-blue-500/50 transition-all font-semibold text-gray-800 dark:text-slate-100 leading-relaxed"
+                      className="w-full text-xs p-3.5 border border-gray-200 dark:border-slate-800 rounded-2xl bg-slate-50/30 dark:bg-ink-800/30 focus:outline-hidden focus:ring-2 focus:ring-indigo-150 focus:dark:ring-blue-500/20 focus:border-indigo-600 focus:dark:border-blue-500/50 transition-all font-semibold text-gray-800 dark:text-slate-100 leading-relaxed"
                     />
                   </div>
 
@@ -3911,10 +3911,10 @@ export default function DSRDashboard({
                   })()}
                 </div>
 
-                <div className="p-4 bg-gray-50/50 dark:bg-slate-800/40 border-t border-gray-100 dark:border-slate-800/60 flex justify-end gap-2.5">
+                <div className="p-4 bg-gray-50/50 dark:bg-ink-800/40 border-t border-gray-100 dark:border-slate-800/60 flex justify-end gap-2.5">
                   <button
                     onClick={() => { setSelectedPlanProject(null); setPlanMessage(''); }}
-                    className="px-4 py-2 text-xs font-bold text-gray-550 dark:text-slate-300 hover:bg-slate-100 hover:dark:bg-slate-800 rounded-xl transition cursor-pointer"
+                    className="px-4 py-2 text-xs font-bold text-gray-550 dark:text-slate-300 hover:bg-slate-100 hover:dark:bg-ink-800 rounded-xl transition cursor-pointer"
                   >
                     Cancel
                   </button>
