@@ -338,38 +338,6 @@ export default function App() {
 
   const [dashboardSubTab, setDashboardSubTab] = useState<'project_table' | 'activity' | 'backlinks' | 'unworked_project' | 'keyword_section' | 'update_ranking'>('project_table');
 
-  // Global Monthly Progress — mirrors the Overview Panel's "covered this month"
-  // logic, but unfiltered (all projects / all entries), for the nav menu card.
-  const monthlyProgressStats = useMemo(() => {
-    const now = new Date();
-    const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-
-    // Combined set (worked + not worked) — drives "Projects Covered" + the bar
-    const coveredProjectIds = new Set<string>();
-    // Separate sets so a project counts once in each bucket even if logged multiple times
-    const workedProjectIds = new Set<string>();
-    const notWorkedProjectIds = new Set<string>();
-
-    entries.forEach((entry) => {
-      if (!entry || !entry.date || !entry.date.startsWith(currentMonthKey)) return;
-      (entry.works || []).forEach((w) => {
-        if (!w || !w.projectId) return;
-        coveredProjectIds.add(w.projectId);
-        if (w.workStatus === 'worked') workedProjectIds.add(w.projectId);
-        else if (w.workStatus === 'not_worked') notWorkedProjectIds.add(w.projectId);
-      });
-    });
-
-    const total = projects.length;
-    const covered = coveredProjectIds.size;
-    const worked = workedProjectIds.size;
-    const notWorked = notWorkedProjectIds.size;
-    const remaining = Math.max(0, total - covered);
-    const percent = total > 0 ? Math.min(100, Math.round((covered / total) * 100)) : 0;
-
-    return { covered, total, worked, notWorked, remaining, percent };
-  }, [entries, projects]);
-
   // Aesthetic pop-out navigation menu (replaces old top-center nav bar)
   // No more hover-to-close: once open, it only closes on the X button or an
   // outside click. It can still be *opened* by hovering the trigger button
@@ -618,6 +586,49 @@ export default function App() {
       return matchesUsers || matchesUserId;
     });
   }, [projects, currentUserEmail, isAdmin, allowedUsers]);
+
+  // Monthly Progress — nav menu card.
+  // Admins see the global, all-users picture. Regular users only ever see
+  // THEIR OWN entries and THEIR OWN assigned projects (never other users' data).
+  const monthlyProgressStats = useMemo(() => {
+    const now = new Date();
+    const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+    // Scope entries to the logged-in user unless they're an admin
+    const scopedEntries = isAdmin
+      ? entries
+      : (currentUserEmail
+          ? entries.filter((entry) => doesUserMatch((entry.userEmail || '').trim().toLowerCase(), currentUserEmail, allowedUsers))
+          : []);
+
+    // Scope the project universe the same way (matches the "Total Projects" a user actually owns)
+    const scopedProjects = filteredProjectsForUser;
+
+    // Combined set (worked + not worked) — drives "Projects Covered" + the bar
+    const coveredProjectIds = new Set<string>();
+    // Separate sets so a project counts once in each bucket even if logged multiple times
+    const workedProjectIds = new Set<string>();
+    const notWorkedProjectIds = new Set<string>();
+
+    scopedEntries.forEach((entry) => {
+      if (!entry || !entry.date || !entry.date.startsWith(currentMonthKey)) return;
+      (entry.works || []).forEach((w) => {
+        if (!w || !w.projectId) return;
+        coveredProjectIds.add(w.projectId);
+        if (w.workStatus === 'worked') workedProjectIds.add(w.projectId);
+        else if (w.workStatus === 'not_worked') notWorkedProjectIds.add(w.projectId);
+      });
+    });
+
+    const total = scopedProjects.length;
+    const covered = coveredProjectIds.size;
+    const worked = workedProjectIds.size;
+    const notWorked = notWorkedProjectIds.size;
+    const remaining = Math.max(0, total - covered);
+    const percent = total > 0 ? Math.min(100, Math.round((covered / total) * 100)) : 0;
+
+    return { covered, total, worked, notWorked, remaining, percent };
+  }, [entries, filteredProjectsForUser, isAdmin, currentUserEmail, allowedUsers]);
   
   // Active Project Assignment tasks for the currently logged in user
   const activeAssignmentAlerts = useMemo(() => {
