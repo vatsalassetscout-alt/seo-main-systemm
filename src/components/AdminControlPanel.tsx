@@ -105,13 +105,18 @@ export default function AdminControlPanel({
     const base = !term
       ? projects
       : projects.filter((p) => {
-          const assignedTo = (p.users && p.users[0]) || p.userId || '';
+          const assignedIds = [...(p.users || []), ...(p.userId ? [p.userId] : [])];
+          const assignedMatch = assignedIds.some(
+            (id) =>
+              String(id || '').toLowerCase().includes(term) ||
+              nameForAssignedId(String(id || '')).toLowerCase().includes(term)
+          );
           return (
             (p.name || '').toLowerCase().includes(term) ||
             (p.domain || '').toLowerCase().includes(term) ||
             (p.location || '').toLowerCase().includes(term) ||
             (p.region || '').toLowerCase().includes(term) ||
-            String(assignedTo).toLowerCase().includes(term) ||
+            assignedMatch ||
             (p.keywords || []).some((k) => k.toLowerCase().includes(term))
           );
         });
@@ -176,18 +181,23 @@ export default function AdminControlPanel({
     }
   };
 
-  const handleReassign = async (project: Project, newUserId: string, newUserName: string) => {
+  const handleReassign = async (project: Project, newUserIds: string[], newUserNames: string[]) => {
     setBusy(true);
     try {
       const res = await fetch('/api/projects/reassign', {
         method: 'POST',
         headers: authHeaders,
-        body: JSON.stringify({ projectId: project.id, newUserId, newUserName }),
+        body: JSON.stringify({ projectId: project.id, newUserIds, newUserNames }),
       });
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || 'Request failed');
       onUpdateProjects(data.list);
-      triggerAlert('success', `Reassigned to ${newUserName}.`);
+      triggerAlert(
+        'success',
+        newUserNames.length > 1
+          ? `Assigned to ${newUserNames.length} users.`
+          : `Assigned to ${newUserNames[0]}.`
+      );
       setReassigningProject(null);
     } catch (err: any) {
       triggerAlert('error', err.message || 'Something went wrong.');
@@ -346,9 +356,29 @@ export default function AdminControlPanel({
                     </div>
                   </td>
                   <td className="py-3 px-4 font-semibold text-gray-600 dark:text-slate-300">
-                    {(p.users && p.users[0]) || p.userId
-                      ? nameForAssignedId((p.users && p.users[0]) || p.userId)
-                      : <span className="text-amber-600 dark:text-amber-400">Unassigned</span>}
+                    {(() => {
+                      const assignedIds = Array.from(
+                        new Set([
+                          ...((p.users || []).filter((u) => !!String(u || '').trim())),
+                          ...(p.userId ? [p.userId] : []),
+                        ])
+                      );
+                      if (assignedIds.length === 0) {
+                        return <span className="text-amber-600 dark:text-amber-400">Unassigned</span>;
+                      }
+                      return (
+                        <div className="flex flex-wrap gap-1 max-w-[200px]">
+                          {assignedIds.map((id) => (
+                            <span
+                              key={id}
+                              className="px-2 py-0.5 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 rounded-full text-[10px] font-bold"
+                            >
+                              {nameForAssignedId(id)}
+                            </span>
+                          ))}
+                        </div>
+                      );
+                    })()}
                   </td>
                   <td className="py-3 px-4">
                     <div className="flex items-center justify-center gap-1.5">
@@ -401,7 +431,7 @@ export default function AdminControlPanel({
           users={users}
           busy={busy}
           onClose={() => setReassigningProject(null)}
-          onSubmit={(userId, userName) => handleReassign(reassigningProject, userId, userName)}
+          onSubmit={(userIds, userNames) => handleReassign(reassigningProject, userIds, userNames)}
         />
       )}
     </div>
@@ -587,7 +617,9 @@ function ProjectFormModal({
 }
 
 // ===========================================================================
-// MODAL: Reassign Project
+// MODAL: Assign Project (multi-select — a project can now be assigned to
+// more than one user at once; each checked user gets their own independent
+// Task Lineup entries for this project).
 // ===========================================================================
 function ReassignModal({
   project,
@@ -600,15 +632,45 @@ function ReassignModal({
   users: AppUserRow[];
   busy: boolean;
   onClose: () => void;
-  onSubmit: (userId: string, userName: string) => void;
+  onSubmit: (userIds: string[], userNames: string[]) => void;
 }) {
-  const [selected, setSelected] = useState('');
+  // Pre-check whoever the project is already assigned to.
+  const initiallyAssigned = useMemo(() => {
+    const ids = new Set<string>();
+    (project.users || []).forEach((u) => u && ids.add(String(u).trim().toLowerCase()));
+    if (project.userId) ids.add(String(project.userId).trim().toLowerCase());
+    return ids;
+  }, [project]);
+
+  const [selected, setSelected] = useState<Set<string>>(initiallyAssigned);
+  const [userSearch, setUserSearch] = useState('');
+
+  const toggleUser = (email: string) => {
+    const key = String(email).trim().toLowerCase();
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
+  const filteredUsers = useMemo(() => {
+    const term = userSearch.trim().toLowerCase();
+    if (!term) return users;
+    return users.filter(
+      (u) => (u.name || '').toLowerCase().includes(term) || (u.email || '').toLowerCase().includes(term)
+    );
+  }, [users, userSearch]);
+
+  const currentlyAssignedLabel =
+    (project.users && project.users.length > 0 ? project.users.join(', ') : '') || project.userId || 'Unassigned';
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const user = users.find((u) => u.email === selected);
-    if (!user) return;
-    onSubmit(user.email, user.name);
+    const matched = users.filter((u) => selected.has(String(u.email).trim().toLowerCase()));
+    if (matched.length === 0) return;
+    onSubmit(matched.map((u) => u.email), matched.map((u) => u.name));
   };
 
   return (
@@ -626,31 +688,59 @@ function ReassignModal({
         </div>
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <p className="text-xs text-gray-500 dark:text-slate-400">
-            Moving <span className="font-extrabold text-gray-900 dark:text-slate-50">{project.name}</span> to a new user removes it from{' '}
-            <span className="font-extrabold text-gray-900 dark:text-slate-50">{(project.users && project.users[0]) || project.userId || 'Unassigned'}</span> immediately.
+            Choose one or more users for <span className="font-extrabold text-gray-900 dark:text-slate-50">{project.name}</span>. This
+            replaces the current assignment (<span className="font-extrabold text-gray-900 dark:text-slate-50">{currentlyAssignedLabel}</span>) — anyone
+            unchecked below immediately stops receiving it in their Task Lineup.
           </p>
+
           <div className="space-y-1.5">
-            <label className="block text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-widest">New User</label>
-            <select
-              value={selected}
-              onChange={(e) => setSelected(e.target.value)}
-              required
-              className="w-full px-4 py-3 bg-gray-50 dark:bg-ink-800/60 border border-gray-200 dark:border-slate-800 focus:border-indigo-650 focus:dark:border-blue-500/50 rounded-xl text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-indigo-650 focus:dark:ring-blue-500/50 transition"
-            >
-              <option value="">Select a user…</option>
-              {users.map((u) => (
-                <option key={u.email} value={u.email}>
-                  {u.name} ({u.email})
-                </option>
-              ))}
-            </select>
+            <label className="block text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-widest">
+              Users {selected.size > 0 ? `(${selected.size} selected)` : ''}
+            </label>
+            <input
+              type="text"
+              value={userSearch}
+              onChange={(e) => setUserSearch(e.target.value)}
+              placeholder="Search users…"
+              className="w-full px-4 py-2.5 bg-gray-50 dark:bg-ink-800/60 border border-gray-200 dark:border-slate-800 focus:border-indigo-650 focus:dark:border-blue-500/50 rounded-xl text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-indigo-650 focus:dark:ring-blue-500/50 transition"
+            />
+            <div className="max-h-56 overflow-y-auto border border-gray-150 dark:border-slate-800 rounded-xl divide-y divide-gray-105 dark:divide-slate-800/60">
+              {filteredUsers.length === 0 && (
+                <div className="px-4 py-3 text-xs text-gray-400 dark:text-slate-500 font-semibold">No users match.</div>
+              )}
+              {filteredUsers.map((u) => {
+                const key = String(u.email).trim().toLowerCase();
+                const checked = selected.has(key);
+                return (
+                  <label
+                    key={u.email}
+                    className={`flex items-center gap-3 px-4 py-2.5 text-xs font-semibold cursor-pointer transition ${
+                      checked
+                        ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-800 dark:text-emerald-300'
+                        : 'text-gray-600 dark:text-slate-300 hover:bg-gray-50 hover:dark:bg-ink-800/60'
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => toggleUser(u.email)}
+                      className="h-4 w-4 rounded border-gray-300 dark:border-slate-700 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                    />
+                    <span className="flex-1">
+                      {u.name} <span className="text-gray-400 dark:text-slate-500 font-normal">({u.email})</span>
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
           </div>
+
           <button
             type="submit"
-            disabled={busy || !selected}
+            disabled={busy || selected.size === 0}
             className="w-full px-5 py-3.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white font-bold rounded-xl text-xs transition shadow-sm cursor-pointer"
           >
-            {busy ? 'Reassigning…' : 'Confirm Reassign'}
+            {busy ? 'Assigning…' : `Confirm Assign${selected.size > 1 ? ` (${selected.size})` : ''}`}
           </button>
         </form>
       </motion.div>
