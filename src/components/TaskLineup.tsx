@@ -900,29 +900,29 @@ export default function TaskLineup({
               ) : (
                 <div className="px-5 py-4">
                   <div
-                    className="grid gap-3 items-start"
+                    className="grid gap-5 items-start"
                     style={{ gridTemplateColumns: `repeat(${myAssignmentsByPriority.length}, minmax(0, 1fr))` }}
                   >
                     {myAssignmentsByPriority.map(([tier, items]) => (
                       <div key={tier} className="min-w-0">
-                        <div className="flex items-center gap-2 mb-2.5">
+                        <div className="flex items-center gap-2 mb-3">
                           <Badge priority={tier} />
                           <span className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider">
                             {items.length} task{items.length !== 1 ? 's' : ''}
                           </span>
                         </div>
-                        <div className="space-y-2.5">
+                        <div className="space-y-3">
                           {items.map((a) => (
                             <div key={a.id} className="flex items-center justify-between gap-2">
-                              <span className="text-xs font-bold text-gray-700 dark:text-slate-200 truncate">{a.projectName}</span>
+                              <span className="text-sm font-bold text-gray-700 dark:text-slate-200 truncate">{a.projectName}</span>
                               {a.status === 'Done' ? (
                                 <StatusBadge status={a.status} />
                               ) : (
                                 <button
                                   onClick={() => onJumpToWorkLog(a.projectId, a.date)}
-                                  className="flex items-center gap-1 px-2 py-1 bg-indigo-600 dark:bg-blue-600 hover:bg-indigo-700 hover:dark:bg-blue-500 text-white text-[10px] font-black rounded-lg transition cursor-pointer whitespace-nowrap shrink-0"
+                                  className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 dark:bg-blue-600 hover:bg-indigo-700 hover:dark:bg-blue-500 text-white text-xs font-black rounded-lg transition cursor-pointer whitespace-nowrap shrink-0"
                                 >
-                                  <PenTool size={11} />
+                                  <PenTool size={13} />
                                   Log
                                 </button>
                               )}
@@ -1021,21 +1021,21 @@ export default function TaskLineup({
                       </div>
                       <div className="p-3">
                         <div
-                          className="grid gap-3 items-start"
+                          className="grid gap-5 items-start"
                           style={{ gridTemplateColumns: `repeat(${tiers.length}, minmax(0, 1fr))` }}
                         >
                           {tiers.map(([tier, items]) => (
                             <div key={tier} className="min-w-0">
-                              <div className="flex items-center gap-2 mb-2.5">
+                              <div className="flex items-center gap-2 mb-3">
                                 <Badge priority={tier} />
                                 <span className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider">
                                   {items.length} task{items.length !== 1 ? 's' : ''}
                                 </span>
                               </div>
-                              <div className="space-y-2.5">
+                              <div className="space-y-3">
                                 {items.map((a) => (
                                   <div key={a.id} className="flex items-center justify-between gap-2">
-                                    <span className="text-xs font-bold text-gray-700 dark:text-slate-200 truncate">{a.projectName}</span>
+                                    <span className="text-sm font-bold text-gray-700 dark:text-slate-200 truncate">{a.projectName}</span>
                                     <StatusBadge status={a.status} isPaused={isEmailPaused(emailKey)} />
                                   </div>
                                 ))}
