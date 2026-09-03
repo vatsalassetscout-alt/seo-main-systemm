@@ -1009,15 +1009,10 @@ export default function TaskLineup({
                     return (
                       <div key={emailKey} className="min-w-0 bg-white dark:bg-ink-900 rounded-2xl border border-gray-150 dark:border-slate-800 overflow-hidden shadow-xs">
                         <div className="px-4 py-3 bg-gray-50 dark:bg-ink-800/60 border-b border-gray-150 dark:border-slate-800">
-                          <p className="text-xs font-black text-gray-900 dark:text-slate-50 truncate">
+                          <p className="text-sm font-black text-gray-900 dark:text-slate-50 truncate">
                             {displayName}
-                            {/* ID shown alongside the name so two people who
-                                happen to share the same display name (a real,
-                                legitimate case — not a bug) are always
-                                distinguishable at a glance in the admin view. */}
-                            <span className="ml-1.5 font-mono font-bold text-gray-400 dark:text-slate-500 normal-case">· {emailKey}</span>
                           </p>
-                          <p className="text-[10px] font-bold text-gray-400 dark:text-slate-500">{doneCount}/{list.length} completed today</p>
+                          <p className="text-xs font-bold text-gray-900 dark:text-white">{doneCount}/{list.length} completed today</p>
                           <div className="mt-2">
                             <PriorityDistribution items={list} />
                           </div>
