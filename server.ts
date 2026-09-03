@@ -585,24 +585,47 @@ app.delete("/api/users/:userId", async (req, res) => {
   }
 });
 
-// Reassign a project from one user to another. Since project.userId/users
-// gets fully overwritten (not appended), the project automatically stops
-// showing up for the previous user the moment this succeeds.
+// Reassign a project to one or more users. Since project.userId/users gets
+// fully overwritten (not appended), the project automatically stops showing
+// up for any previously-assigned user who isn't in the new list the moment
+// this succeeds. Accepts either the new multi-select shape (newUserIds /
+// newUserNames arrays) or the old single-user shape (newUserId / newUserName)
+// for backward compatibility.
 app.post("/api/projects/reassign", async (req, res) => {
   const email = req.headers['x-user-email'];
   if (!email || typeof email !== 'string' || !isUserAdmin(email)) {
     return res.status(403).json({ error: "Admin access required to reassign a project." });
   }
-  const { projectId, newUserId, newUserName } = req.body;
-  if (!projectId || !newUserId || !newUserName) {
-    return res.status(400).json({ error: "projectId, newUserId and newUserName are required." });
+  const { projectId, newUserId, newUserName, newUserIds, newUserNames } = req.body;
+
+  // Normalize to arrays regardless of which shape the client sent.
+  const idsInput: any[] = Array.isArray(newUserIds)
+    ? newUserIds
+    : (newUserId ? [newUserId] : []);
+  const namesInput: any[] = Array.isArray(newUserNames)
+    ? newUserNames
+    : (newUserName ? [newUserName] : []);
+
+  const cleanIds = idsInput.map((id) => String(id || "").trim()).filter(Boolean);
+  const cleanNames = namesInput.map((n) => String(n || "").trim()).filter(Boolean);
+
+  if (!projectId || cleanIds.length === 0) {
+    return res.status(400).json({ error: "projectId and at least one user are required." });
   }
+
   try {
     const allProjects = await getProjectsDb();
     const existing = allProjects.find((p: any) => p.id === projectId);
     if (!existing) return res.status(404).json({ error: "Project not found." });
 
-    const previousUser = existing.userId || (existing.users && existing.users[0]) || "Unassigned";
+    const previousUsers: string[] = Array.isArray(existing.users) && existing.users.length > 0
+      ? existing.users
+      : (existing.userId ? [existing.userId] : []);
+    const previousLabel = previousUsers.length > 0 ? previousUsers.join(", ") : "Unassigned";
+
+    // De-duplicate while preserving order.
+    const uniqueIds = Array.from(new Set(cleanIds));
+
     // ROOT BUG (found and fixed): this used to write `users: [newUserName]`
     // — the person's display NAME — instead of their real ID. The Task
     // Lineup engine reads `project.users` as a list of assignee IDs
@@ -612,17 +635,20 @@ app.post("/api/projects/reassign", async (req, res) => {
     // full, separate lineup generated for it — showing up as the SAME
     // person appearing twice in the admin's Task Lineup with two
     // different sets of projects. Both `userId` and `users` must hold the
-    // real ID, never the display name.
+    // real ID, never the display name. This now also supports assigning to
+    // MULTIPLE users at once — every ID in `users` gets its own independent
+    // Task Lineup entries for this project (see generateLineupForDate).
     const updatedProject = {
       ...existing,
-      userId: String(newUserId).trim(),
-      users: [String(newUserId).trim()]
+      userId: uniqueIds[0],
+      users: uniqueIds,
     };
     const ok = await saveProjectDb(updatedProject);
     if (!ok) return res.status(500).json({ error: "Failed to reassign project." });
 
     const list = await getProjectsDb();
-    await logActivityLocally(String(email), "REASSIGN Project", `Reassigned "${existing.name || existing.domain}" from "${previousUser}" to "${newUserName}" (${newUserId})`);
+    const newLabel = cleanNames.length > 0 ? cleanNames.join(", ") : uniqueIds.join(", ");
+    await logActivityLocally(String(email), "REASSIGN Project", `Reassigned "${existing.name || existing.domain}" from "${previousLabel}" to "${newLabel}" (${uniqueIds.join(", ")})`);
     return res.json({ success: true, list });
   } catch (err: any) {
     return res.status(500).json({ error: err.message });
