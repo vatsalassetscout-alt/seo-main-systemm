@@ -63,7 +63,7 @@ export default function LoginScreen({
   const busy = isLoggingIn || verifying;
 
   return (
-    <div className="min-h-screen bg-gray-50/50 flex flex-col items-center justify-center p-4 sm:p-6 select-none animate-in fade-in duration-200">
+    <div className="min-h-screen bg-gray-50/50 dark:bg-ink-950 flex flex-col items-center justify-center p-4 sm:p-6 select-none animate-in fade-in duration-200">
       <motion.div
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
@@ -76,21 +76,21 @@ export default function LoginScreen({
         </div>
 
         {/* Main login card */}
-        <div className="bg-white p-8 rounded-3xl border border-gray-150 shadow-md space-y-6 relative overflow-hidden">
+        <div className="bg-white dark:bg-ink-900 p-8 rounded-3xl border border-gray-150 dark:border-slate-800 shadow-md dark:shadow-none space-y-6 relative overflow-hidden">
           <div className="space-y-1.5 text-center">
-            <h2 className="text-base font-bold text-gray-900 font-sans">Authenticate Session</h2>
-            <p className="text-xs text-gray-500">Sign in using your assigned User ID and Passkey.</p>
+            <h2 className="text-base font-bold text-gray-900 dark:text-slate-50 font-sans">Authenticate Session</h2>
+            <p className="text-xs text-gray-500 dark:text-slate-400">Sign in using your assigned User ID and Passkey.</p>
           </div>
 
           {activeError && (
-            <div className="p-3 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl text-xs font-semibold leading-relaxed">
+            <div className="p-3 bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 text-rose-800 dark:text-rose-400 rounded-xl text-xs font-semibold leading-relaxed">
               {activeError}
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-1.5">
-              <label htmlFor="login-id" className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+              <label htmlFor="login-id" className="block text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-widest">
                 User / Admin ID
               </label>
               <input
@@ -104,12 +104,12 @@ export default function LoginScreen({
                   setIdInput(e.target.value);
                   setErrorMsg(null);
                 }}
-                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 focus:border-indigo-650 rounded-xl text-gray-950 font-semibold placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-indigo-650 transition text-sm sm:text-xs"
+                className="w-full px-4 py-3 bg-gray-50 dark:bg-ink-800/60 border border-gray-200 dark:border-slate-800 focus:border-indigo-650 focus:dark:border-blue-500 rounded-xl text-gray-950 dark:text-slate-50 font-semibold placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-indigo-650 focus:dark:ring-blue-500/30 transition text-sm sm:text-xs"
               />
             </div>
 
             <div className="space-y-1.5">
-              <label htmlFor="login-passkey" className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+              <label htmlFor="login-passkey" className="block text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-widest">
                 Passkey
               </label>
               <input
@@ -122,7 +122,7 @@ export default function LoginScreen({
                   setPasskeyInput(e.target.value);
                   setErrorMsg(null);
                 }}
-                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 focus:border-indigo-650 rounded-xl text-gray-950 font-semibold placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-indigo-650 transition text-sm sm:text-xs"
+                className="w-full px-4 py-3 bg-gray-50 dark:bg-ink-800/60 border border-gray-200 dark:border-slate-800 focus:border-indigo-650 focus:dark:border-blue-500 rounded-xl text-gray-950 dark:text-slate-50 font-semibold placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-indigo-650 focus:dark:ring-blue-500/30 transition text-sm sm:text-xs"
               />
             </div>
 
@@ -130,7 +130,7 @@ export default function LoginScreen({
               id="login-submit-btn"
               type="submit"
               disabled={busy}
-              className="w-full px-5 py-3.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white font-bold rounded-xl text-xs transition shadow-sm hover:shadow-md flex items-center justify-center gap-2 cursor-pointer"
+              className="w-full px-5 py-3.5 bg-indigo-600 dark:bg-blue-600 hover:bg-indigo-700 hover:dark:bg-blue-500 disabled:opacity-60 text-white font-bold rounded-xl text-xs transition shadow-sm hover:shadow-md flex items-center justify-center gap-2 cursor-pointer"
             >
               {busy ? 'Verifying…' : 'Enter Workspace'}
               {!busy && <ArrowRight size={13} />}
@@ -140,7 +140,7 @@ export default function LoginScreen({
         </div>
 
         {/* Security / Sheets info indicator footer */}
-        <div className="flex items-center justify-center gap-4 text-[10px] text-gray-400 font-semibold font-mono">
+        <div className="flex items-center justify-center gap-4 text-[10px] text-gray-400 dark:text-slate-500 font-semibold font-mono">
           <span className="flex items-center gap-1">
             <ShieldAlert size={12} /> Secure login session
           </span>
