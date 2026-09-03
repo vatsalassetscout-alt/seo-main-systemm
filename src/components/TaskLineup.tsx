@@ -66,6 +66,20 @@ function priorityRank(priority: string): number {
   return rank === undefined ? 99 : rank;
 }
 
+// Groups a list of assignments into X1 -> X2 -> X3 -> X4 -> X5 buckets (any
+// unrecognised tier falls into its own trailing bucket). Shared by the
+// user-side "Today's Lineup" card and the admin per-user cards so both lay
+// tasks out as priority columns instead of one long vertical list.
+function groupByPriorityTier(list: TaskAssignment[]): [string, TaskAssignment[]][] {
+  const byTier = new Map<string, TaskAssignment[]>();
+  list.forEach((a) => {
+    const tier = a.priority || '—';
+    if (!byTier.has(tier)) byTier.set(tier, []);
+    byTier.get(tier)!.push(a);
+  });
+  return Array.from(byTier.entries()).sort((a, b) => priorityRank(a[0]) - priorityRank(b[0]));
+}
+
 // Orders the lineup by priority tier first (X1 -> X2 -> X3 -> X4 -> X5, with
 // any unrecognised tier pushed to the end), then within each tier keeps
 // pending items ahead of the ones already marked Done. Uses a stable sort
@@ -626,17 +640,10 @@ export default function TaskLineup({
   // Lineup" card can lay each tier out as its own horizontal, wrapping row
   // instead of one long vertical list — keeps the card short no matter how
   // many tasks are assigned.
-  const myAssignmentsByPriority = useMemo(() => {
-    const byTier = new Map<string, TaskAssignment[]>();
-    myAssignments.forEach((a) => {
-      const tier = a.priority || '—';
-      if (!byTier.has(tier)) byTier.set(tier, []);
-      byTier.get(tier)!.push(a);
-    });
-    return Array.from(byTier.entries()).sort(
-      (a, b) => priorityRank(a[0]) - priorityRank(b[0])
-    );
-  }, [myAssignments]);
+  const myAssignmentsByPriority = useMemo(
+    () => groupByPriorityTier(myAssignments),
+    [myAssignments]
+  );
 
   const isSunday = new Date(activeDate + 'T00:00:00Z').getUTCDay() === 0;
 
@@ -914,9 +921,10 @@ export default function TaskLineup({
                               className="bg-white dark:bg-ink-900 rounded-lg border border-gray-150 dark:border-slate-800 px-2.5 py-2"
                             >
                               <p className="text-xs font-bold text-gray-700 dark:text-slate-200 mb-1.5 break-words">{a.projectName}</p>
-                              <div className="flex items-center justify-between gap-2">
-                                <StatusBadge status={a.status} />
-                                {a.status === 'Pending' && (
+                              <div className="flex items-center justify-end">
+                                {a.status === 'Done' ? (
+                                  <StatusBadge status={a.status} />
+                                ) : (
                                   <button
                                     onClick={() => onJumpToWorkLog(a.projectId, a.date)}
                                     className="flex items-center gap-1 px-2 py-1 bg-indigo-600 dark:bg-blue-600 hover:bg-indigo-700 hover:dark:bg-blue-500 text-white text-[10px] font-black rounded-lg transition cursor-pointer whitespace-nowrap"
@@ -1002,6 +1010,7 @@ export default function TaskLineup({
               ) : (
                 groupedByUser.map(([displayName, emailKey, list]) => {
                   const doneCount = list.filter(a => a.status === 'Done').length;
+                  const tiers = groupByPriorityTier(list);
                   return (
                     <div key={emailKey} className="bg-white dark:bg-ink-900 rounded-2xl border border-gray-150 dark:border-slate-800 overflow-hidden shadow-xs">
                       <div className="flex items-center justify-between px-5 py-3 bg-gray-50 dark:bg-ink-800/60 border-b border-gray-150 dark:border-slate-800 gap-3">
@@ -1018,19 +1027,38 @@ export default function TaskLineup({
                         </div>
                         <PriorityDistribution items={list} />
                       </div>
-                      <div className="divide-y divide-gray-100 dark:divide-slate-800/60">
-                        {list.map((a, idx) => (
-                          <div key={a.id} className="flex items-center justify-between px-5 py-2.5">
-                            <div className="flex items-center gap-3">
-                              <span className="text-xs font-mono font-bold text-gray-400 dark:text-slate-500 w-5 shrink-0">{idx + 1}.</span>
-                              <span className="text-sm font-bold text-gray-700 dark:text-slate-200">{a.projectName}</span>
+                      <div className="p-3">
+                        <div
+                          className="grid gap-3 items-start"
+                          style={{ gridTemplateColumns: `repeat(${tiers.length}, minmax(0, 1fr))` }}
+                        >
+                          {tiers.map(([tier, items]) => (
+                            <div
+                              key={tier}
+                              className="min-w-0 rounded-xl border border-gray-150 dark:border-slate-800 bg-gray-50/70 dark:bg-ink-800/40 p-3"
+                            >
+                              <div className="flex items-center gap-2 mb-2.5">
+                                <Badge priority={tier} />
+                                <span className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider">
+                                  {items.length} task{items.length !== 1 ? 's' : ''}
+                                </span>
+                              </div>
+                              <div className="space-y-2">
+                                {items.map((a) => (
+                                  <div
+                                    key={a.id}
+                                    className="bg-white dark:bg-ink-900 rounded-lg border border-gray-150 dark:border-slate-800 px-2.5 py-2"
+                                  >
+                                    <p className="text-xs font-bold text-gray-700 dark:text-slate-200 mb-1.5 break-words">{a.projectName}</p>
+                                    <div className="flex items-center justify-end">
+                                      <StatusBadge status={a.status} isPaused={isEmailPaused(emailKey)} />
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
                             </div>
-                            <div className="flex items-center gap-3">
-                              <Badge priority={a.priority} />
-                              <StatusBadge status={a.status} isPaused={isEmailPaused(emailKey)} />
-                            </div>
-                          </div>
-                        ))}
+                          ))}
+                        </div>
                       </div>
                     </div>
                   );
