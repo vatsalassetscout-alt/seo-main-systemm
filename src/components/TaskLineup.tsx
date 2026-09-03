@@ -621,6 +621,23 @@ export default function TaskLineup({
     [assignments, currentUserEmail]
   );
 
+  // Groups `myAssignments` into X1 -> X2 -> X3 -> X4 -> X5 buckets (any
+  // unrecognised tier falls into its own trailing bucket) so the "Today's
+  // Lineup" card can lay each tier out as its own horizontal, wrapping row
+  // instead of one long vertical list — keeps the card short no matter how
+  // many tasks are assigned.
+  const myAssignmentsByPriority = useMemo(() => {
+    const byTier = new Map<string, TaskAssignment[]>();
+    myAssignments.forEach((a) => {
+      const tier = a.priority || '—';
+      if (!byTier.has(tier)) byTier.set(tier, []);
+      byTier.get(tier)!.push(a);
+    });
+    return Array.from(byTier.entries()).sort(
+      (a, b) => priorityRank(a[0]) - priorityRank(b[0])
+    );
+  }, [myAssignments]);
+
   const isSunday = new Date(activeDate + 'T00:00:00Z').getUTCDay() === 0;
 
   const pendingStatsByEmail = useMemo(() => {
@@ -874,25 +891,34 @@ export default function TaskLineup({
               ) : myAssignments.length === 0 ? (
                 <p className="px-5 py-6 text-xs font-bold text-gray-400 dark:text-slate-500">No tasks assigned to you for this date yet.</p>
               ) : (
-                <div className="divide-y divide-gray-100 dark:divide-slate-800/60">
-                  {myAssignments.map((a, idx) => (
-                    <div key={a.id} className="flex items-center justify-between px-5 py-3.5">
-                      <div className="flex items-center gap-3">
-                        <span className="text-xs font-mono font-bold text-gray-400 dark:text-slate-500 w-5 shrink-0">{idx + 1}.</span>
-                        <span className="text-sm font-bold text-gray-700 dark:text-slate-200">{a.projectName}</span>
-                        <Badge priority={a.priority} />
+                <div className="px-5 py-4 space-y-3.5">
+                  {myAssignmentsByPriority.map(([tier, items]) => (
+                    <div key={tier}>
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <Badge priority={tier} />
+                        <span className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider">
+                          {items.length} task{items.length !== 1 ? 's' : ''}
+                        </span>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <StatusBadge status={a.status} />
-                        {a.status === 'Pending' && (
-                          <button
-                            onClick={() => onJumpToWorkLog(a.projectId, a.date)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 dark:bg-blue-600 hover:bg-indigo-700 hover:dark:bg-blue-500 text-white text-[11px] font-black rounded-lg transition cursor-pointer"
+                      <div className="flex flex-wrap gap-2">
+                        {items.map((a) => (
+                          <div
+                            key={a.id}
+                            className="flex items-center gap-2.5 pl-3 pr-2.5 py-2 rounded-xl border border-gray-150 dark:border-slate-800 bg-gray-50/70 dark:bg-ink-800/40"
                           >
-                            <PenTool size={12} />
-                            Log Work
-                          </button>
-                        )}
+                            <span className="text-xs font-bold text-gray-700 dark:text-slate-200 whitespace-nowrap">{a.projectName}</span>
+                            <StatusBadge status={a.status} />
+                            {a.status === 'Pending' && (
+                              <button
+                                onClick={() => onJumpToWorkLog(a.projectId, a.date)}
+                                className="flex items-center gap-1 px-2 py-1 bg-indigo-600 dark:bg-blue-600 hover:bg-indigo-700 hover:dark:bg-blue-500 text-white text-[10px] font-black rounded-lg transition cursor-pointer whitespace-nowrap"
+                              >
+                                <PenTool size={11} />
+                                Log Work
+                              </button>
+                            )}
+                          </div>
+                        ))}
                       </div>
                     </div>
                   ))}
