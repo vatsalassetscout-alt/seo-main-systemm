@@ -992,7 +992,7 @@ export default function TaskLineup({
           {/* Admin: per-user grouped lineup for the selected date — Pending
               tasks list first, Submitted ones last. */}
           {isAdmin && (
-            <div className="space-y-4">
+            <div>
               {loading ? (
                 <p className="text-xs font-bold text-gray-400 dark:text-slate-500">Loading lineup…</p>
               ) : groupedByUser.length === 0 ? (
@@ -1000,14 +1000,16 @@ export default function TaskLineup({
                   <p className="text-sm font-bold text-gray-500 dark:text-slate-400">No lineup generated for this date yet.</p>
                 </div>
               ) : (
-                groupedByUser.map(([displayName, emailKey, list]) => {
-                  const doneCount = list.filter(a => a.status === 'Done').length;
-                  const tiers = groupByPriorityTier(list);
-                  return (
-                    <div key={emailKey} className="bg-white dark:bg-ink-900 rounded-2xl border border-gray-150 dark:border-slate-800 overflow-hidden shadow-xs">
-                      <div className="flex items-center justify-between px-5 py-3 bg-gray-50 dark:bg-ink-800/60 border-b border-gray-150 dark:border-slate-800 gap-3">
-                        <div>
-                          <p className="text-xs font-black text-gray-900 dark:text-slate-50">
+                <div
+                  className="grid gap-4 items-start"
+                  style={{ gridTemplateColumns: `repeat(${groupedByUser.length}, minmax(0, 1fr))` }}
+                >
+                  {groupedByUser.map(([displayName, emailKey, list]) => {
+                    const doneCount = list.filter(a => a.status === 'Done').length;
+                    return (
+                      <div key={emailKey} className="min-w-0 bg-white dark:bg-ink-900 rounded-2xl border border-gray-150 dark:border-slate-800 overflow-hidden shadow-xs">
+                        <div className="px-4 py-3 bg-gray-50 dark:bg-ink-800/60 border-b border-gray-150 dark:border-slate-800">
+                          <p className="text-xs font-black text-gray-900 dark:text-slate-50 truncate">
                             {displayName}
                             {/* ID shown alongside the name so two people who
                                 happen to share the same display name (a real,
@@ -1016,37 +1018,28 @@ export default function TaskLineup({
                             <span className="ml-1.5 font-mono font-bold text-gray-400 dark:text-slate-500 normal-case">· {emailKey}</span>
                           </p>
                           <p className="text-[10px] font-bold text-gray-400 dark:text-slate-500">{doneCount}/{list.length} completed today</p>
+                          <div className="mt-2">
+                            <PriorityDistribution items={list} />
+                          </div>
                         </div>
-                        <PriorityDistribution items={list} />
-                      </div>
-                      <div className="p-3">
-                        <div
-                          className="grid gap-5 items-start"
-                          style={{ gridTemplateColumns: `repeat(${tiers.length}, minmax(0, 1fr))` }}
-                        >
-                          {tiers.map(([tier, items]) => (
-                            <div key={tier} className="min-w-0">
-                              <div className="flex items-center gap-2 mb-3">
-                                <Badge priority={tier} />
-                                <span className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider">
-                                  {items.length} task{items.length !== 1 ? 's' : ''}
-                                </span>
+                        <div className="divide-y divide-gray-100 dark:divide-slate-800/60">
+                          {list.map((a, idx) => (
+                            <div key={a.id} className="flex items-center justify-between gap-2 px-4 py-2.5">
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <span className="text-xs font-mono font-bold text-gray-400 dark:text-slate-500 w-5 shrink-0">{idx + 1}.</span>
+                                <span className="text-sm font-bold text-gray-700 dark:text-slate-200 truncate">{a.projectName}</span>
                               </div>
-                              <div className="space-y-3">
-                                {items.map((a) => (
-                                  <div key={a.id} className="flex items-center justify-between gap-2">
-                                    <span className="text-sm font-bold text-gray-700 dark:text-slate-200 truncate">{a.projectName}</span>
-                                    <StatusBadge status={a.status} isPaused={isEmailPaused(emailKey)} />
-                                  </div>
-                                ))}
+                              <div className="flex items-center gap-2 shrink-0">
+                                <Badge priority={a.priority} />
+                                <StatusBadge status={a.status} isPaused={isEmailPaused(emailKey)} />
                               </div>
                             </div>
                           ))}
                         </div>
                       </div>
-                    </div>
-                  );
-                })
+                    );
+                  })}
+                </div>
               )}
             </div>
           )}
