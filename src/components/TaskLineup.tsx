@@ -891,12 +891,15 @@ export default function TaskLineup({
               ) : myAssignments.length === 0 ? (
                 <p className="px-5 py-6 text-xs font-bold text-gray-400 dark:text-slate-500">No tasks assigned to you for this date yet.</p>
               ) : (
-                <div className="px-5 py-4 overflow-x-auto">
-                  <div className="flex items-start gap-3 min-w-max">
+                <div className="px-5 py-4">
+                  <div
+                    className="grid gap-3 items-start"
+                    style={{ gridTemplateColumns: `repeat(${myAssignmentsByPriority.length}, minmax(0, 1fr))` }}
+                  >
                     {myAssignmentsByPriority.map(([tier, items]) => (
                       <div
                         key={tier}
-                        className="w-60 shrink-0 rounded-xl border border-gray-150 dark:border-slate-800 bg-gray-50/70 dark:bg-ink-800/40 p-3"
+                        className="min-w-0 rounded-xl border border-gray-150 dark:border-slate-800 bg-gray-50/70 dark:bg-ink-800/40 p-3"
                       >
                         <div className="flex items-center gap-2 mb-2.5">
                           <Badge priority={tier} />
