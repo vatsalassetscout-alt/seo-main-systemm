@@ -904,36 +904,28 @@ export default function TaskLineup({
                     style={{ gridTemplateColumns: `repeat(${myAssignmentsByPriority.length}, minmax(0, 1fr))` }}
                   >
                     {myAssignmentsByPriority.map(([tier, items]) => (
-                      <div
-                        key={tier}
-                        className="min-w-0 rounded-xl border border-gray-150 dark:border-slate-800 bg-gray-50/70 dark:bg-ink-800/40 p-3"
-                      >
+                      <div key={tier} className="min-w-0">
                         <div className="flex items-center gap-2 mb-2.5">
                           <Badge priority={tier} />
                           <span className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider">
                             {items.length} task{items.length !== 1 ? 's' : ''}
                           </span>
                         </div>
-                        <div className="space-y-2">
+                        <div className="space-y-2.5">
                           {items.map((a) => (
-                            <div
-                              key={a.id}
-                              className="bg-white dark:bg-ink-900 rounded-lg border border-gray-150 dark:border-slate-800 px-2.5 py-2"
-                            >
-                              <p className="text-xs font-bold text-gray-700 dark:text-slate-200 mb-1.5 break-words">{a.projectName}</p>
-                              <div className="flex items-center justify-end">
-                                {a.status === 'Done' ? (
-                                  <StatusBadge status={a.status} />
-                                ) : (
-                                  <button
-                                    onClick={() => onJumpToWorkLog(a.projectId, a.date)}
-                                    className="flex items-center gap-1 px-2 py-1 bg-indigo-600 dark:bg-blue-600 hover:bg-indigo-700 hover:dark:bg-blue-500 text-white text-[10px] font-black rounded-lg transition cursor-pointer whitespace-nowrap"
-                                  >
-                                    <PenTool size={11} />
-                                    Log
-                                  </button>
-                                )}
-                              </div>
+                            <div key={a.id} className="flex items-center justify-between gap-2">
+                              <span className="text-xs font-bold text-gray-700 dark:text-slate-200 truncate">{a.projectName}</span>
+                              {a.status === 'Done' ? (
+                                <StatusBadge status={a.status} />
+                              ) : (
+                                <button
+                                  onClick={() => onJumpToWorkLog(a.projectId, a.date)}
+                                  className="flex items-center gap-1 px-2 py-1 bg-indigo-600 dark:bg-blue-600 hover:bg-indigo-700 hover:dark:bg-blue-500 text-white text-[10px] font-black rounded-lg transition cursor-pointer whitespace-nowrap shrink-0"
+                                >
+                                  <PenTool size={11} />
+                                  Log
+                                </button>
+                              )}
                             </div>
                           ))}
                         </div>
@@ -1033,26 +1025,18 @@ export default function TaskLineup({
                           style={{ gridTemplateColumns: `repeat(${tiers.length}, minmax(0, 1fr))` }}
                         >
                           {tiers.map(([tier, items]) => (
-                            <div
-                              key={tier}
-                              className="min-w-0 rounded-xl border border-gray-150 dark:border-slate-800 bg-gray-50/70 dark:bg-ink-800/40 p-3"
-                            >
+                            <div key={tier} className="min-w-0">
                               <div className="flex items-center gap-2 mb-2.5">
                                 <Badge priority={tier} />
                                 <span className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider">
                                   {items.length} task{items.length !== 1 ? 's' : ''}
                                 </span>
                               </div>
-                              <div className="space-y-2">
+                              <div className="space-y-2.5">
                                 {items.map((a) => (
-                                  <div
-                                    key={a.id}
-                                    className="bg-white dark:bg-ink-900 rounded-lg border border-gray-150 dark:border-slate-800 px-2.5 py-2"
-                                  >
-                                    <p className="text-xs font-bold text-gray-700 dark:text-slate-200 mb-1.5 break-words">{a.projectName}</p>
-                                    <div className="flex items-center justify-end">
-                                      <StatusBadge status={a.status} isPaused={isEmailPaused(emailKey)} />
-                                    </div>
+                                  <div key={a.id} className="flex items-center justify-between gap-2">
+                                    <span className="text-xs font-bold text-gray-700 dark:text-slate-200 truncate">{a.projectName}</span>
+                                    <StatusBadge status={a.status} isPaused={isEmailPaused(emailKey)} />
                                   </div>
                                 ))}
                               </div>
