@@ -428,57 +428,41 @@ export async function verifyUserCredentialsDb(
   }
 }
 
-// Renames a user's login ID (the app_users primary key) and/or display name
-// and/or passkey, then cascades the ID + name change onto every project
-// currently assigned to them so nothing goes orphaned.
+// Updates a user's display name and/or passkey ONLY.
+//
+// IMPORTANT: the login ID (app_users.user_id, the primary key that every
+// project's userId/users[] points at) is NEVER changed by this function
+// anymore. It used to also accept a `newUserId` and rewrite the ID here,
+// cascading that new ID (plus the OLD display name, swapped in as a raw
+// string) onto every project's `users[]` array. That cascade is exactly
+// what kept re-planting name strings (e.g. "vatsal patel") into
+// `users[]` instead of the numeric ID every time an admin edited someone's
+// name — which is the root cause of the "same user shown twice, once
+// properly-cased and once lowercase" bug. Since the ID can no longer
+// change and projects only ever store the numeric ID, there is nothing to
+// cascade onto projects at all: renaming a user is now a pure metadata
+// update on the app_users row, and every screen that displays a name
+// resolves it live from this table by ID.
 export async function renameUserDb(
-  oldUserId: string,
-  newUserId: string,
+  userId: string,
   newName: string,
   newPasskey?: string
 ): Promise<boolean> {
   const sb = getSupabase();
   if (!sb) return false;
   try {
-    const oldId = String(oldUserId).trim().toLowerCase();
-    const newId = String(newUserId).trim().toLowerCase();
+    const id = String(userId).trim().toLowerCase();
 
-    // Fetch old name first so we can swap it out of projects.users[] below.
-    const { data: existing } = await sb
-      .from("app_users")
-      .select("user_id, name")
-      .ilike("user_id", oldId)
-      .maybeSingle();
-    const oldName = existing?.name || oldId;
-
-    const updatePayload: any = { user_id: newId, name: newName };
+    const updatePayload: any = { name: newName };
     if (newPasskey) updatePayload.passkey = newPasskey;
 
     const { error: userErr } = await sb
       .from("app_users")
       .update(updatePayload)
-      .ilike("user_id", oldId);
+      .ilike("user_id", id);
     if (userErr) {
       console.warn("Supabase renameUserDb (app_users) failed:", userErr.message);
       return false;
-    }
-
-    // Cascade: any project pointing at the old userId now points at the new one.
-    const { data: affectedProjects, error: projErr } = await sb
-      .from("projects")
-      .select("id, user_id, users")
-      .ilike("user_id", oldId);
-
-    if (!projErr && affectedProjects && affectedProjects.length > 0) {
-      for (const p of affectedProjects) {
-        const updatedUsers = Array.isArray(p.users)
-          ? p.users.map((u: string) => (u === oldName ? newName : u))
-          : p.users;
-        await sb
-          .from("projects")
-          .update({ user_id: newId, users: updatedUsers })
-          .eq("id", p.id);
-      }
     }
 
     return true;
