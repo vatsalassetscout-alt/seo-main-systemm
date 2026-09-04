@@ -390,6 +390,23 @@ export default function App() {
     return (sessionStorage.getItem('dsr_logged_role') as 'user' | 'admin') || null;
   });
 
+  // Direct, same-source-of-truth name lookup for the CURRENTLY LOGGED-IN
+  // user. This mirrors the exact pattern TaskLineup.tsx already uses on the
+  // admin side (registeredUsers first, allowedUsers as fallback) instead of
+  // going only through the merged `allowedUsers` copy, which can lag a
+  // render behind the registeredUsers fetch on first load. Guarantees the
+  // reporter's own header badge shows the same name the admin set in
+  // Settings → User Control — the same session, the same name, everywhere.
+  const currentUserDisplayName = useMemo(() => {
+    if (!currentUserEmail) return '';
+    const id = currentUserEmail.trim().toLowerCase();
+    const fromRegistered = registeredUsers.find(
+      (u) => u.email && u.email.trim().toLowerCase() === id
+    );
+    if (fromRegistered && fromRegistered.name) return fromRegistered.name;
+    return getUserDisplayName(currentUserEmail, allowedUsers);
+  }, [currentUserEmail, registeredUsers, allowedUsers]);
+
   const [activeTab, setActiveTab] = useState<'submit' | 'logs' | 'dashboard' | 'settings' | 'task-lineup' | 'reports'>(() => {
     const savedUser = sessionStorage.getItem('dsr_logged_user');
     const savedRole = sessionStorage.getItem('dsr_logged_role') as 'user' | 'admin' | null;
@@ -1640,7 +1657,7 @@ export default function App() {
                 )}
                 <div className="overflow-hidden leading-none text-left">
                   <span className="block font-bold text-gray-800 dark:text-slate-100 truncate" title={currentUserEmail || ''}>
-                    {isAdmin ? 'ADMIN' : getUserDisplayName(currentUserEmail, allowedUsers)}
+                    {isAdmin ? 'ADMIN' : currentUserDisplayName}
                   </span>
                   <span className="text-[9px] text-gray-400 dark:text-slate-500 font-mono mt-0.5 block uppercase tracking-wider">
                     {isAdmin ? 'Administrator' : 'Reporter Profile'}
