@@ -36,6 +36,8 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
+import type { AppUserRow } from './UserManagement';
+
 interface DSRDashboardProps {
   entries: DSREntry[];
   projects: Project[];
@@ -50,6 +52,13 @@ interface DSRDashboardProps {
   adminEmails?: string[];
   activeSubTab?: 'project_table' | 'activity' | 'backlinks' | 'unworked_project' | 'keyword_section' | 'update_ranking';
   onSubTabChange?: (tab: 'project_table' | 'activity' | 'backlinks' | 'unworked_project' | 'keyword_section' | 'update_ranking') => void;
+  /** The real names admins set in Settings → User Control (the app_users
+   *  table), keyed by numeric userId. Projects only ever store the
+   *  numeric ID now, so every "USER" column / user filter in this
+   *  dashboard resolves its display name from here — never from raw
+   *  project data — so a name typed in User Control shows up everywhere
+   *  immediately, and stays correct even after it's changed. */
+  registeredUsers?: AppUserRow[];
 }
 
 export default function DSRDashboard({ 
@@ -65,7 +74,8 @@ export default function DSRDashboard({
   onUpdateProject,
   adminEmails = [],
   activeSubTab,
-  onSubTabChange
+  onSubTabChange,
+  registeredUsers = []
 }: DSRDashboardProps) {
   // Total backlinks for ONE work entry — every backlink-type count
   // (listings, blogs, forums, pdfs, images, video/ppt, profiles, links)
@@ -404,8 +414,18 @@ export default function DSRDashboard({
       map[u.email.trim().toLowerCase()] = u.name || getUserDisplayName(u.email, allowedUsers);
     });
 
+    // Highest priority: the name an admin has actually set for this userId
+    // in Settings → User Control. Projects only store the numeric ID, so
+    // this is the only source that's guaranteed current — it wins over
+    // any name-shaped string picked up above.
+    registeredUsers.forEach(u => {
+      if (u.email && u.email.trim()) {
+        map[u.email.trim().toLowerCase()] = u.name || u.email;
+      }
+    });
+
     return map;
-  }, [allowedUsers, entries]);
+  }, [allowedUsers, entries, registeredUsers]);
 
   // Unique list of all available user accounts for checklist selection (excluding admins)
   const allUsersList = useMemo(() => {
@@ -426,6 +446,15 @@ export default function DSRDashboard({
       }
     });
 
+    // The name set in Settings → User Control always wins, for every ID it
+    // knows about — this is what makes "1859" show up as whatever name the
+    // admin actually typed in there, and keeps it correct after an edit.
+    registeredUsers.forEach(u => {
+      if (u.email && u.email.trim() && !isUserAdmin(u.email, adminEmails)) {
+        emailMap.set(u.email.trim().toLowerCase(), u.name || u.email);
+      }
+    });
+
     // One entry per distinct user ID (email) — NOT merged by display name.
     // Two different real accounts can legitimately share the exact same
     // display name (e.g. two team members both named "Kavita Mishra");
@@ -442,7 +471,7 @@ export default function DSRDashboard({
     });
 
     return Array.from(idToUserObj.values()).sort((a, b) => numericIdCompare(a.emails[0], b.emails[0]));
-  }, [allowedUsers, entries, adminEmails]);
+  }, [allowedUsers, entries, adminEmails, registeredUsers]);
 
   // User Projects based on logged-in user or admin's selected users filter
   const userProjects = useMemo(() => {
