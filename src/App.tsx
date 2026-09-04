@@ -19,7 +19,7 @@ import LoginScreen from './components/LoginScreen';
 import ThemeToggle from './components/ThemeToggle';
 import Logo from './components/Logo';
 import { initAuth, googleSignIn, getAccessToken, logout } from './lib/firebase';
-import { getUserDisplayName, registerNamesFromProjects, doesUserMatch } from './lib/userUtils';
+import { getUserDisplayName, registerNamesFromProjects, doesUserMatch, isUserAdmin } from './lib/userUtils';
 import type { AppUserRow } from './components/UserManagement';
 import { cleanDomain } from './lib/domain';
 import {
@@ -153,6 +153,40 @@ export default function App() {
     })();
     return () => { cancelled = true; };
   }, []);
+
+  // Root-level fix so a name set in Settings → User Control shows up
+  // EVERYWHERE `allowedUsers` is used to resolve a display name — Task
+  // Lineup, Work Log History, Assignments, Alerts, the header, etc. —
+  // without having to patch every single screen individually. Projects
+  // only ever store the numeric userId now, so whenever the real,
+  // admin-assigned name arrives (registeredUsers), it's merged straight
+  // into `allowedUsers`'s `name` field for that ID. IDs that only exist
+  // because they're assigned to a project (never formally registered)
+  // are left untouched here — they keep showing their raw ID until an
+  // admin actually gives them a name in User Control.
+  useEffect(() => {
+    if (registeredUsers.length === 0) return;
+    setAllowedUsers(prev => {
+      const byId = new Map(prev.map(u => [u.email.trim().toLowerCase(), u] as const));
+      let changed = false;
+      registeredUsers.forEach(ru => {
+        if (!ru.email || !ru.email.trim()) return;
+        const id = ru.email.trim().toLowerCase();
+        const correctName = (ru.name || ru.email).trim();
+        const existing = byId.get(id);
+        if (existing) {
+          if (existing.name !== correctName) {
+            byId.set(id, { ...existing, name: correctName });
+            changed = true;
+          }
+        } else {
+          byId.set(id, { email: ru.email.trim(), name: correctName });
+          changed = true;
+        }
+      });
+      return changed ? Array.from(byId.values()) : prev;
+    });
+  }, [registeredUsers]);
 
   const [projectLocations, setProjectLocations] = useState<ProjectLocation[]>(() => {
     const saved = localStorage.getItem('dsr_project_locations');
@@ -1581,7 +1615,7 @@ export default function App() {
                                 <span>
                                   {isAdmin
                                     ? `User: ${getUserDisplayName(alert.userEmail, allowedUsers) || alert.userEmail || 'Unknown'}`
-                                    : (isUserMsg ? `Sender: ${alert.adminEmail === '8888' ? 'Admin' : alert.adminEmail}` : `By ${alert.adminEmail === '8888' ? 'Admin' : alert.adminEmail}`)}
+                                    : (isUserMsg ? `Sender: ${isUserAdmin(alert.adminEmail, adminEmails) ? 'Admin' : getUserDisplayName(alert.adminEmail, allowedUsers)}` : `By ${isUserAdmin(alert.adminEmail, adminEmails) ? 'Admin' : getUserDisplayName(alert.adminEmail, allowedUsers)}`)}
                                 </span>
                                 <span className="text-[10px]">{new Date(alert.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
                               </div>
@@ -1868,6 +1902,7 @@ export default function App() {
                     setAssignmentPreFill({ projectId, date });
                     setActiveTab('submit');
                   }}
+                  registeredUsers={registeredUsers}
                 />
               )}
 
