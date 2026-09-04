@@ -19,6 +19,15 @@ const USER_NAMES_DICT: Record<string, string> = {};
  *
  * Sheet data always wins over the static fallback dict above —
  * this keeps every screen showing the name currently set in the Sheet.
+ *
+ * IMPORTANT: projects only ever store the numeric userId now (never a
+ * name) — `users[0]` here will normally just be the same digits as
+ * `userId`. Registering that as if it were a "name" would incorrectly
+ * out-rank the real name an admin set in Settings → User Control (this
+ * dict is checked before the allowedUsers list in getUserDisplayName
+ * below), which is exactly the bug that made IDs show up as literal text
+ * instead of a person's name. So a purely-numeric `users[0]` is skipped —
+ * only an actual non-numeric name string gets registered here.
  */
 export const registerNamesFromProjects = (projects: any[]): void => {
   if (!projects || !Array.isArray(projects)) return;
@@ -26,8 +35,9 @@ export const registerNamesFromProjects = (projects: any[]): void => {
     if (p.userId && p.users && p.users.length > 0) {
       const uId = String(p.userId).trim();
       const rawName = p.users[0];
-      if (rawName && rawName.trim()) {
-        USER_NAMES_DICT[uId] = rawName.trim();
+      const trimmed = rawName && String(rawName).trim();
+      if (trimmed && !/^\d+$/.test(trimmed)) {
+        USER_NAMES_DICT[uId] = trimmed;
       }
     }
   });
