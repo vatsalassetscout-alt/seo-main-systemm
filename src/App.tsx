@@ -20,6 +20,7 @@ import ThemeToggle from './components/ThemeToggle';
 import Logo from './components/Logo';
 import { initAuth, googleSignIn, getAccessToken, logout } from './lib/firebase';
 import { getUserDisplayName, registerNamesFromProjects, doesUserMatch } from './lib/userUtils';
+import type { AppUserRow } from './components/UserManagement';
 import { cleanDomain } from './lib/domain';
 import {
   fetchProjectsFromSheet,
@@ -123,6 +124,35 @@ export default function App() {
     const saved = localStorage.getItem('dsr_allowed_users');
     return saved ? JSON.parse(saved) : [];
   });
+
+  // The real names admins set in Settings → User Control (app_users table),
+  // keyed by numeric userId. Projects only ever store the numeric userId
+  // now (never a name), so this is the single source every screen — the
+  // Dashboard's "USER" column/filter, Project Control, etc. — resolves a
+  // display name from. Kept at this top level (not just inside the Settings
+  // tab) so it's shared app-wide and stays live: UserManagementPanel
+  // reports back into this via onRegisteredUsersChange every time it loads
+  // or an admin adds/edits/deletes a user, so a name change shows up
+  // everywhere immediately without needing a page refresh.
+  const [registeredUsers, setRegisteredUsers] = useState<AppUserRow[]>([]);
+
+  // Bootstrap fetch so names resolve correctly even if the admin opens the
+  // Dashboard before ever visiting Settings → Users in this session.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/users');
+        const data = await res.json();
+        if (!cancelled && Array.isArray(data.users)) {
+          setRegisteredUsers(data.users);
+        }
+      } catch (err) {
+        console.error('Failed to load registered users:', err);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   const [projectLocations, setProjectLocations] = useState<ProjectLocation[]>(() => {
     const saved = localStorage.getItem('dsr_project_locations');
@@ -1824,6 +1854,7 @@ export default function App() {
                   adminEmails={adminEmails}
                   activeSubTab={dashboardSubTab}
                   onSubTabChange={setDashboardSubTab}
+                  registeredUsers={registeredUsers}
                 />
               )}
 
@@ -1864,6 +1895,8 @@ export default function App() {
                   onAddAlert={handleAddAlert}
                   onClearMultipleAlerts={handleClearMultipleAlerts}
                   onResetToDefault={handleResetToDefault}
+                  registeredUsers={registeredUsers}
+                  onRegisteredUsersChange={setRegisteredUsers}
                 />
               )}
 
