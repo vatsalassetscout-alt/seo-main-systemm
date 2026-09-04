@@ -78,6 +78,13 @@ interface DSRSettingsProps {
   onAddAlert?: (alert: any) => void;
   onClearMultipleAlerts?: (ids: string[]) => void;
   onResetToDefault?: () => void;
+  /** Merged user list (Admin User Control accounts + anyone only known via
+   *  project assignment), lifted up to App so the Dashboard's "USER"
+   *  column/filter can resolve the same names as this panel. Passed down
+   *  from App instead of kept as local state here, so a name change is
+   *  visible app-wide immediately. */
+  registeredUsers?: AppUserRow[];
+  onRegisteredUsersChange?: (users: AppUserRow[]) => void;
 }
 
 export default function DSRSettings({
@@ -106,14 +113,18 @@ export default function DSRSettings({
   onAddAlert = () => {},
   onClearMultipleAlerts,
   onResetToDefault,
+  registeredUsers = [],
+  onRegisteredUsersChange = () => {},
 }: DSRSettingsProps) {
   // Navigation Tabs inside Settings Panel
   const [activeSubTab, setActiveSubTab] = useState<'users' | 'assignments' | 'database' | 'admin-control'>('users');
 
   // Single merged user pipeline (registered accounts + users only known via
   // project assignment) — resolved by UserManagementPanel and shared with
-  // AdminControlPanel's Reassign dropdown so both always agree.
-  const [resolvedUsers, setResolvedUsers] = useState<AppUserRow[]>([]);
+  // AdminControlPanel's Reassign dropdown, AND lifted up to App so the
+  // Dashboard's "USER" column/filter agrees with it too.
+  const resolvedUsers = registeredUsers;
+  const setResolvedUsers = onRegisteredUsersChange;
 
   // Deletion selection states for assignments
   const [isDeleteMode, setIsDeleteMode] = useState(false);
