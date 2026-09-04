@@ -21,12 +21,19 @@ import {
   RotateCcw,
 } from 'lucide-react';
 
+import type { AppUserRow } from './UserManagement';
+
 interface TaskLineupProps {
   isAdmin: boolean;
   currentUserEmail: string;
   allowedUsers: AppUser[];
   onSetAllowedUsers: (users: AppUser[]) => void;
   onJumpToWorkLog: (projectId: string, date: string) => void;
+  /** Real names set in Settings → User Control, keyed by numeric userId.
+   *  Takes priority over `allowedUsers` (which is only derived from raw
+   *  project data) everywhere a name is shown here — Controls list,
+   *  per-user lineup board headers, task owner labels. */
+  registeredUsers?: AppUserRow[];
 }
 
 interface UserPendingSummary {
@@ -246,6 +253,7 @@ export default function TaskLineup({
   allowedUsers,
   onSetAllowedUsers,
   onJumpToWorkLog,
+  registeredUsers = [],
 }: TaskLineupProps) {
   // Local sub-navigation: "Task Lineup" (today's / a chosen day's projects)
   // vs "History" (Yesterday Pending + Today Pending), styled the same way
@@ -592,7 +600,26 @@ export default function TaskLineup({
     }
   };
 
-  const nameFor = (email: string) => allowedUsers.find(u => u.email.trim().toLowerCase() === email.trim().toLowerCase())?.name || email;
+  // Real name set in Settings → User Control always wins over whatever
+  // `allowedUsers` (derived straight from raw project data) has, since
+  // projects only ever store the numeric ID now — this is what makes
+  // every "1859" here show up as the name the admin actually gave it.
+  const registeredNameById = useMemo(() => {
+    const map = new Map<string, string>();
+    registeredUsers.forEach(u => {
+      if (u.email && u.email.trim()) map.set(u.email.trim().toLowerCase(), u.name || u.email);
+    });
+    return map;
+  }, [registeredUsers]);
+
+  const nameFor = (email: string) => {
+    const id = email.trim().toLowerCase();
+    return (
+      registeredNameById.get(id) ||
+      allowedUsers.find(u => u.email.trim().toLowerCase() === id)?.name ||
+      email
+    );
+  };
 
   // Quick lookup: is this person currently paused? Checked by EMAIL — not
   // display name. Two different real accounts can legitimately share the
@@ -960,7 +987,7 @@ export default function TaskLineup({
                     return (
                       <div key={u.email} className="flex items-center justify-between px-5 py-2.5 gap-3">
                         <div className="min-w-0">
-                          <p className="text-xs font-bold text-gray-800 dark:text-slate-100 truncate">{u.name}</p>
+                          <p className="text-xs font-bold text-gray-800 dark:text-slate-100 truncate">{nameFor(u.email)}</p>
                           <p className="text-[10px] text-gray-400 dark:text-slate-500 font-semibold truncate">{u.email}</p>
                         </div>
                         <div className="flex items-center gap-4 shrink-0">
