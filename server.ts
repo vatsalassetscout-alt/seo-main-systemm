@@ -541,29 +541,31 @@ app.post("/api/users", async (req, res) => {
   }
 });
 
-// Rename a user's login ID and/or display name and/or passkey. Cascades the
-// ID + name change onto every project currently assigned to them.
+// Update a user's display name and/or passkey.
+// NOTE: the login/userId (`oldUserId`) is intentionally NEVER changed here —
+// this is a pure "edit name / passkey" action, not an ID-change action.
+// Projects only ever store the numeric userId, and every screen resolves
+// the display name for that ID live from the app_users table, so there is
+// nothing to cascade onto `projects` anymore.
 app.post("/api/users/rename", async (req, res) => {
   const email = req.headers['x-user-email'];
   if (!email || typeof email !== 'string' || !isUserAdmin(email)) {
-    return res.status(403).json({ error: "Admin access required to rename a user." });
+    return res.status(403).json({ error: "Admin access required to update a user." });
   }
-  const { oldUserId, newUserId, newName, newPasskey } = req.body;
-  if (!oldUserId || !newUserId || !newName) {
-    return res.status(400).json({ error: "oldUserId, newUserId and newName are required." });
+  const { oldUserId, newName, newPasskey } = req.body;
+  if (!oldUserId || !newName) {
+    return res.status(400).json({ error: "oldUserId and newName are required." });
   }
   try {
     const ok = await renameUserDb(
       String(oldUserId).trim(),
-      String(newUserId).trim(),
       String(newName).trim(),
       newPasskey ? String(newPasskey).trim() : undefined
     );
-    if (!ok) return res.status(500).json({ error: "Failed to rename user." });
+    if (!ok) return res.status(500).json({ error: "Failed to update user." });
     const list = await getUsersDb();
-    const projects = await getProjectsDb();
-    await logActivityLocally(String(email), "RENAME User", `Renamed user "${oldUserId}" -> "${newUserId}" (${newName})`);
-    return res.json({ success: true, users: list, projects });
+    await logActivityLocally(String(email), "RENAME User", `Updated user "${oldUserId}" -> name "${newName}"`);
+    return res.json({ success: true, users: list });
   } catch (err: any) {
     return res.status(500).json({ error: err.message });
   }
