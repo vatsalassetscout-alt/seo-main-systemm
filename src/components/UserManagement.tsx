@@ -179,15 +179,17 @@ export default function UserManagementPanel({
     }
   };
 
-  const handleRenameUser = async (oldUserId: string, newUserId: string, newName: string, newPasskey: string) => {
+  // Updates a user's display name and/or passkey. The login/userId is
+  // permanently fixed once a user is created — it is never editable here,
+  // so there is nothing that can "rename the ID" by mistake anymore.
+  const handleRenameUser = async (userId: string, newName: string, newPasskey: string) => {
     setBusy(true);
     try {
       const res = await fetch('/api/users/rename', {
         method: 'POST',
         headers: authHeaders,
         body: JSON.stringify({
-          oldUserId,
-          newUserId,
+          oldUserId: userId,
           newName,
           ...(newPasskey ? { newPasskey } : {}),
         }),
@@ -195,7 +197,6 @@ export default function UserManagementPanel({
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || 'Request failed');
       setRegisteredUsers(data.users || []);
-      if (data.projects && onUpdateProjects) onUpdateProjects(data.projects);
       triggerAlert('success', 'User updated.');
       setRenamingUser(null);
     } catch (err: any) {
@@ -315,7 +316,7 @@ export default function UserManagementPanel({
                     ) : (
                       <button
                         onClick={() => setRenamingUser(u)}
-                        title="Rename / change ID / passkey"
+                        title="Edit name / passkey"
                         className="p-2 text-gray-400 dark:text-slate-500 hover:text-indigo-600 hover:dark:text-blue-400 hover:bg-indigo-50 hover:dark:bg-blue-500/10 rounded-lg transition cursor-pointer"
                       >
                         <KeyRound size={14} />
@@ -354,7 +355,7 @@ export default function UserManagementPanel({
           user={renamingUser}
           busy={busy}
           onClose={() => setRenamingUser(null)}
-          onSubmit={(newId, newName, newPasskey) => handleRenameUser(renamingUser.email, newId, newName, newPasskey)}
+          onSubmit={(newName, newPasskey) => handleRenameUser(renamingUser.email, newName, newPasskey)}
         />
       )}
     </div>
@@ -462,8 +463,15 @@ export function AddUserModal({
 }
 
 // ===========================================================================
-// MODAL: Rename User / Change ID / Change Passkey
+// MODAL: Edit User Name / Passkey
 // ===========================================================================
+// The login ID (user.email, i.e. the numeric userId) is shown read-only and
+// can NEVER be changed from here. It's the key every project's userId/
+// users[] points at, and every screen resolves this person's display name
+// live from this ID — so editing it here used to silently break that link
+// (it wasn't creating a new user, it was just re-pointing the ID, which is
+// not what admins expect from a "rename"). Only the display name and
+// passkey are editable.
 export function RenameUserModal({
   user,
   busy,
@@ -473,16 +481,15 @@ export function RenameUserModal({
   user: AppUserRow;
   busy: boolean;
   onClose: () => void;
-  onSubmit: (newUserId: string, newName: string, newPasskey: string) => void;
+  onSubmit: (newName: string, newPasskey: string) => void;
 }) {
-  const [newUserId, setNewUserId] = useState(user.email);
   const [newName, setNewName] = useState(user.name);
   const [newPasskey, setNewPasskey] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newUserId.trim() || !newName.trim()) return;
-    onSubmit(newUserId.trim(), newName.trim(), newPasskey.trim());
+    if (!newName.trim()) return;
+    onSubmit(newName.trim(), newPasskey.trim());
   };
 
   return (
@@ -504,15 +511,6 @@ export function RenameUserModal({
             <div className="px-4 py-3 bg-gray-50 dark:bg-ink-800/60 border border-gray-150 dark:border-slate-800 rounded-xl text-xs font-mono font-bold text-gray-400 dark:text-slate-500">
               {user.email}
             </div>
-          </div>
-          <div className="space-y-1.5">
-            <label className="block text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-widest">New User ID (login)</label>
-            <input
-              value={newUserId}
-              onChange={(e) => setNewUserId(e.target.value)}
-              required
-              className="w-full px-4 py-3 bg-gray-50 dark:bg-ink-800/60 border border-gray-200 dark:border-slate-800 focus:border-indigo-650 focus:dark:border-blue-500/50 rounded-xl text-xs font-semibold font-mono focus:outline-none focus:ring-1 focus:ring-indigo-650 focus:dark:ring-blue-500/50 transition"
-            />
           </div>
           <div className="space-y-1.5">
             <label className="block text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-widest">New Display Name</label>
