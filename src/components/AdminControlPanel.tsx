@@ -100,12 +100,34 @@ export default function AdminControlPanel({
   const nameForAssignedId = (id: string): string =>
     nameByUserId.get(String(id).trim().toLowerCase()) || id;
 
+  // Projects should only ever store numeric userIds — `users[]` entries
+  // that aren't numeric are leftover phantom name-strings from an old bug
+  // (a previous Reassign flow saved the person's NAME into `users[]`
+  // instead of their ID, while `userId` correctly held the real numeric
+  // ID). Left in place, that phantom entry can't be resolved against the
+  // User Control table, so it renders as-is (e.g. lowercase "vatsal
+  // patel") right next to the properly-resolved name for the same ID
+  // (e.g. "Vatsal Patel") — the same person shown twice. Dropping any
+  // non-numeric entry here (display-only; the stored data isn't touched)
+  // collapses that back down to one badge per real, unique assignee.
+  const getAssignedIds = (p: Project): string[] =>
+    Array.from(
+      new Set(
+        [
+          ...(p.userId ? [String(p.userId).trim()] : []),
+          ...(p.users || [])
+            .map((u) => String(u || '').trim())
+            .filter((u) => /^\d+$/.test(u)),
+        ].filter(Boolean)
+      )
+    );
+
   const filteredProjects = useMemo(() => {
     const term = projectSearch.trim().toLowerCase();
     const base = !term
       ? projects
       : projects.filter((p) => {
-          const assignedIds = [...(p.users || []), ...(p.userId ? [p.userId] : [])];
+          const assignedIds = getAssignedIds(p);
           const assignedMatch = assignedIds.some(
             (id) =>
               String(id || '').toLowerCase().includes(term) ||
@@ -357,12 +379,7 @@ export default function AdminControlPanel({
                   </td>
                   <td className="py-3 px-4 font-semibold text-gray-600 dark:text-slate-300">
                     {(() => {
-                      const assignedIds = Array.from(
-                        new Set([
-                          ...((p.users || []).filter((u) => !!String(u || '').trim())),
-                          ...(p.userId ? [p.userId] : []),
-                        ])
-                      );
+                      const assignedIds = getAssignedIds(p);
                       if (assignedIds.length === 0) {
                         return <span className="text-amber-600 dark:text-amber-400">Unassigned</span>;
                       }
