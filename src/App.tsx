@@ -424,13 +424,12 @@ export default function App() {
   const [dashboardSubTab, setDashboardSubTab] = useState<'project_table' | 'activity' | 'backlinks' | 'unworked_project' | 'keyword_section' | 'update_ranking'>('project_table');
 
   // Aesthetic pop-out navigation menu (replaces old top-center nav bar).
-  // Click-only: it opens ONLY on an actual click of the trigger button, or
-  // an actual click landing exactly on the left edge of the screen. Merely
-  // moving/resting the cursor over the button (or near the edge) no longer
-  // opens it — that hover/proximity behaviour was firing by itself while
-  // the cursor drifted past on its way elsewhere (including right after
-  // login), which looked like the menu "randomly" popping open on its own.
-  // It only closes on the X button or an outside click.
+  // The trigger BUTTON opens only on an actual click (hover no longer
+  // does anything — see the button below). The screen's left EDGE still
+  // opens it on touch/hover, but only right at the true edge pixel (see
+  // the effect below), not a wide proximity zone, so drifting the cursor
+  // nearby (including right after login) no longer trips it open by
+  // itself. It only closes on the X button or an outside click.
   const [isNavMenuOpen, setIsNavMenuOpen] = useState(false);
   const [isOverviewExpanded, setIsOverviewExpanded] = useState(false);
   const navMenuRef = useRef<HTMLDivElement>(null);
@@ -455,22 +454,22 @@ export default function App() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Open the menu when the user actually CLICKS right at the left edge of
-  // the device's viewport/display (clientX is already measured from the
-  // real screen edge, not some inset "system" chrome). This used to fire on
-  // mere cursor proximity (mousemove within 4px), which is what made it
-  // trip open by itself as the cursor merely passed nearby — including
-  // right after logging in. Now it only reacts to a genuine click
-  // (mousedown), and only within a hair of the true edge.
+  // Open the menu the instant the cursor touches the true left edge of the
+  // device's screen/viewport (clientX right at 0 — the real display edge,
+  // not some inset "system" chrome). Kept as a touch/hover reaction (not a
+  // click) per how this control is meant to feel, but the zone is now just
+  // the exact edge pixel instead of a wider proximity band, so drifting the
+  // cursor nearby (including right after logging in) won't trip it open by
+  // itself — only actually reaching the very edge does.
   useEffect(() => {
-    const EDGE_THRESHOLD_PX = 2;
-    const handleEdgeClick = (e: MouseEvent) => {
+    const EDGE_THRESHOLD_PX = 1;
+    const handleEdgeTouch = (e: MouseEvent) => {
       if (e.clientX <= EDGE_THRESHOLD_PX) {
         setIsNavMenuOpen((prev) => (prev ? prev : true));
       }
     };
-    document.addEventListener('mousedown', handleEdgeClick);
-    return () => document.removeEventListener('mousedown', handleEdgeClick);
+    document.addEventListener('mousemove', handleEdgeTouch);
+    return () => document.removeEventListener('mousemove', handleEdgeTouch);
   }, []);
 
   // Synchronize dynamic data from our local database server
