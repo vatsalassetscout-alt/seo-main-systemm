@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import { JWT } from "google-auth-library";
 import cron from "node-cron";
 import PDFDocument from "pdfkit";
+import * as XLSX from "xlsx";
 import {
   isSupabaseConfigured,
   checkSupabaseTablesStatus,
@@ -2337,6 +2338,713 @@ app.post("/api/rankings/send-report", requireAdmin, async (req, res) => {
     res.json(result);
   } catch (err: any) {
     console.error("Error sending manual report:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// =========================================================================
+// CUSTOM REPORTS (Reports tab — 3-level filter builder)
+// =========================================================================
+// Level 1 (scope): location / zone(region) / users — narrows down WHICH
+// projects the whole report is built from. Applies to every section below.
+// Level 2 (keyword rankings only): "up to N keywords per domain" + "only
+// projects with improvement" / "only projects with decrement" — these only
+// shape the Keyword Rankings section, built from the same rankings data as
+// the existing Send Report / weekly auto report.
+// Level 3 (toggles): Project Table / Idle Projects — when checked, their
+// FULL current data (scoped only by Level 1, never trimmed by Level 2) is
+// appended to the report as-is. Nothing here is mandatory; any combination
+// (including none) is a valid report.
+// Same PDF theme as the existing weekly/manual ranking report, sent the
+// same way (Resend, PDF attachment) so every report — automatic, manual
+// "as-is", or custom — looks and arrives the same way.
+// =========================================================================
+
+interface ReportFilters {
+  locations: string[];
+  zones: string[];
+  userIds: string[];
+  keywordLimit: number | null; // cap on keywords-per-domain shown, e.g. 2/3/4/5; null = no cap
+  changeFilter: "improvement" | "decrement" | null;
+  includeProjectTable: boolean;
+  includeIdleProjects: boolean;
+}
+
+interface CustomReportRow extends WeeklyReportRow {
+  projectId: string;
+}
+
+interface ProjectSummaryRow {
+  id: string;
+  name: string;
+  domain: string;
+  location: string;
+  region: string;
+  priority: string;
+  listings: number;
+  blogs: number;
+  forums: number;
+  pdfs: number;
+  images: number;
+  videoPpts: number;
+  profiles: number;
+  links: number;
+  totalBacklinks: number;
+  timesWorked: number;
+  timesNotWorked: number;
+  lastWorked: string;
+  bestRanking: number | null;
+}
+
+interface IdleProjectRow {
+  id: string;
+  name: string;
+  domain: string;
+  location: string;
+  region: string;
+  priority: string;
+  lastWorkedDate: string;
+  daysSinceLastWorked: number;
+}
+
+function parseReportFilters(body: any): ReportFilters {
+  const toStrArr = (v: any): string[] =>
+    Array.isArray(v) ? v.filter((x) => x !== null && x !== undefined && String(x).trim()).map((x) => String(x)) : [];
+  const keywordLimitRaw = parseInt(String(body?.keywordLimit ?? ""), 10);
+  const changeFilter =
+    body?.changeFilter === "improvement" || body?.changeFilter === "decrement" ? body.changeFilter : null;
+  return {
+    locations: toStrArr(body?.locations),
+    zones: toStrArr(body?.zones),
+    userIds: toStrArr(body?.userIds),
+    keywordLimit: Number.isFinite(keywordLimitRaw) && keywordLimitRaw > 0 ? keywordLimitRaw : null,
+    changeFilter,
+    includeProjectTable: !!body?.includeProjectTable,
+    includeIdleProjects: !!body?.includeIdleProjects,
+  };
+}
+
+// Level 1 — narrows the project set every section of the report is built from.
+function filterProjectsByScope(projects: any[], filters: ReportFilters): any[] {
+  const locs = filters.locations.map((s) => s.toLowerCase());
+  const zones = filters.zones.map((s) => s.toLowerCase());
+  const userIds = filters.userIds.map((s) => s.toLowerCase());
+  return projects.filter((p) => {
+    if (locs.length && !locs.includes(String(p.location || "").toLowerCase())) return false;
+    if (zones.length && !zones.includes(String(p.region || "").toLowerCase())) return false;
+    if (userIds.length) {
+      const assigned = [p.userId, ...(Array.isArray(p.users) ? p.users : [])]
+        .filter(Boolean)
+        .map((u: string) => String(u).toLowerCase());
+      if (!assigned.some((id: string) => userIds.includes(id))) return false;
+    }
+    return true;
+  });
+}
+
+// domain::keyword -> previous "after" value, exactly like sendCurrentRankingsReport.
+function buildPriorLookup(priorHistory: any[]): Map<string, string> {
+  const priorLookup = new Map<string, string>();
+  const priorRows: WeeklyReportRow[] = priorHistory?.[0]?.data?.rows || [];
+  for (const r of priorRows) {
+    priorLookup.set(`${r.domain}::${r.keyword.toLowerCase()}`, r.after);
+  }
+  return priorLookup;
+}
+
+// Same row-building logic as sendCurrentRankingsReport, but scoped to a
+// given project list and tagged with projectId so Level 2 can group by project.
+function buildRankingRowsForProjects(
+  projects: any[],
+  submissions: any[],
+  rankings: Record<string, Record<string, { ranking: string; lastChecked: string }>>,
+  priorLookup: Map<string, string>
+): CustomReportRow[] {
+  const rows: CustomReportRow[] = [];
+  for (const project of projects) {
+    if (!project?.domain) continue;
+    const projectRankings = rankings[project.id];
+    if (!projectRankings) continue;
+
+    const keywords = mergeProjectKeywords(project, submissions);
+    for (const kw of keywords) {
+      const cleaned = kw.trim();
+      if (!cleaned) continue;
+      const entry = projectRankings[cleaned];
+      if (!entry || !entry.ranking) continue;
+
+      const after = entry.ranking;
+      const before = priorLookup.get(`${project.domain}::${cleaned.toLowerCase()}`) || "—";
+
+      rows.push({
+        projectId: project.id,
+        projectName: project.name || project.domain,
+        domain: project.domain,
+        keyword: cleaned,
+        before,
+        after,
+        change: buildChangeLabel(before, after),
+      });
+    }
+  }
+  return rows;
+}
+
+// Level 2 — "up to N keywords" (per project) + "only improvement" / "only
+// decrement" (a project qualifies if ANY of its keywords moved that way;
+// once it qualifies, its (capped) keyword rows are kept in full).
+function applyLevel2ToRankingRows(rows: CustomReportRow[], filters: ReportFilters): CustomReportRow[] {
+  const byProject = new Map<string, CustomReportRow[]>();
+  for (const r of rows) {
+    if (!byProject.has(r.projectId)) byProject.set(r.projectId, []);
+    byProject.get(r.projectId)!.push(r);
+  }
+
+  const out: CustomReportRow[] = [];
+  for (const projectRows of byProject.values()) {
+    if (filters.changeFilter === "improvement") {
+      const hasImprovement = projectRows.some((r) => r.change.startsWith("Up") || r.change === "New");
+      if (!hasImprovement) continue;
+    } else if (filters.changeFilter === "decrement") {
+      const hasDecrement = projectRows.some((r) => r.change.startsWith("Down") || r.change === "Lost");
+      if (!hasDecrement) continue;
+    }
+    out.push(...(filters.keywordLimit ? projectRows.slice(0, filters.keywordLimit) : projectRows));
+  }
+  return out;
+}
+
+// Flattens every submission's works[] into one list, each work stamped with
+// its parent entry's date/createdAt/userEmail — same shape DSRDashboard.tsx
+// builds client-side as "enrichedWorks", used here so Project Table / Idle
+// Projects can be computed server-side for the report.
+function flattenSubmissionWorks(submissions: any[]): any[] {
+  const out: any[] = [];
+  for (const s of submissions) {
+    if (!s || !Array.isArray(s.works)) continue;
+    for (const w of s.works) {
+      out.push({ ...w, date: s.date, createdAt: s.createdAt, userEmail: s.userEmail });
+    }
+  }
+  return out;
+}
+
+// Mirrors the Project Table tab's per-project summary columns (DSRDashboard.tsx
+// projectTableData) — full/whole data, not trimmed by Level 2.
+function buildProjectTableSummaries(
+  projects: any[],
+  works: any[],
+  rankings: Record<string, Record<string, { ranking: string; lastChecked: string }>>
+): ProjectSummaryRow[] {
+  return projects.map((p) => {
+    const pWorks = works.filter((w) => w.projectId === p.id);
+    const sum = (key: string) => pWorks.reduce((s, w) => s + (Number(w[key]) || 0), 0);
+
+    const listings = sum("listingCount");
+    const blogs = sum("blogCount");
+    const forums = sum("forumCount");
+    const pdfs = sum("pdfCount");
+    const images = sum("imageCount");
+    const videoPpts = sum("videoPptCount");
+    const profiles = sum("profileCount");
+    const links = sum("linkCount");
+    const totalBacklinks = listings + blogs + forums + pdfs + images + videoPpts + profiles + links;
+
+    const timesWorked = pWorks.filter((w) => w.workStatus === "worked").length;
+    const timesNotWorked = pWorks.filter((w) => w.workStatus === "not_worked").length;
+
+    let lastWorked = "Never";
+    const sortedDates = pWorks.map((w) => w.date).filter(Boolean).sort((a, b) => String(b).localeCompare(String(a)));
+    if (sortedDates.length) {
+      const parsed = new Date(sortedDates[0]);
+      lastWorked = isNaN(parsed.getTime())
+        ? String(sortedDates[0])
+        : parsed.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+    }
+
+    const projRankings = rankings[p.id] || {};
+    let bestRanking: number | null = null;
+    Object.values(projRankings).forEach((r: any) => {
+      const parsed = parseInt(String(r?.ranking ?? "").replace(/[^0-9]/g, ""), 10);
+      if (!isNaN(parsed) && (bestRanking === null || parsed < bestRanking)) bestRanking = parsed;
+    });
+
+    return {
+      id: p.id,
+      name: p.name || p.domain || p.id,
+      domain: p.domain || "",
+      location: p.location || "",
+      region: p.region || "",
+      priority: p.priority || "",
+      listings,
+      blogs,
+      forums,
+      pdfs,
+      images,
+      videoPpts,
+      profiles,
+      links,
+      totalBacklinks,
+      timesWorked,
+      timesNotWorked,
+      lastWorked,
+      bestRanking,
+    };
+  });
+}
+
+// Mirrors the Idle Projects tab (DSRDashboard.tsx unworkedProjects) — every
+// scoped project, sorted most-idle-first (never-worked on top).
+function buildIdleProjectSummaries(projects: any[], works: any[]): IdleProjectRow[] {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const rows: IdleProjectRow[] = projects.map((p) => {
+    const pWorks = works.filter((w) => w.projectId === p.id);
+    let lastWorkedDate = "Never";
+    let daysSinceLastWorked = Infinity;
+
+    const sortedDates = pWorks.map((w) => w.date).filter(Boolean).sort((a, b) => String(b).localeCompare(String(a)));
+    if (sortedDates.length) {
+      lastWorkedDate = String(sortedDates[0]);
+      const parsed = new Date(lastWorkedDate);
+      if (!isNaN(parsed.getTime())) {
+        parsed.setHours(0, 0, 0, 0);
+        const diffDays = Math.floor((today.getTime() - parsed.getTime()) / (1000 * 60 * 60 * 24));
+        daysSinceLastWorked = diffDays >= 0 ? diffDays : 0;
+      }
+    }
+
+    return {
+      id: p.id,
+      name: p.name || p.domain || p.id,
+      domain: p.domain || "",
+      location: p.location || "",
+      region: p.region || "",
+      priority: p.priority || "",
+      lastWorkedDate,
+      daysSinceLastWorked,
+    };
+  });
+
+  rows.sort((a, b) => {
+    if (a.daysSinceLastWorked === Infinity && b.daysSinceLastWorked !== Infinity) return -1;
+    if (b.daysSinceLastWorked === Infinity && a.daysSinceLastWorked !== Infinity) return 1;
+    if (a.daysSinceLastWorked === Infinity && b.daysSinceLastWorked === Infinity) return 0;
+    return b.daysSinceLastWorked - a.daysSinceLastWorked;
+  });
+
+  return rows;
+}
+
+// Single entry point both the "Send Report" and "Download Excel" buttons
+// go through, so they're always built from the exact same filtered data.
+async function gatherCustomReportData(filters: ReportFilters): Promise<{
+  scopedProjects: any[];
+  rankingRows: CustomReportRow[];
+  projectTable: ProjectSummaryRow[] | null;
+  idleProjects: IdleProjectRow[] | null;
+}> {
+  const [allProjects, submissions, rankings, priorHistory] = await Promise.all([
+    getProjectsDb(),
+    getSubmissionsDb(),
+    readRankings(),
+    getRankingHistoryDb(1),
+  ]);
+
+  const scopedProjects = filterProjectsByScope(allProjects, filters);
+  const priorLookup = buildPriorLookup(priorHistory);
+  const rawRankingRows = buildRankingRowsForProjects(scopedProjects, submissions, rankings, priorLookup);
+  const rankingRows = applyLevel2ToRankingRows(rawRankingRows, filters);
+
+  const needWorks = filters.includeProjectTable || filters.includeIdleProjects;
+  const works = needWorks ? flattenSubmissionWorks(submissions) : [];
+  const projectTable = filters.includeProjectTable ? buildProjectTableSummaries(scopedProjects, works, rankings) : null;
+  const idleProjects = filters.includeIdleProjects ? buildIdleProjectSummaries(scopedProjects, works) : null;
+
+  return { scopedProjects, rankingRows, projectTable, idleProjects };
+}
+
+// Renders the custom report as a PDF, reusing the exact same dark theme /
+// layout language as renderWeeklyReportPdf (the automatic + manual "as-is"
+// report), with two optional extra sections (Project Table / Idle Projects)
+// appended on their own pages when requested.
+function renderCustomReportPdf(
+  rankingRows: CustomReportRow[],
+  projectTable: ProjectSummaryRow[] | null,
+  idleProjects: IdleProjectRow[] | null,
+  weekId: string
+): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    const doc = new PDFDocument({ margin: 40, size: "A4" });
+    const chunks: Buffer[] = [];
+    doc.on("data", (chunk) => chunks.push(chunk));
+    doc.on("end", () => resolve(Buffer.concat(chunks)));
+    doc.on("error", reject);
+
+    const COLOR = {
+      bg: "#131316",
+      panel: "#1c1c20",
+      textPrimary: "#f5f5f5",
+      textMuted: "#9ca3af",
+      rowAlt: "#1a1a1e",
+      headerText: "#8b8b93",
+      divider: "#2a2a2f",
+      green: "#4ade80",
+      greenBg: "#0d2818",
+      red: "#f87171",
+      redBg: "#3a1212",
+      blue: "#60a5fa",
+      blueBg: "#0e2340",
+      gray: "#d1d5db",
+      grayBg: "#28282e",
+    };
+
+    const pageW = doc.page.width;
+    const pageH = doc.page.height;
+    const left = 40;
+    const right = pageW - 40;
+    const contentWidth = right - left;
+    const pageBottom = pageH - 60;
+
+    const paintBackground = () => {
+      doc.save();
+      doc.rect(0, 0, pageW, pageH).fill(COLOR.bg);
+      doc.restore();
+    };
+    paintBackground();
+    doc.on("pageAdded", paintBackground);
+
+    doc.fillColor(COLOR.textPrimary).fontSize(20).font("Helvetica-Bold").text("Custom SEO report", left, 40);
+    const now = new Date();
+    const generatedStr = now.toLocaleString("en-IN", {
+      timeZone: "Asia/Kolkata", day: "2-digit", month: "short", year: "numeric",
+      hour: "numeric", minute: "2-digit", hour12: true,
+    });
+    doc.fillColor(COLOR.textMuted).fontSize(10).font("Helvetica").text(`Week ${weekId} · Generated ${generatedStr} IST`, left, 66);
+    doc.moveTo(left, 92).lineTo(right, 92).strokeColor(COLOR.divider).lineWidth(1).stroke();
+
+    let cursorY = 110;
+    const ensureSpace = (needed: number) => {
+      if (cursorY + needed > pageBottom) {
+        doc.addPage();
+        cursorY = 40;
+      }
+    };
+
+    // ---- Keyword Rankings section ----
+    if (rankingRows.length > 0) {
+      ensureSpace(40);
+      doc.fillColor(COLOR.textPrimary).fontSize(15).font("Helvetica-Bold").text("Keyword Rankings", left, cursorY);
+      cursorY += 26;
+
+      const byProject = new Map<string, CustomReportRow[]>();
+      for (const row of rankingRows) {
+        const key = `${row.projectName} (${row.domain})`;
+        if (!byProject.has(key)) byProject.set(key, []);
+        byProject.get(key)!.push(row);
+      }
+
+      const col = {
+        keyword: left, keywordW: contentWidth * 0.42,
+        before: left + contentWidth * 0.42, beforeW: contentWidth * 0.18,
+        after: left + contentWidth * 0.60, afterW: contentWidth * 0.18,
+        change: left + contentWidth * 0.78, changeW: contentWidth * 0.22,
+      };
+      const pillColors = (change: string): { bg: string; text: string } => {
+        if (change === "New") return { bg: COLOR.blueBg, text: COLOR.blue };
+        if (change.startsWith("Up")) return { bg: COLOR.greenBg, text: COLOR.green };
+        if (change.startsWith("Down") || change === "Lost") return { bg: COLOR.redBg, text: COLOR.red };
+        return { bg: COLOR.grayBg, text: COLOR.gray };
+      };
+      const pillLabel = (change: string): string => (change === "Same" ? "Steady" : change);
+      const drawTableHeader = (y: number): number => {
+        doc.fillColor(COLOR.headerText).fontSize(9).font("Helvetica");
+        doc.text("Keyword", col.keyword, y, { width: col.keywordW });
+        doc.text("Before", col.before, y, { width: col.beforeW });
+        doc.text("After", col.after, y, { width: col.afterW });
+        doc.text("Change", col.change, y, { width: col.changeW });
+        doc.moveTo(left, y + 16).lineTo(right, y + 16).strokeColor(COLOR.divider).lineWidth(1).stroke();
+        return y + 26;
+      };
+      const drawPill = (text: string, x: number, y: number, scheme: { bg: string; text: string }) => {
+        doc.fontSize(9).font("Helvetica-Bold");
+        const textW = doc.widthOfString(text);
+        const padX = 8;
+        const pillW = textW + padX * 2;
+        doc.roundedRect(x, y - 3, pillW, 16, 8).fill(scheme.bg);
+        doc.fillColor(scheme.text).text(text, x + padX, y, { width: textW, lineBreak: false });
+      };
+
+      for (const [projectLabel, projectRows] of byProject.entries()) {
+        ensureSpace(90);
+        cursorY += 4;
+        doc.fillColor(COLOR.textPrimary).fontSize(12).font("Helvetica-Bold").text(projectLabel, left, cursorY);
+        cursorY += 20;
+        cursorY = drawTableHeader(cursorY);
+
+        projectRows.forEach((r, idx) => {
+          if (cursorY > pageBottom) {
+            doc.addPage();
+            cursorY = 40;
+            cursorY = drawTableHeader(cursorY);
+          }
+          const rowH = 22;
+          if (idx % 2 === 1) doc.rect(left, cursorY - 5, contentWidth, rowH).fill(COLOR.rowAlt);
+          doc.fillColor(COLOR.textPrimary).fontSize(9.5).font("Helvetica").text(r.keyword, col.keyword, cursorY, { width: col.keywordW - 8 });
+          doc.fillColor(COLOR.textPrimary).text(r.before, col.before, cursorY, { width: col.beforeW });
+          doc.fillColor(COLOR.textPrimary).text(r.after, col.after, cursorY, { width: col.afterW });
+          drawPill(pillLabel(r.change), col.change, cursorY, pillColors(r.change));
+          cursorY += rowH;
+        });
+        cursorY += 10;
+      }
+    }
+
+    // ---- Project Table section (whole data, as-is) ----
+    if (projectTable) {
+      doc.addPage();
+      cursorY = 40;
+      doc.fillColor(COLOR.textPrimary).fontSize(15).font("Helvetica-Bold").text(`Project Table (${projectTable.length})`, left, cursorY);
+      cursorY += 30;
+
+      const pcol = {
+        name: left, nameW: contentWidth * 0.30,
+        domain: left + contentWidth * 0.30, domainW: contentWidth * 0.24,
+        priority: left + contentWidth * 0.54, priorityW: contentWidth * 0.10,
+        backlinks: left + contentWidth * 0.64, backlinksW: contentWidth * 0.12,
+        lastWorked: left + contentWidth * 0.76, lastWorkedW: contentWidth * 0.24,
+      };
+      const drawHeader = (y: number): number => {
+        doc.fillColor(COLOR.headerText).fontSize(9).font("Helvetica");
+        doc.text("Project", pcol.name, y, { width: pcol.nameW });
+        doc.text("Domain", pcol.domain, y, { width: pcol.domainW });
+        doc.text("Priority", pcol.priority, y, { width: pcol.priorityW });
+        doc.text("Backlinks", pcol.backlinks, y, { width: pcol.backlinksW });
+        doc.text("Last Worked", pcol.lastWorked, y, { width: pcol.lastWorkedW });
+        doc.moveTo(left, y + 16).lineTo(right, y + 16).strokeColor(COLOR.divider).lineWidth(1).stroke();
+        return y + 24;
+      };
+      cursorY = drawHeader(cursorY);
+      projectTable.forEach((p, idx) => {
+        if (cursorY > pageBottom) {
+          doc.addPage();
+          cursorY = 40;
+          cursorY = drawHeader(cursorY);
+        }
+        const rowH = 20;
+        if (idx % 2 === 1) doc.rect(left, cursorY - 4, contentWidth, rowH).fill(COLOR.rowAlt);
+        doc.fillColor(COLOR.textPrimary).fontSize(9).font("Helvetica");
+        doc.text(p.name, pcol.name, cursorY, { width: pcol.nameW - 6 });
+        doc.text(p.domain, pcol.domain, cursorY, { width: pcol.domainW - 6 });
+        doc.text(p.priority || "—", pcol.priority, cursorY, { width: pcol.priorityW });
+        doc.text(String(p.totalBacklinks), pcol.backlinks, cursorY, { width: pcol.backlinksW });
+        doc.text(p.lastWorked, pcol.lastWorked, cursorY, { width: pcol.lastWorkedW });
+        cursorY += rowH;
+      });
+    }
+
+    // ---- Idle Projects section (whole data, as-is) ----
+    if (idleProjects) {
+      doc.addPage();
+      cursorY = 40;
+      doc.fillColor(COLOR.textPrimary).fontSize(15).font("Helvetica-Bold").text(`Idle Projects (${idleProjects.length})`, left, cursorY);
+      cursorY += 30;
+
+      const icol = {
+        name: left, nameW: contentWidth * 0.34,
+        domain: left + contentWidth * 0.34, domainW: contentWidth * 0.28,
+        priority: left + contentWidth * 0.62, priorityW: contentWidth * 0.14,
+        days: left + contentWidth * 0.76, daysW: contentWidth * 0.24,
+      };
+      const drawHeader = (y: number): number => {
+        doc.fillColor(COLOR.headerText).fontSize(9).font("Helvetica");
+        doc.text("Project", icol.name, y, { width: icol.nameW });
+        doc.text("Domain", icol.domain, y, { width: icol.domainW });
+        doc.text("Priority", icol.priority, y, { width: icol.priorityW });
+        doc.text("Days Idle", icol.days, y, { width: icol.daysW });
+        doc.moveTo(left, y + 16).lineTo(right, y + 16).strokeColor(COLOR.divider).lineWidth(1).stroke();
+        return y + 24;
+      };
+      cursorY = drawHeader(cursorY);
+      idleProjects.forEach((p, idx) => {
+        if (cursorY > pageBottom) {
+          doc.addPage();
+          cursorY = 40;
+          cursorY = drawHeader(cursorY);
+        }
+        const rowH = 20;
+        if (idx % 2 === 1) doc.rect(left, cursorY - 4, contentWidth, rowH).fill(COLOR.rowAlt);
+        doc.fillColor(COLOR.textPrimary).fontSize(9).font("Helvetica");
+        doc.text(p.name, icol.name, cursorY, { width: icol.nameW - 6 });
+        doc.text(p.domain, icol.domain, cursorY, { width: icol.domainW - 6 });
+        doc.text(p.priority || "—", icol.priority, cursorY, { width: icol.priorityW });
+        doc.text(p.daysSinceLastWorked === Infinity ? "Never worked" : `${p.daysSinceLastWorked}d`, icol.days, cursorY, { width: icol.daysW });
+        cursorY += rowH;
+      });
+    }
+
+    if (rankingRows.length === 0 && !projectTable && !idleProjects) {
+      doc.fillColor(COLOR.textPrimary).fontSize(12).font("Helvetica").text("No data matched the selected filters.", left, cursorY);
+    }
+
+    doc.end();
+  });
+}
+
+// Same Resend delivery mechanism as sendWeeklyReportEmail (SMTP is blocked
+// on Render's free plan; Resend is a plain HTTPS call).
+async function sendCustomReportEmailPdf(pdfBuffer: Buffer, weekId: string, summaryLine: string): Promise<{ sent: boolean; reason?: string }> {
+  const to = (process.env.REPORT_TO_EMAIL || "").split(",").map(e => e.trim()).filter(Boolean);
+  if (to.length === 0) return { sent: false, reason: "REPORT_TO_EMAIL is not set." };
+
+  const apiKey = (process.env.RESEND_API_KEY || "").trim();
+  if (!apiKey) return { sent: false, reason: "RESEND_API_KEY is not set." };
+
+  const from = (process.env.REPORT_FROM_EMAIL || "").trim() || "SEO Ranking Report <onboarding@resend.dev>";
+  const pdfBase64 = pdfBuffer.toString("base64");
+
+  const summaryHtml = `
+    <div style="font-family:Arial,sans-serif;color:#111827;">
+      <h2 style="margin:0 0 4px;">Custom SEO Report</h2>
+      <p style="margin:0 0 8px;color:#6b7280;">Week ${weekId} · Generated ${new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })} (IST)</p>
+      <p style="margin:0;">${summaryLine}</p>
+    </div>`;
+
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 20000);
+    let res: Response;
+    try {
+      res = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          from,
+          to,
+          subject: `Custom SEO Report — Week ${weekId}`,
+          html: summaryHtml,
+          attachments: [
+            {
+              filename: `Custom-SEO-Report-${weekId}.pdf`,
+              content: pdfBase64,
+            },
+          ],
+        }),
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timeout);
+    }
+
+    if (!res.ok) {
+      const bodyText = await res.text().catch(() => "");
+      console.error(`Resend API error (${res.status}):`, bodyText);
+      return { sent: false, reason: `Resend API error (${res.status}): ${bodyText.slice(0, 300)}` };
+    }
+    return { sent: true };
+  } catch (err: any) {
+    console.error("Failed to send custom report email:", err);
+    return { sent: false, reason: err?.message || "Unknown email error." };
+  }
+}
+
+// Builds the "Download Excel" file — one sheet per included section, each
+// with the exact same (unfiltered-by-Level-2) whole data used in the PDF.
+function buildReportExcelBuffer(
+  rankingRows: CustomReportRow[],
+  projectTable: ProjectSummaryRow[] | null,
+  idleProjects: IdleProjectRow[] | null
+): Buffer {
+  const wb = XLSX.utils.book_new();
+
+  if (rankingRows.length > 0) {
+    const wsData = rankingRows.map((r) => ({
+      Project: r.projectName, Domain: r.domain, Keyword: r.keyword, Before: r.before, After: r.after, Change: r.change,
+    }));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(wsData), "Keyword Rankings");
+  }
+
+  if (projectTable) {
+    const wsData = projectTable.map((p) => ({
+      Project: p.name, Domain: p.domain, Location: p.location, Zone: p.region, Priority: p.priority,
+      Listings: p.listings, Blogs: p.blogs, Forums: p.forums, PDFs: p.pdfs, Images: p.images,
+      "Video/PPT": p.videoPpts, Profiles: p.profiles, Links: p.links, "Total Backlinks": p.totalBacklinks,
+      "Times Worked": p.timesWorked, "Times Not Worked": p.timesNotWorked, "Last Worked": p.lastWorked,
+      "Best Ranking": p.bestRanking ?? "—",
+    }));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(wsData), "Project Table");
+  }
+
+  if (idleProjects) {
+    const wsData = idleProjects.map((p) => ({
+      Project: p.name, Domain: p.domain, Location: p.location, Zone: p.region, Priority: p.priority,
+      "Last Worked": p.lastWorkedDate,
+      "Days Idle": p.daysSinceLastWorked === Infinity ? "Never worked" : p.daysSinceLastWorked,
+    }));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(wsData), "Idle Projects");
+  }
+
+  if (wb.SheetNames.length === 0) {
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([["No data matched the selected filters."]]), "Report");
+  }
+
+  return XLSX.write(wb, { type: "buffer", bookType: "xlsx" }) as Buffer;
+}
+
+// POST customized report -> builds it fresh from the filters and emails it
+// (PDF attachment, same theme/delivery as every other report in the app).
+app.post("/api/rankings/send-custom-report", requireAdmin, async (req, res) => {
+  try {
+    const filters = parseReportFilters(req.body);
+    const { rankingRows, projectTable, idleProjects } = await gatherCustomReportData(filters);
+
+    if (rankingRows.length === 0 && !projectTable && !idleProjects) {
+      return res.json({ sent: false, email: { sent: false, reason: "Nothing matched the selected filters — nothing was sent." } });
+    }
+
+    const weekId = getIsoWeekId(new Date());
+    const pdfBuffer = await renderCustomReportPdf(rankingRows, projectTable, idleProjects, weekId);
+
+    const parts: string[] = [];
+    if (rankingRows.length) parts.push(`${rankingRows.length} keyword(s)`);
+    if (projectTable) parts.push(`${projectTable.length} project(s) in the Project Table`);
+    if (idleProjects) parts.push(`${idleProjects.length} project(s) in Idle Projects`);
+    const summaryLine = `Custom report attached as a PDF — ${parts.join(", ")}.`;
+
+    const emailResult = await sendCustomReportEmailPdf(pdfBuffer, weekId, summaryLine);
+
+    if (emailResult.sent) {
+      await logActivityLocally("system", "Custom Report Sent", `Sent a customized report — ${parts.join(", ")}.`);
+    }
+
+    res.json({
+      email: emailResult,
+      keywordsInReport: rankingRows.length,
+      projectsInProjectTable: projectTable ? projectTable.length : null,
+      projectsInIdleProjects: idleProjects ? idleProjects.length : null,
+    });
+  } catch (err: any) {
+    console.error("Error sending custom report:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST customized report -> returns it as a downloadable .xlsx instead of emailing it.
+app.post("/api/rankings/export-report-excel", requireAdmin, async (req, res) => {
+  try {
+    const filters = parseReportFilters(req.body);
+    const { rankingRows, projectTable, idleProjects } = await gatherCustomReportData(filters);
+    const buffer = buildReportExcelBuffer(rankingRows, projectTable, idleProjects);
+    const weekId = getIsoWeekId(new Date());
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    res.setHeader("Content-Disposition", `attachment; filename="Custom-SEO-Report-${weekId}.xlsx"`);
+    res.send(buffer);
+  } catch (err: any) {
+    console.error("Error exporting report excel:", err);
     res.status(500).json({ error: err.message });
   }
 });
