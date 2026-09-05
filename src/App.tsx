@@ -15,6 +15,7 @@ import DSRLogs from './components/DSRLogs';
 import DSRDashboard from './components/DSRDashboard';
 import DSRSettings from './components/DSRSettings';
 import TaskLineup from './components/TaskLineup';
+import ReportsSection from './components/ReportsSection';
 import LoginScreen from './components/LoginScreen';
 import ThemeToggle from './components/ThemeToggle';
 import Logo from './components/Logo';
@@ -1960,13 +1961,11 @@ export default function App() {
               )}
 
               {activeTab === 'reports' && (
-                <div className="flex flex-col items-center justify-center text-center py-24 px-6 bg-white dark:bg-ink-900 border border-gray-150 dark:border-slate-800 rounded-2xl">
-                  <FileBarChart size={34} className="text-indigo-300 mb-3" />
-                  <h3 className="font-extrabold text-gray-800 dark:text-slate-100 text-sm">Reports</h3>
-                  <p className="text-xs text-gray-400 dark:text-slate-500 font-medium mt-1 max-w-sm">
-                    This section is set up and ready — reporting content will live here.
-                  </p>
-                </div>
+                <ReportsSection
+                  projects={projects}
+                  registeredUsers={registeredUsers}
+                  currentUserEmail={currentUserEmail || ''}
+                />
               )}
             </motion.div>
           </AnimatePresence>
