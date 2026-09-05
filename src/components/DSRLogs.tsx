@@ -75,6 +75,39 @@ export default function DSRLogs({
   const [remarkModalItem, setRemarkModalItem] = useState<any | null>(null);
   const [remarkText, setRemarkText] = useState('');
 
+  // Direct, self-contained fetch of the real names from the app_users table
+  // (the exact same source Settings -> User Control reads/writes). This page
+  // used to rely entirely on the `allowedUsers` prop passed down from
+  // App.tsx, which only picks up a freshly-saved name once App.tsx's own
+  // background sync/merge effect has run — if this screen renders before
+  // that finishes (or that merge ever falls out of sync for any reason),
+  // names silently fall back to the bare numeric ID. Fetching straight from
+  // /api/users here removes that dependency entirely and guarantees this
+  // screen shows whatever name is actually saved in the database, the same
+  // way the Settings -> Users list does.
+  const [dbUserNames, setDbUserNames] = useState<Record<string, string>>({});
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/users');
+        const data = await res.json();
+        if (!cancelled && Array.isArray(data.users)) {
+          const map: Record<string, string> = {};
+          data.users.forEach((u: any) => {
+            if (u && u.email && u.name) {
+              map[String(u.email).trim().toLowerCase()] = String(u.name).trim();
+            }
+          });
+          setDbUserNames(map);
+        }
+      } catch (err) {
+        console.error('Failed to load user names for Work Log History:', err);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
   // Delete Log modal — instead of nuking every entry for the day in one shot,
   // admin gets a checklist of each individual submission for that date, all
   // pre-checked, and can uncheck the ones they want to KEEP before confirming.
@@ -845,12 +878,14 @@ export default function DSRLogs({
               // can carry stray whitespace that broke the old plain lookup and made
               // it silently fall through to showing the bare numeric id instead of
               // the name set in Settings -> User Control) through several layers:
-              // 1) the pre-built map (fast path for most rows), 2) a direct
-              // getUserDisplayName() lookup against allowedUsers/registered users
-              // as a safety net for anything the map missed, 3) the raw id only as
-              // a last resort.
+              // 1) dbUserNames — fetched directly from /api/users by this component,
+              //    the freshest possible source, 2) the pre-built map (derived from
+              // the allowedUsers prop), 3) a direct getUserDisplayName() lookup
+              // against allowedUsers as a further safety net, 4) the raw id only as
+              // an absolute last resort.
               const rawActiveUserId = (item.userEmail || '').trim();
               const activeUserDisplayName =
+                dbUserNames[rawActiveUserId.toLowerCase()] ||
                 employeeNamesMap[rawActiveUserId.toLowerCase()] ||
                 getUserDisplayName(rawActiveUserId, allowedUsers) ||
                 rawActiveUserId;
