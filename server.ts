@@ -2374,26 +2374,23 @@ interface CustomReportRow extends WeeklyReportRow {
   projectId: string;
 }
 
+// Mirrors exactly the columns shown on the admin's Project Table tab
+// (DSRDashboard.tsx projectTableData / the Project Table screen): Project,
+// Domain, Priority, Best Ranking, Worked / Not Worked, Last Worked,
+// Keywords, and the assigned User(s) — no backlink figures, which don't
+// appear as columns on that screen.
 interface ProjectSummaryRow {
   id: string;
+  srNo: number;
   name: string;
   domain: string;
-  location: string;
-  region: string;
   priority: string;
-  listings: number;
-  blogs: number;
-  forums: number;
-  pdfs: number;
-  images: number;
-  videoPpts: number;
-  profiles: number;
-  links: number;
-  totalBacklinks: number;
+  bestRanking: number | null;
   timesWorked: number;
   timesNotWorked: number;
   lastWorked: string;
-  bestRanking: number | null;
+  keywords: string[];
+  assignedTo: string;
 }
 
 interface IdleProjectRow {
@@ -2530,25 +2527,33 @@ function flattenSubmissionWorks(submissions: any[]): any[] {
 }
 
 // Mirrors the Project Table tab's per-project summary columns (DSRDashboard.tsx
-// projectTableData) — full/whole data, not trimmed by Level 2.
+// projectTableData) — full/whole data, not trimmed by Level 2. No backlink
+// figures here, since the admin's Project Table screen doesn't show them either.
 function buildProjectTableSummaries(
   projects: any[],
   works: any[],
-  rankings: Record<string, Record<string, { ranking: string; lastChecked: string }>>
+  rankings: Record<string, Record<string, { ranking: string; lastChecked: string }>>,
+  users: { email: string; name: string }[]
 ): ProjectSummaryRow[] {
-  return projects.map((p) => {
-    const pWorks = works.filter((w) => w.projectId === p.id);
-    const sum = (key: string) => pWorks.reduce((s, w) => s + (Number(w[key]) || 0), 0);
+  const nameById = new Map<string, string>();
+  users.forEach((u) => {
+    if (u.email) nameById.set(String(u.email).trim().toLowerCase(), u.name || u.email);
+  });
+  const resolveAssignedNames = (p: any): string => {
+    const ids = Array.from(
+      new Set(
+        [
+          ...(p.userId ? [String(p.userId).trim()] : []),
+          ...(Array.isArray(p.users) ? p.users.map((u: any) => String(u || "").trim()) : []),
+        ].filter(Boolean)
+      )
+    );
+    if (ids.length === 0) return "Unassigned";
+    return ids.map((id) => nameById.get(id.toLowerCase()) || id).join(", ");
+  };
 
-    const listings = sum("listingCount");
-    const blogs = sum("blogCount");
-    const forums = sum("forumCount");
-    const pdfs = sum("pdfCount");
-    const images = sum("imageCount");
-    const videoPpts = sum("videoPptCount");
-    const profiles = sum("profileCount");
-    const links = sum("linkCount");
-    const totalBacklinks = listings + blogs + forums + pdfs + images + videoPpts + profiles + links;
+  return projects.map((p, idx) => {
+    const pWorks = works.filter((w) => w.projectId === p.id);
 
     const timesWorked = pWorks.filter((w) => w.workStatus === "worked").length;
     const timesNotWorked = pWorks.filter((w) => w.workStatus === "not_worked").length;
@@ -2571,24 +2576,16 @@ function buildProjectTableSummaries(
 
     return {
       id: p.id,
+      srNo: idx + 1,
       name: p.name || p.domain || p.id,
       domain: p.domain || "",
-      location: p.location || "",
-      region: p.region || "",
       priority: p.priority || "",
-      listings,
-      blogs,
-      forums,
-      pdfs,
-      images,
-      videoPpts,
-      profiles,
-      links,
-      totalBacklinks,
+      bestRanking,
       timesWorked,
       timesNotWorked,
       lastWorked,
-      bestRanking,
+      keywords: Array.isArray(p.keywords) ? p.keywords : [],
+      assignedTo: resolveAssignedNames(p),
     };
   });
 }
@@ -2645,21 +2642,30 @@ async function gatherCustomReportData(filters: ReportFilters): Promise<{
   projectTable: ProjectSummaryRow[] | null;
   idleProjects: IdleProjectRow[] | null;
 }> {
-  const [allProjects, submissions, rankings, priorHistory] = await Promise.all([
+  const [allProjects, submissions, rankings, priorHistory, users] = await Promise.all([
     getProjectsDb(),
     getSubmissionsDb(),
     readRankings(),
     getRankingHistoryDb(1),
+    getUsersDb(),
   ]);
 
   const scopedProjects = filterProjectsByScope(allProjects, filters);
-  const priorLookup = buildPriorLookup(priorHistory);
-  const rawRankingRows = buildRankingRowsForProjects(scopedProjects, submissions, rankings, priorLookup);
-  const rankingRows = applyLevel2ToRankingRows(rawRankingRows, filters);
+
+  // Level 2 (Keyword Rankings) and Level 3 (Project Table / Idle Projects)
+  // are mutually exclusive — once a Level 3 section is selected, the
+  // Keyword Rankings section is left out of the report entirely.
+  const level3Active = filters.includeProjectTable || filters.includeIdleProjects;
+  let rankingRows: CustomReportRow[] = [];
+  if (!level3Active) {
+    const priorLookup = buildPriorLookup(priorHistory);
+    const rawRankingRows = buildRankingRowsForProjects(scopedProjects, submissions, rankings, priorLookup);
+    rankingRows = applyLevel2ToRankingRows(rawRankingRows, filters);
+  }
 
   const needWorks = filters.includeProjectTable || filters.includeIdleProjects;
   const works = needWorks ? flattenSubmissionWorks(submissions) : [];
-  const projectTable = filters.includeProjectTable ? buildProjectTableSummaries(scopedProjects, works, rankings) : null;
+  const projectTable = filters.includeProjectTable ? buildProjectTableSummaries(scopedProjects, works, rankings, users) : null;
   const idleProjects = filters.includeIdleProjects ? buildIdleProjectSummaries(scopedProjects, works) : null;
 
   return { scopedProjects, rankingRows, projectTable, idleProjects };
@@ -2809,37 +2815,47 @@ function renderCustomReportPdf(
       cursorY += 30;
 
       const pcol = {
-        name: left, nameW: contentWidth * 0.30,
-        domain: left + contentWidth * 0.30, domainW: contentWidth * 0.24,
-        priority: left + contentWidth * 0.54, priorityW: contentWidth * 0.10,
-        backlinks: left + contentWidth * 0.64, backlinksW: contentWidth * 0.12,
-        lastWorked: left + contentWidth * 0.76, lastWorkedW: contentWidth * 0.24,
+        srNo: left, srNoW: contentWidth * 0.05,
+        name: left + contentWidth * 0.05, nameW: contentWidth * 0.19,
+        domain: left + contentWidth * 0.24, domainW: contentWidth * 0.16,
+        priority: left + contentWidth * 0.40, priorityW: contentWidth * 0.08,
+        bestRanking: left + contentWidth * 0.48, bestRankingW: contentWidth * 0.09,
+        worked: left + contentWidth * 0.57, workedW: contentWidth * 0.10,
+        lastWorked: left + contentWidth * 0.67, lastWorkedW: contentWidth * 0.14,
+        keywords: left + contentWidth * 0.81, keywordsW: contentWidth * 0.19,
       };
       const drawHeader = (y: number): number => {
-        doc.fillColor(COLOR.headerText).fontSize(9).font("Helvetica");
+        doc.fillColor(COLOR.headerText).fontSize(8).font("Helvetica");
+        doc.text("Sr No.", pcol.srNo, y, { width: pcol.srNoW });
         doc.text("Project", pcol.name, y, { width: pcol.nameW });
         doc.text("Domain", pcol.domain, y, { width: pcol.domainW });
         doc.text("Priority", pcol.priority, y, { width: pcol.priorityW });
-        doc.text("Backlinks", pcol.backlinks, y, { width: pcol.backlinksW });
+        doc.text("Best Rank", pcol.bestRanking, y, { width: pcol.bestRankingW });
+        doc.text("Worked/Not", pcol.worked, y, { width: pcol.workedW });
         doc.text("Last Worked", pcol.lastWorked, y, { width: pcol.lastWorkedW });
+        doc.text("Keywords", pcol.keywords, y, { width: pcol.keywordsW });
         doc.moveTo(left, y + 16).lineTo(right, y + 16).strokeColor(COLOR.divider).lineWidth(1).stroke();
         return y + 24;
       };
       cursorY = drawHeader(cursorY);
       projectTable.forEach((p, idx) => {
-        if (cursorY > pageBottom) {
+        if (cursorY > pageBottom - 24) {
           doc.addPage();
           cursorY = 40;
           cursorY = drawHeader(cursorY);
         }
-        const rowH = 20;
+        const rowH = 30;
         if (idx % 2 === 1) doc.rect(left, cursorY - 4, contentWidth, rowH).fill(COLOR.rowAlt);
-        doc.fillColor(COLOR.textPrimary).fontSize(9).font("Helvetica");
-        doc.text(p.name, pcol.name, cursorY, { width: pcol.nameW - 6 });
-        doc.text(p.domain, pcol.domain, cursorY, { width: pcol.domainW - 6 });
+        doc.fillColor(COLOR.textPrimary).fontSize(8.5).font("Helvetica");
+        doc.text(String(p.srNo), pcol.srNo, cursorY, { width: pcol.srNoW });
+        doc.text(p.name, pcol.name, cursorY, { width: pcol.nameW - 4 });
+        doc.text(p.domain, pcol.domain, cursorY, { width: pcol.domainW - 4 });
         doc.text(p.priority || "—", pcol.priority, cursorY, { width: pcol.priorityW });
-        doc.text(String(p.totalBacklinks), pcol.backlinks, cursorY, { width: pcol.backlinksW });
-        doc.text(p.lastWorked, pcol.lastWorked, cursorY, { width: pcol.lastWorkedW });
+        doc.text(p.bestRanking !== null && p.bestRanking !== undefined ? `#${p.bestRanking}` : "—", pcol.bestRanking, cursorY, { width: pcol.bestRankingW });
+        doc.text(`${p.timesWorked}/${p.timesNotWorked}`, pcol.worked, cursorY, { width: pcol.workedW });
+        doc.text(p.lastWorked, pcol.lastWorked, cursorY, { width: pcol.lastWorkedW - 4 });
+        doc.text(p.keywords.length > 0 ? p.keywords.join(", ") : "—", pcol.keywords, cursorY, { width: pcol.keywordsW - 4 });
+        doc.fillColor(COLOR.textMuted).fontSize(7.5).font("Helvetica-Oblique").text(`User: ${p.assignedTo}`, pcol.name, cursorY + 12, { width: contentWidth - (pcol.name - left) - 4 });
         cursorY += rowH;
       });
     }
@@ -2970,11 +2986,11 @@ function buildReportExcelBuffer(
 
   if (projectTable) {
     const wsData = projectTable.map((p) => ({
-      Project: p.name, Domain: p.domain, Location: p.location, Zone: p.region, Priority: p.priority,
-      Listings: p.listings, Blogs: p.blogs, Forums: p.forums, PDFs: p.pdfs, Images: p.images,
-      "Video/PPT": p.videoPpts, Profiles: p.profiles, Links: p.links, "Total Backlinks": p.totalBacklinks,
-      "Times Worked": p.timesWorked, "Times Not Worked": p.timesNotWorked, "Last Worked": p.lastWorked,
+      "Sr No.": p.srNo, Project: p.name, Domain: p.domain, Priority: p.priority || "—",
       "Best Ranking": p.bestRanking ?? "—",
+      "Times Worked": p.timesWorked, "Times Not Worked": p.timesNotWorked, "Last Worked": p.lastWorked,
+      Keywords: p.keywords.length > 0 ? p.keywords.join(", ") : "—",
+      User: p.assignedTo,
     }));
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(wsData), "Project Table");
   }
