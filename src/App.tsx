@@ -423,10 +423,14 @@ export default function App() {
 
   const [dashboardSubTab, setDashboardSubTab] = useState<'project_table' | 'activity' | 'backlinks' | 'unworked_project' | 'keyword_section' | 'update_ranking'>('project_table');
 
-  // Aesthetic pop-out navigation menu (replaces old top-center nav bar)
-  // No more hover-to-close: once open, it only closes on the X button or an
-  // outside click. It can still be *opened* by hovering the trigger button
-  // or by pushing the cursor all the way to the left edge of the screen.
+  // Aesthetic pop-out navigation menu (replaces old top-center nav bar).
+  // Click-only: it opens ONLY on an actual click of the trigger button, or
+  // an actual click landing exactly on the left edge of the screen. Merely
+  // moving/resting the cursor over the button (or near the edge) no longer
+  // opens it — that hover/proximity behaviour was firing by itself while
+  // the cursor drifted past on its way elsewhere (including right after
+  // login), which looked like the menu "randomly" popping open on its own.
+  // It only closes on the X button or an outside click.
   const [isNavMenuOpen, setIsNavMenuOpen] = useState(false);
   const [isOverviewExpanded, setIsOverviewExpanded] = useState(false);
   const navMenuRef = useRef<HTMLDivElement>(null);
@@ -451,17 +455,22 @@ export default function App() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Open the menu whenever the cursor is pushed all the way to the left edge
-  // of the screen — acts like an edge trigger, same as hovering the button.
+  // Open the menu when the user actually CLICKS right at the left edge of
+  // the device's viewport/display (clientX is already measured from the
+  // real screen edge, not some inset "system" chrome). This used to fire on
+  // mere cursor proximity (mousemove within 4px), which is what made it
+  // trip open by itself as the cursor merely passed nearby — including
+  // right after logging in. Now it only reacts to a genuine click
+  // (mousedown), and only within a hair of the true edge.
   useEffect(() => {
-    const EDGE_THRESHOLD_PX = 4;
-    const handleMouseMove = (e: MouseEvent) => {
+    const EDGE_THRESHOLD_PX = 2;
+    const handleEdgeClick = (e: MouseEvent) => {
       if (e.clientX <= EDGE_THRESHOLD_PX) {
         setIsNavMenuOpen((prev) => (prev ? prev : true));
       }
     };
-    document.addEventListener('mousemove', handleMouseMove);
-    return () => document.removeEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mousedown', handleEdgeClick);
+    return () => document.removeEventListener('mousedown', handleEdgeClick);
   }, []);
 
   // Synchronize dynamic data from our local database server
@@ -1192,7 +1201,6 @@ export default function App() {
             <div
               className="relative flex items-center"
               ref={navMenuRef}
-              onMouseEnter={openNavMenu}
             >
               <button
                 type="button"
