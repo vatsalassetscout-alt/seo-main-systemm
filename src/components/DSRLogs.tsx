@@ -841,7 +841,19 @@ export default function DSRLogs({
               const submittedOnDifferentDate = !!submittedDateOnlyStr && submittedDateOnlyStr !== formattedFilledDate;
 
               const isExpanded = !!expandedEntries[item.uniqueId];
-              const activeUserDisplayName = employeeNamesMap[item.userEmail?.toLowerCase()] || item.userEmail;
+              // Resolve the raw stored user id (trimmed, since Sheet/manual entries
+              // can carry stray whitespace that broke the old plain lookup and made
+              // it silently fall through to showing the bare numeric id instead of
+              // the name set in Settings -> User Control) through several layers:
+              // 1) the pre-built map (fast path for most rows), 2) a direct
+              // getUserDisplayName() lookup against allowedUsers/registered users
+              // as a safety net for anything the map missed, 3) the raw id only as
+              // a last resort.
+              const rawActiveUserId = (item.userEmail || '').trim();
+              const activeUserDisplayName =
+                employeeNamesMap[rawActiveUserId.toLowerCase()] ||
+                getUserDisplayName(rawActiveUserId, allowedUsers) ||
+                rawActiveUserId;
 
               const totalListings = item.works.reduce((sum: number, w: any) => sum + (w.listingCount || 0), 0);
               const totalBlogs = item.works.reduce((sum: number, w: any) => sum + (w.blogCount || 0), 0);
