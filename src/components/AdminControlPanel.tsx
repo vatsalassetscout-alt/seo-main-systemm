@@ -15,8 +15,6 @@ import {
   Tag,
   Search,
   FolderPlus,
-  Send,
-  BarChart3,
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { numericIdCompare } from '../lib/userUtils';
@@ -70,9 +68,6 @@ export default function AdminControlPanel({
   const [reassigningProject, setReassigningProject] = useState<Project | null>(null);
   const [projectSearch, setProjectSearch] = useState('');
   const [busy, setBusy] = useState(false);
-
-  // ---- Ranking Report: Send Report ----
-  const [sendingReport, setSendingReport] = useState(false);
 
   const authHeaders = useMemo(
     () => ({
@@ -228,32 +223,6 @@ export default function AdminControlPanel({
     }
   };
 
-  // ---------------------------------------------------------------------
-  // RANKING REPORT ACTION (manual "Send Report" button)
-  // ---------------------------------------------------------------------
-  // The Ranking tab already has its own "Check All" / per-project "Check"
-  // buttons that check live SERP rankings. This just emails whatever
-  // ranking data is currently present (however many keywords that is) -
-  // same format, same recipient as the automatic Sunday system. No
-  // re-checking happens here.
-  const handleSendReport = async () => {
-    setSendingReport(true);
-    try {
-      const res = await fetch('/api/rankings/send-report', { method: 'POST', headers: authHeaders });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to send report.');
-      if (data.email?.sent) {
-        triggerAlert('success', `Report sent (${data.keywordsInReport} keyword(s)).`);
-      } else {
-        triggerAlert('error', data.email?.reason || data.reason || 'Report was not sent.');
-      }
-    } catch (err: any) {
-      triggerAlert('error', err.message || 'Something went wrong sending the report.');
-    } finally {
-      setSendingReport(false);
-    }
-  };
-
   return (
     <div className="space-y-8 animate-fade-in text-left">
       {statusMsg && (
@@ -270,36 +239,6 @@ export default function AdminControlPanel({
           <span>{statusMsg.text}</span>
         </motion.div>
       )}
-
-      {/* ================= RANKING REPORT (manual send) ================= */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between border-b border-gray-100 dark:border-slate-800/60 pb-4">
-          <div>
-            <h4 className="font-extrabold text-gray-900 dark:text-slate-50 text-sm flex items-center gap-2">
-              <BarChart3 size={16} className="text-indigo-600 dark:text-blue-400" />
-              Ranking Report
-            </h4>
-            <p className="text-xs text-gray-400 dark:text-slate-500">Automatic report still runs every Sunday.</p>
-          </div>
-        </div>
-
-        <div className="border border-gray-150 dark:border-slate-800 rounded-2xl bg-white dark:bg-ink-900 p-5 flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
-          <div className="flex-1 space-y-1">
-            <p className="text-xs font-bold text-gray-800 dark:text-slate-100">Send Report</p>
-            <p className="text-[11px] text-gray-400 dark:text-slate-500">
-              Emails whatever ranking data is currently checked (from the Ranking tab) — any number of keywords, same format and recipient as the automatic report. Doesn't check anything itself.
-            </p>
-          </div>
-          <button
-            onClick={handleSendReport}
-            disabled={sendingReport}
-            className="flex items-center justify-center gap-1.5 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-xl text-xs transition shadow-xs cursor-pointer whitespace-nowrap"
-          >
-            <Send size={14} />
-            {sendingReport ? 'Sending…' : 'Send Report'}
-          </button>
-        </div>
-      </div>
 
       {/* ================= PROJECTS ================= */}
       <div className="space-y-4">
