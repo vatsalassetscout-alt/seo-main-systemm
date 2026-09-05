@@ -137,9 +137,15 @@ export default function ReportsSection({ projects, registeredUsers, currentUserE
   const [keywordLimit, setKeywordLimit] = useState<number | null>(null);
   const [changeFilter, setChangeFilter] = useState<'improvement' | 'decrement' | null>(null);
 
-  // ---- Level 3: toggles ----
-  const [includeProjectTable, setIncludeProjectTable] = useState(false);
-  const [includeIdleProjects, setIncludeIdleProjects] = useState(false);
+  // ---- Level 3: single-select (only one of these two can be active at a
+  // time — picking one automatically clears the other). ----
+  const [level3Selection, setLevel3Selection] = useState<'project_table' | 'idle_projects' | null>(null);
+  const includeProjectTable = level3Selection === 'project_table';
+  const includeIdleProjects = level3Selection === 'idle_projects';
+  // When Level 3 has a selection, the report is a full-table dump instead of
+  // a keyword-ranking report — Level 2 (which only shapes the Keyword
+  // Rankings section) is disabled and excluded from the sent/downloaded report.
+  const level3Active = level3Selection !== null;
 
   const [sending, setSending] = useState(false);
   const [downloading, setDownloading] = useState(false);
@@ -180,8 +186,10 @@ export default function ReportsSection({ projects, registeredUsers, currentUserE
     locations: selectedLocations,
     zones: selectedZones,
     userIds: selectedUserIds,
-    keywordLimit,
-    changeFilter,
+    // Level 2 is mutually exclusive with Level 3 — once a Level 3 section is
+    // selected, no keyword-ranking filters/data are sent with the report.
+    keywordLimit: level3Active ? null : keywordLimit,
+    changeFilter: level3Active ? null : changeFilter,
     includeProjectTable,
     includeIdleProjects,
   });
@@ -303,8 +311,9 @@ export default function ReportsSection({ projects, registeredUsers, currentUserE
 
         <div className="border-t border-gray-100 dark:border-slate-800/60" />
 
-        {/* Level 2 */}
-        <div className="space-y-2">
+        {/* Level 2 — disabled automatically whenever a Level 3 section is
+            selected, since the two are mutually exclusive. */}
+        <div className={`space-y-2 transition-opacity ${level3Active ? 'opacity-40 pointer-events-none' : ''}`}>
           <p className="text-[11px] font-black text-indigo-500 dark:text-blue-400 uppercase tracking-wider">Level 2 · Keyword Rankings</p>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
@@ -313,8 +322,9 @@ export default function ReportsSection({ projects, registeredUsers, currentUserE
               </label>
               <select
                 value={keywordLimit ?? ''}
+                disabled={level3Active}
                 onChange={(e) => setKeywordLimit(e.target.value ? Number(e.target.value) : null)}
-                className="w-full px-3.5 py-2.5 bg-white dark:bg-ink-900 border border-gray-200 dark:border-slate-800 rounded-xl text-xs font-semibold text-gray-800 dark:text-slate-100 cursor-pointer"
+                className="w-full px-3.5 py-2.5 bg-white dark:bg-ink-900 border border-gray-200 dark:border-slate-800 rounded-xl text-xs font-semibold text-gray-800 dark:text-slate-100 cursor-pointer disabled:cursor-not-allowed"
               >
                 <option value="">Any number of keywords</option>
                 {KEYWORD_LIMIT_OPTIONS.map((n) => (
@@ -325,8 +335,9 @@ export default function ReportsSection({ projects, registeredUsers, currentUserE
 
             <button
               type="button"
+              disabled={level3Active}
               onClick={() => setChangeFilter((c) => (c === 'improvement' ? null : 'improvement'))}
-              className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-xs font-bold border transition cursor-pointer ${
+              className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-xs font-bold border transition cursor-pointer disabled:cursor-not-allowed ${
                 changeFilter === 'improvement'
                   ? 'bg-emerald-600 border-emerald-600 text-white'
                   : 'bg-white dark:bg-ink-900 border-gray-200 dark:border-slate-800 text-gray-700 dark:text-slate-200 hover:border-emerald-300'
@@ -338,8 +349,9 @@ export default function ReportsSection({ projects, registeredUsers, currentUserE
 
             <button
               type="button"
+              disabled={level3Active}
               onClick={() => setChangeFilter((c) => (c === 'decrement' ? null : 'decrement'))}
-              className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-xs font-bold border transition cursor-pointer ${
+              className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-xs font-bold border transition cursor-pointer disabled:cursor-not-allowed ${
                 changeFilter === 'decrement'
                   ? 'bg-rose-600 border-rose-600 text-white'
                   : 'bg-white dark:bg-ink-900 border-gray-200 dark:border-slate-800 text-gray-700 dark:text-slate-200 hover:border-rose-300'
@@ -349,37 +361,52 @@ export default function ReportsSection({ projects, registeredUsers, currentUserE
               Only projects with decrement
             </button>
           </div>
+          {level3Active && (
+            <p className="text-[11px] text-amber-600 dark:text-amber-400 font-semibold">
+              Disabled while a Level 3 section is selected — keyword rankings are left out of the report in that case.
+            </p>
+          )}
         </div>
 
         <div className="border-t border-gray-100 dark:border-slate-800/60" />
 
-        {/* Level 3 */}
+        {/* Level 3 — mutually exclusive: choosing one clears the other. */}
         <div className="space-y-2">
           <p className="text-[11px] font-black text-indigo-500 dark:text-blue-400 uppercase tracking-wider">Level 3 · Sections</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <label className="flex items-center gap-2.5 px-3.5 py-2.5 bg-white dark:bg-ink-900 border border-gray-200 dark:border-slate-800 rounded-xl text-xs font-bold text-gray-700 dark:text-slate-200 cursor-pointer">
+            <label className={`flex items-center gap-2.5 px-3.5 py-2.5 bg-white dark:bg-ink-900 border rounded-xl text-xs font-bold cursor-pointer transition ${
+              includeProjectTable
+                ? 'border-indigo-500 dark:border-blue-500/60 text-indigo-700 dark:text-blue-400 ring-1 ring-indigo-200 dark:ring-blue-500/30'
+                : 'border-gray-200 dark:border-slate-800 text-gray-700 dark:text-slate-200'
+            }`}>
               <input
-                type="checkbox"
+                type="radio"
+                name="level3Selection"
                 checked={includeProjectTable}
-                onChange={(e) => setIncludeProjectTable(e.target.checked)}
-                className="w-4 h-4 rounded accent-indigo-600 dark:accent-blue-500 cursor-pointer"
+                onChange={() => setLevel3Selection((cur) => (cur === 'project_table' ? null : 'project_table'))}
+                className="w-4 h-4 accent-indigo-600 dark:accent-blue-500 cursor-pointer"
               />
               <Table2 size={14} className="text-indigo-500 dark:text-blue-400" />
               Project Table
             </label>
-            <label className="flex items-center gap-2.5 px-3.5 py-2.5 bg-white dark:bg-ink-900 border border-gray-200 dark:border-slate-800 rounded-xl text-xs font-bold text-gray-700 dark:text-slate-200 cursor-pointer">
+            <label className={`flex items-center gap-2.5 px-3.5 py-2.5 bg-white dark:bg-ink-900 border rounded-xl text-xs font-bold cursor-pointer transition ${
+              includeIdleProjects
+                ? 'border-indigo-500 dark:border-blue-500/60 text-indigo-700 dark:text-blue-400 ring-1 ring-indigo-200 dark:ring-blue-500/30'
+                : 'border-gray-200 dark:border-slate-800 text-gray-700 dark:text-slate-200'
+            }`}>
               <input
-                type="checkbox"
+                type="radio"
+                name="level3Selection"
                 checked={includeIdleProjects}
-                onChange={(e) => setIncludeIdleProjects(e.target.checked)}
-                className="w-4 h-4 rounded accent-indigo-600 dark:accent-blue-500 cursor-pointer"
+                onChange={() => setLevel3Selection((cur) => (cur === 'idle_projects' ? null : 'idle_projects'))}
+                className="w-4 h-4 accent-indigo-600 dark:accent-blue-500 cursor-pointer"
               />
               <FolderOpen size={14} className="text-indigo-500 dark:text-blue-400" />
               Idle Projects
             </label>
           </div>
           <p className="text-[11px] text-gray-400 dark:text-slate-500">
-            When checked, the full Project Table / Idle Projects data goes into the report exactly as it stands — nothing is trimmed.
+            Pick at most one — Project Table and Idle Projects can't both be included in the same report. When selected, its full data goes into the report exactly as it stands (nothing trimmed), and Level 2 keyword rankings are left out.
           </p>
         </div>
 
