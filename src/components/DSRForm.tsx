@@ -28,7 +28,11 @@ import { motion } from 'motion/react';
 
 interface DSRFormProps {
   projects: Project[];
-  onSubmit: (works: Omit<ProjectWork, 'id'>[], date: string) => void;
+  // Now returns a Promise<boolean> — true only if the log actually
+  // persisted to the database. The form waits for this before showing the
+  // "Submitted Successfully!" screen, instead of assuming success the
+  // instant it's called.
+  onSubmit: (works: Omit<ProjectWork, 'id'>[], date: string) => Promise<boolean>;
   currentUserEmail: string;
   allowedUsers?: AppUser[];
   onViewLogs?: () => void;
@@ -80,6 +84,8 @@ export default function DSRForm({
   ]);
 
   const [isSuccess, setIsSuccess] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [dropdownSearch, setDropdownSearch] = useState('');
@@ -211,9 +217,10 @@ export default function DSRForm({
     setIsSuccess(false);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setValidationError(null);
+    setSubmitError(null);
 
     if (!selectedDate) {
       setValidationError('Please select the reporting date.');
@@ -366,15 +373,36 @@ export default function DSRForm({
       }
     ];
 
-    // Call submit handler with our clean array
-    onSubmit(cleanWorksList, selectedDate);
-
-    setIsSuccess(true);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    // Call submit handler with our clean array and WAIT for real confirmation
+    // that it saved to the database before showing success. Previously this
+    // fired the request and immediately showed "Submitted Successfully!"
+    // without checking the outcome — if the DB save silently failed, the
+    // user saw success anyway and the entry later vanished from Work Log
+    // History with no explanation.
+    setIsSubmitting(true);
+    try {
+      const saved = await onSubmit(cleanWorksList, selectedDate);
+      if (saved) {
+        setIsSuccess(true);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else {
+        setSubmitError(
+          "This Work Log did NOT save — the database did not confirm it. Nothing was recorded. Please try submitting again, and if it keeps failing, tell your admin."
+        );
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
     <div className="space-y-8">
+      {submitError && !isSuccess && (
+        <div className="bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 text-red-700 dark:text-red-300 rounded-2xl p-4 text-sm font-semibold">
+          {submitError}
+        </div>
+      )}
       {isSuccess ? (
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
@@ -1086,10 +1114,11 @@ export default function DSRForm({
               <button
                 id="work-log-compile-btn"
                 type="submit"
-                className="px-8 py-3.5 bg-indigo-600 dark:bg-blue-600 hover:bg-indigo-700 hover:dark:bg-blue-500 text-white font-bold rounded-xl text-xs transition shadow-sm hover:shadow-md flex items-center gap-2 cursor-pointer grow sm:grow-0 justify-center"
+                disabled={isSubmitting}
+                className="px-8 py-3.5 bg-indigo-600 dark:bg-blue-600 hover:bg-indigo-700 hover:dark:bg-blue-500 text-white font-bold rounded-xl text-xs transition shadow-sm hover:shadow-md flex items-center gap-2 cursor-pointer grow sm:grow-0 justify-center disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 <CheckCircle2 size={16} />
-                Submit Work Log
+                {isSubmitting ? 'Saving…' : 'Submit Work Log'}
               </button>
             </div>
           </form>
