@@ -589,15 +589,39 @@ export async function getSubmissionsDb(): Promise<any[]> {
   const sb = getSupabase();
   if (sb) {
     try {
-      const { data, error } = await sb
-        .from("submissions")
-        .select("*")
-        .order("created_at", { ascending: false });
+      // IMPORTANT: PostgREST/Supabase caps any single .select() at 1000 rows
+      // by default. With no .range() paging, once total submissions across
+      // ALL users crossed 1000, only the newest 1000 rows (globally) came
+      // back — silently cutting off every user's older Work Log history and
+      // making it look like "only the last few days" of data existed. This
+      // loops in pages of 1000 until Supabase returns a page smaller than
+      // the page size, guaranteeing the FULL table (every user, every date,
+      // A to Z) is returned every time. Nothing is deleted or skipped.
+      const PAGE_SIZE = 1000;
+      let page = 0;
+      const allRows: any[] = [];
+      while (true) {
+        const from = page * PAGE_SIZE;
+        const to = from + PAGE_SIZE - 1;
+        const { data, error } = await sb
+          .from("submissions")
+          .select("*")
+          .order("created_at", { ascending: false })
+          .range(from, to);
 
-      if (error) {
-        console.warn("Supabase query error for submissions:", error.message);
-      } else if (data) {
-        return data.map((s: any) => ({
+        if (error) {
+          console.warn("Supabase query error for submissions:", error.message);
+          break;
+        }
+        if (!data || data.length === 0) break;
+
+        allRows.push(...data);
+        if (data.length < PAGE_SIZE) break; // last page reached
+        page += 1;
+      }
+
+      if (allRows.length > 0) {
+        return allRows.map((s: any) => ({
           id: s.id,
           date: s.date,
           userEmail: s.user_email,
