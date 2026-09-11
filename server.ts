@@ -1157,17 +1157,28 @@ app.post("/api/submissions/append", async (req, res) => {
       console.error("Failed to update Task Lineup status from submission:", lineupErr.message);
     }
 
-    await logActivityLocally(userEmail, "DSR Submission", `Submitted Work Log for date ${date} containing ${works.length} project block(s).`);
+    // Respond to the user as soon as the thing they actually care about —
+    // did it save to the DB — is known. Everything below this point used to
+    // run BEFORE the response was sent, which is why submit felt slow:
+    //   1. A full-table getSubmissionsDb() call (every row, every user) was
+    //      built into the response as `list` — but the client never even
+    //      reads that field, so it was pure wasted wait time on every submit.
+    //   2. The Google Sheets append is a real network call to an external
+    //      Google API (often 1-3+ seconds, more if Sheets is slow that day)
+    //      and was awaited inline, blocking the response the whole time.
+    //   3. The local activity-log write was also awaited inline for no
+    //      reason — it doesn't affect whether the submission is valid.
+    // None of these three affect dbSaved, so none of them need to finish
+    // before the user gets their answer. They now run in the background
+    // AFTER the response is sent; the submission itself is already safely
+    // in Supabase by this point regardless of how long they take.
+    res.json({ success: true, dbSaved });
 
-    // Append to Google Sheets
-    try {
-      await appendSubmissionToGoogleSheet(worksWithIds, date, userEmail, createdAt);
-    } catch (sheetErr: any) {
-      console.error("Failed to append to Google Sheets:", sheetErr.message);
-    }
+    logActivityLocally(userEmail, "DSR Submission", `Submitted Work Log for date ${date} containing ${works.length} project block(s).`)
+      .catch((activityErr: any) => console.error("Failed to log DSR submission activity:", activityErr?.message || activityErr));
 
-    const updatedList = await getSubmissionsDb();
-    return res.json({ success: true, dbSaved, list: updatedList });
+    appendSubmissionToGoogleSheet(worksWithIds, date, userEmail, createdAt)
+      .catch((sheetErr: any) => console.error("Failed to append to Google Sheets:", sheetErr?.message || sheetErr));
   } catch (err: any) {
     console.error("POST /api/submissions/append error:", err);
     return res.status(500).json({ error: err.message });
