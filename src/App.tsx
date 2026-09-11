@@ -948,8 +948,18 @@ export default function App() {
     }
   };
 
-  const handleAddDSR = async (worksData: Omit<ProjectWork, 'id'>[], date: string) => {
-    if (!currentUserEmail) return;
+  // Returns true only if the log actually persisted to Supabase (dbSaved).
+  // Previously this fired the request, ALWAYS showed a local optimistic
+  // entry, and never checked the response — so if the Supabase insert
+  // silently failed server-side, the user still saw "Submitted
+  // Successfully!" and the entry briefly appeared, then vanished the moment
+  // syncWithBackend() pulled the real (entry-less) list from the DB. The
+  // user was left thinking it was logged when it never actually saved.
+  // Now: the optimistic entry is only kept if the server confirms dbSaved;
+  // on failure it's rolled back and the caller (DSRForm) is told so it can
+  // show a real error instead of a false "success" screen.
+  const handleAddDSR = async (worksData: Omit<ProjectWork, 'id'>[], date: string): Promise<boolean> => {
+    if (!currentUserEmail) return false;
 
     // Resolve the user's assigned employee name (the correct name as in the sheet schema)
     const resolvedName = getUserDisplayName(currentUserEmail, allowedUsers) || currentUserEmail;
@@ -960,20 +970,21 @@ export default function App() {
       id: `work-sub-${Date.now()}-${index}-${Math.round(Math.random() * 1000)}`,
     }));
 
+    const optimisticId = `dsr-${Date.now()}`;
     const newEntry: DSREntry = {
-      id: `dsr-${Date.now()}`,
+      id: optimisticId,
       date,
       userEmail: currentUserEmail, // Store under the actual unique user email/ID
       works: worksWithIds,
       createdAt: new Date().toISOString(),
     };
 
-    // Save locally immediately
+    // Save locally immediately for a responsive UI
     setEntries((prev) => [newEntry, ...prev]);
 
     // Send to Local Database Server
     try {
-      await fetch('/api/submissions/append', {
+      const res = await fetch('/api/submissions/append', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -984,9 +995,31 @@ export default function App() {
           userEmail: currentUserEmail,
         }),
       });
+
+      let dbSaved = false;
+      if (res.ok) {
+        const payload = await res.json().catch(() => null);
+        dbSaved = !!payload?.dbSaved;
+      }
+
+      if (!dbSaved) {
+        // Roll back the optimistic entry — it never actually made it to
+        // Supabase, so leaving it in local state would make it look
+        // "submitted" in Work Log History when the DB has nothing.
+        setEntries((prev) => prev.filter((e) => e.id !== optimisticId));
+        console.error(`Work Log for ${date} did NOT save to the database (dbSaved=false). Not shown as submitted — please retry.`);
+        return false;
+      }
+
+      // Confirmed saved — pull the authoritative list (includes this entry
+      // under its real server-generated id) so local state matches the DB.
       await syncWithBackend().catch((e) => console.warn(e));
+      return true;
     } catch (err) {
-      console.warn('Backend local database append failed, cached locally:', err);
+      // Network/request failure — same rollback, nothing was persisted.
+      setEntries((prev) => prev.filter((e) => e.id !== optimisticId));
+      console.warn('Backend local database append failed:', err);
+      return false;
     }
   };
 
