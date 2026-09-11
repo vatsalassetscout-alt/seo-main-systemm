@@ -1011,9 +1011,15 @@ export default function App() {
         return false;
       }
 
-      // Confirmed saved — pull the authoritative list (includes this entry
-      // under its real server-generated id) so local state matches the DB.
-      await syncWithBackend().catch((e) => console.warn(e));
+      // Confirmed saved to the DB — that's all the user needs to wait for.
+      // syncWithBackend() re-fetches /api/filters + /api/submissions (now
+      // paginated across the whole table) + /api/alerts, which is exactly
+      // the kind of full-list refresh that shouldn't block the "Submitted
+      // Successfully!" screen. It used to be awaited here, so every submit
+      // sat waiting on a full data reload it didn't need. Now it's fired in
+      // the background: the optimistic local entry already shows correctly,
+      // and the authoritative list quietly settles in a moment later.
+      syncWithBackend().catch((e) => console.warn(e));
       return true;
     } catch (err) {
       // Network/request failure — same rollback, nothing was persisted.
