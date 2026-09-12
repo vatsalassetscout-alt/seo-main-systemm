@@ -304,6 +304,11 @@ export default function App() {
     }).catch(err => console.warn("Failed bulk deleting alerts on backend:", err));
   };
 
+  // Holds the real reason the last Work Log submission failed to save to the
+  // database (if it did), so the form can show the actual cause instead of a
+  // generic message when something goes wrong.
+  const [lastSubmitError, setLastSubmitError] = useState<string | null>(null);
+
   const [entries, setEntries] = useState<DSREntry[]>(() => {
     const saved = localStorage.getItem('dsr_entries');
     if (!saved) return INITIAL_DSR_ENTRIES;
@@ -997,9 +1002,14 @@ export default function App() {
       });
 
       let dbSaved = false;
+      let dbError: string | null = null;
       if (res.ok) {
         const payload = await res.json().catch(() => null);
         dbSaved = !!payload?.dbSaved;
+        dbError = payload?.dbError || null;
+      } else {
+        const errPayload = await res.json().catch(() => null);
+        dbError = errPayload?.error || `Server responded with ${res.status}.`;
       }
 
       if (!dbSaved) {
@@ -1007,9 +1017,12 @@ export default function App() {
         // Supabase, so leaving it in local state would make it look
         // "submitted" in Work Log History when the DB has nothing.
         setEntries((prev) => prev.filter((e) => e.id !== optimisticId));
-        console.error(`Work Log for ${date} did NOT save to the database (dbSaved=false). Not shown as submitted — please retry.`);
+        setLastSubmitError(dbError);
+        console.error(`Work Log for ${date} did NOT save to the database: ${dbError || "unknown reason"}. Not shown as submitted — please retry.`);
         return false;
       }
+
+      setLastSubmitError(null);
 
       // Confirmed saved to the DB — that's all the user needs to wait for.
       // syncWithBackend() re-fetches /api/filters + /api/submissions (now
@@ -1021,9 +1034,10 @@ export default function App() {
       // and the authoritative list quietly settles in a moment later.
       syncWithBackend().catch((e) => console.warn(e));
       return true;
-    } catch (err) {
+    } catch (err: any) {
       // Network/request failure — same rollback, nothing was persisted.
       setEntries((prev) => prev.filter((e) => e.id !== optimisticId));
+      setLastSubmitError(err?.message || 'Network request failed.');
       console.warn('Backend local database append failed:', err);
       return false;
     }
@@ -1917,6 +1931,7 @@ export default function App() {
                   onSendAdminMessage={handleSendUserMessage}
                   preFill={assignmentPreFill}
                   onClearPreFill={() => setAssignmentPreFill(null)}
+                  submitErrorDetail={lastSubmitError}
                 />
               )}
 
