@@ -1661,8 +1661,16 @@ export async function generateLineupForDate(
   dateStr: string,
   projects: any[],
   users: { email: string; name: string; paused?: boolean; role?: string }[],
-  force: boolean = false
-): Promise<{ generated: boolean; reason?: string; count: number; date: string }> {
+  force: boolean = false,
+  // Internal-use optimization: when the caller has ALREADY just confirmed
+  // (via its own getTaskAssignmentsDb call) that no rows exist yet for this
+  // date, it can pass true here to skip this function's own identical
+  // existing-check query below. Defaults to false, so every existing call
+  // site (admin "Start/Regenerate Cycle", restore, trim, etc.) keeps doing
+  // its own safe existing-check exactly as before — only
+  // ensureTodayLineupIfEngineActive opts into this.
+  assumeNoExisting: boolean = false
+): Promise<{ generated: boolean; reason?: string; count: number; date: string; rows: any[] }> {
   // Admin accounts are logins, not team members doing SEO work — they
   // should never receive a Task Lineup of their own. Without this, an
   // admin's account (role: 'admin' in app_users) was being treated as just
@@ -1681,12 +1689,12 @@ export async function generateLineupForDate(
 
   const dow = new Date(dateStr + "T00:00:00Z").getUTCDay();
   if (dow === 0) {
-    return { generated: false, reason: "Sundays are a rest day - no lineup is generated.", count: 0, date: dateStr };
+    return { generated: false, reason: "Sundays are a rest day - no lineup is generated.", count: 0, date: dateStr, rows: [] };
   }
 
-  const existing = await getTaskAssignmentsDb({ date: dateStr });
+  const existing = assumeNoExisting ? [] : await getTaskAssignmentsDb({ date: dateStr });
   if (existing.length > 0 && !force) {
-    return { generated: false, reason: "A lineup already exists for this date.", count: existing.length, date: dateStr };
+    return { generated: false, reason: "A lineup already exists for this date.", count: existing.length, date: dateStr, rows: existing };
   }
   if (existing.length > 0 && force) {
     await deleteTaskAssignmentsForDateDb(dateStr);
@@ -1797,11 +1805,17 @@ export async function generateLineupForDate(
     });
   });
 
+  let insertOk = true;
   if (toInsert.length > 0) {
-    await insertTaskAssignmentsBulkDb(toInsert);
+    insertOk = await insertTaskAssignmentsBulkDb(toInsert);
   }
 
-  return { generated: true, count: toInsert.length, date: dateStr };
+  // `rows` only reflects what's actually confirmed saved — if the bulk
+  // insert reported failure, callers that display `rows` directly (instead
+  // of re-querying) must see an empty list, not rows that only exist in
+  // memory. `generated`/`count` are left exactly as they were before (still
+  // reporting the attempted count) so no existing caller's behavior changes.
+  return { generated: true, count: toInsert.length, date: dateStr, rows: insertOk ? toInsert : [] };
 }
 
 // Deletes ONE user's still-Pending assignments for ONE date (today, in
@@ -2089,6 +2103,15 @@ export async function setLineupEngineStateDb(patch: { active?: boolean; paused?:
   }
 }
 
+// Guards ensureTodayLineupIfEngineActive against the case where two page
+// loads land at the exact same instant, both see "nothing generated yet",
+// and both start generating today's lineup independently. Keyed by date —
+// the first caller starts the work and stores its promise here; anyone
+// else who arrives while it's still running awaits that SAME promise
+// instead of kicking off a second, redundant generation run. Cleared once
+// the promise settles either way.
+const inFlightAutoGeneration = new Map<string, ReturnType<typeof generateLineupForDate>>();
+
 // Called on server startup (interval) and opportunistically whenever the
 // Task Lineup screen is loaded. If the engine has been started, isn't
 // paused, and today's lineup doesn't exist yet (and today isn't a Sunday),
@@ -2111,14 +2134,28 @@ export async function ensureTodayLineupIfEngineActive(): Promise<{ date: string;
     if (new Date(today + "T00:00:00Z").getUTCDay() === 0) return null; // Sunday rest day
     const existing = await getTaskAssignmentsDb({ date: today });
     if (existing.length > 0) return { date: today, list: existing };
-    const projects = await getProjectsDb();
-    const users = await getUsersDb();
-    await generateLineupForDate(today, projects, users, false);
-    // Re-fetch once after generating so the caller gets the freshly-created
-    // rows back (generateLineupForDate only returns a count, not the rows).
-    const generated = await getTaskAssignmentsDb({ date: today });
-    return { date: today, list: generated };
+
+    let genPromise = inFlightAutoGeneration.get(today);
+    if (!genPromise) {
+      const [projects, users] = await Promise.all([getProjectsDb(), getUsersDb()]);
+      // We just confirmed above that nothing exists yet for today, so tell
+      // generateLineupForDate to skip its own repeat of that same check
+      // (assumeNoExisting) — and use the rows it hands back directly instead
+      // of re-querying Supabase a third time for data we just wrote.
+      genPromise = generateLineupForDate(today, projects, users, false, true);
+      inFlightAutoGeneration.set(today, genPromise);
+      genPromise.finally(() => {
+        // Only clear the slot if it's still OUR promise — guards against a
+        // newer generation call (e.g. next day) having already replaced it.
+        if (inFlightAutoGeneration.get(today) === genPromise) {
+          inFlightAutoGeneration.delete(today);
+        }
+      });
+    }
+    const result = await genPromise;
+    return { date: today, list: result.rows };
   } catch (err) {
+
     console.error("ensureTodayLineupIfEngineActive error:", err);
     return null;
   }
