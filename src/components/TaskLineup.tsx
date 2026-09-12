@@ -530,58 +530,6 @@ export default function TaskLineup({
     }
   };
 
-  const handleRestoreToday = async () => {
-    setEngineBusy(true);
-    setGenerateMsg(null);
-    try {
-      const res = await fetch('/api/task-lineup/restore', {
-        method: 'POST',
-        headers: authHeaders,
-        body: JSON.stringify({ date: activeDate }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || 'Failed to restore the lineup.');
-      const count = Array.isArray(data.restoredUsers) ? data.restoredUsers.length : 0;
-      setGenerateMsg(
-        count > 0
-          ? `Restored ${count} user${count === 1 ? '' : 's'}' lineup for ${activeDate} (${data.totalInserted} project${data.totalInserted === 1 ? '' : 's'}).`
-          : `Nothing to restore for ${activeDate} — everyone already has a lineup.`
-      );
-      await Promise.all([loadLineup(activeDate), loadPendingAllUsers()]);
-    } catch (err: any) {
-      console.error('Failed to restore lineup:', err);
-      setGenerateMsg(`Couldn't restore the lineup: ${err?.message || 'check server logs.'}`);
-    } finally {
-      setEngineBusy(false);
-    }
-  };
-
-  const handleTrimToday = async () => {
-    setEngineBusy(true);
-    setGenerateMsg(null);
-    try {
-      const res = await fetch('/api/task-lineup/trim', {
-        method: 'POST',
-        headers: authHeaders,
-        body: JSON.stringify({ date: activeDate }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || 'Failed to trim the lineup.');
-      const count = Array.isArray(data.trimmedUsers) ? data.trimmedUsers.length : 0;
-      setGenerateMsg(
-        count > 0
-          ? `Trimmed ${data.totalRemoved} extra project${data.totalRemoved === 1 ? '' : 's'} across ${count} user${count === 1 ? '' : 's'} for ${activeDate} — everyone's back to 15.`
-          : `Nothing to trim for ${activeDate} — nobody's over the daily cap.`
-      );
-      await Promise.all([loadLineup(activeDate), loadPendingAllUsers()]);
-    } catch (err: any) {
-      console.error('Failed to trim lineup:', err);
-      setGenerateMsg(`Couldn't trim the lineup: ${err?.message || 'check server logs.'}`);
-    } finally {
-      setEngineBusy(false);
-    }
-  };
-
   const handleDelete = async () => {
     const confirmed = window.confirm(
       `Full reset: this deletes EVERY task assignment for EVERY user on EVERY date (not just ${activeDate}), clears Yesterday Pending and Total Pending back to 0, and stops the cycle — you'll need to hit "Start Cycle" again afterwards. This cannot be undone. Continue?`
