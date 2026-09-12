@@ -41,6 +41,10 @@ interface DSRFormProps {
   onSendAdminMessage?: (message: string) => void;
   preFill?: { projectId: string; date: string } | null;
   onClearPreFill?: () => void;
+  // The real reason the last submit failed to save to the database (if any),
+  // straight from the server, so the person (or their admin) can see exactly
+  // what went wrong instead of only a generic "didn't save" message.
+  submitErrorDetail?: string | null;
 }
 
 export default function DSRForm({
@@ -54,6 +58,7 @@ export default function DSRForm({
   onSendAdminMessage,
   preFill,
   onClearPreFill,
+  submitErrorDetail,
 }: DSRFormProps) {
   const [selectedDate, setSelectedDate] = useState<string>(
     new Date().toISOString().split('T')[0]
@@ -387,7 +392,9 @@ export default function DSRForm({
         window.scrollTo({ top: 0, behavior: 'smooth' });
       } else {
         setSubmitError(
-          "This Work Log did NOT save — the database did not confirm it. Nothing was recorded. Please try submitting again, and if it keeps failing, tell your admin."
+          submitErrorDetail
+            ? `This Work Log did NOT save — the database rejected it: "${submitErrorDetail}". Nothing was recorded. Please try again, and if it keeps failing, share this exact message with your admin.`
+            : "This Work Log did NOT save — the database did not confirm it. Nothing was recorded. Please try submitting again, and if it keeps failing, tell your admin."
         );
         window.scrollTo({ top: 0, behavior: 'smooth' });
       }
