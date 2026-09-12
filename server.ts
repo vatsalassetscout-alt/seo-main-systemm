@@ -44,8 +44,6 @@ import {
   getTaskAssignmentsDb,
   generateLineupForDate,
   regenerateLineupForUserOnDateDb,
-  backfillMissingLineupForDateDb,
-  trimLineupToDailyCapForDateDb,
   markTaskAssignmentDoneDb,
   markTaskAssignmentPendingDb,
   deleteTaskAssignmentsForDateDb,
@@ -304,12 +302,6 @@ app.post("/api/auth/login-verify", async (req, res) => {
     if (dbResult) {
       logActivityLocally(id.toLowerCase(), "User Login", `Successfully logged in as ${dbResult.role === 'admin' ? 'Admin' : 'Standard Employee'}`);
       return res.json({ success: true, role: dbResult.role, name: dbResult.name });
-    }
-
-    const legacy = LEGACY_CREDENTIALS[id];
-    if (legacy && legacy.passkey === String(passkey).trim()) {
-      logActivityLocally(id.toLowerCase(), "User Login", `Successfully logged in as ${legacy.role === 'admin' ? 'Admin' : 'Standard Employee'} (legacy credentials — run the app_users SQL migration)`);
-      return res.json({ success: true, role: legacy.role, name: legacy.role === 'admin' ? 'Admin' : `User ${id}` });
     }
 
     return res.status(401).json({ success: false, error: "Invalid User ID or Passkey." });
@@ -992,40 +984,6 @@ app.post("/api/task-lineup/pause", requireAdmin, async (req, res) => {
     return res.json({ success: ok });
   } catch (err: any) {
     console.error("POST /api/task-lineup/pause error:", err);
-    return res.status(500).json({ error: err.message });
-  }
-});
-
-// POST one-time repair for the old Pause / Stop Cycle bug: refills TODAY's
-// (or a given date's) lineup for every eligible, non-paused user who
-// currently has ZERO assignment rows for that date — i.e. whoever's lineup
-// got hard-deleted by the old behavior. Anyone who already has rows for the
-// date (submitted or still pending) is left completely untouched. Safe to
-// call more than once — it's a no-op for anyone already restored.
-app.post("/api/task-lineup/restore", requireAdmin, async (req, res) => {
-  try {
-    const date = req.body?.date || new Date().toISOString().slice(0, 10);
-    const [projects, users] = await Promise.all([getProjectsDb(), getUsersDb()]);
-    const result = await backfillMissingLineupForDateDb(date, projects, users);
-    return res.json({ success: true, date, ...result });
-  } catch (err: any) {
-    console.error("POST /api/task-lineup/restore error:", err);
-    return res.status(500).json({ error: err.message });
-  }
-});
-
-// POST one-time repair: trims any user back down to DAILY_LINEUP_CAP_PER_USER
-// (15) for a given date if the Restore Lineup flow over-added and pushed
-// them past it (e.g. showing 30 instead of 15). Removes the MOST RECENTLY
-// CREATED rows first — i.e. the "added later" ones — and never touches a
-// row already marked Done.
-app.post("/api/task-lineup/trim", requireAdmin, async (req, res) => {
-  try {
-    const date = req.body?.date || new Date().toISOString().slice(0, 10);
-    const result = await trimLineupToDailyCapForDateDb(date);
-    return res.json({ success: true, date, ...result });
-  } catch (err: any) {
-    console.error("POST /api/task-lineup/trim error:", err);
     return res.status(500).json({ error: err.message });
   }
 });
