@@ -92,6 +92,11 @@ CREATE TABLE IF NOT EXISTS submissions (
   works JSONB DEFAULT '[]'::jsonb,
   created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now())
 );
+-- Older databases created before the admin "status" workflow (Pending/
+-- Approved/Needs Revision/Remark) was added may be missing this column,
+-- which used to make every single Work Log submission silently fail to
+-- save. Safe to run any number of times.
+ALTER TABLE submissions ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'Pending';
 
 -- 3. Alerts / Announcements Table
 CREATE TABLE IF NOT EXISTS alerts (
@@ -666,33 +671,84 @@ export async function saveSubmissionsBulkDb(submissions: any[]): Promise<boolean
   return false;
 }
 
-export async function appendSubmissionDb(entry: any): Promise<boolean> {
+// Returns { ok, error } instead of a bare boolean so the caller (and, from
+// there, the client that just clicked "Submit") can see the REAL reason a
+// save failed instead of a generic "didn't save" message. This was needed
+// because a submission could fail for very different reasons (a transient
+// network blip to Supabase vs. the table genuinely rejecting the row) and
+// previously all of them looked identical from the outside.
+export async function appendSubmissionDb(entry: any): Promise<{ ok: boolean; error?: string }> {
   const sb = getSupabase();
-  if (sb) {
+  if (!sb) {
+    return { ok: false, error: "Supabase is not configured on the server." };
+  }
+
+  const buildRow = (includeStatus: boolean) => {
+    const row: any = {
+      id: entry.id,
+      date: entry.date,
+      user_email: entry.userEmail,
+      works: entry.works || [],
+      created_at: entry.createdAt,
+    };
+    if (includeStatus) row.status = entry.status || 'Pending';
+    return row;
+  };
+
+  // A single Supabase insert attempt. Returns the raw error (if any) so the
+  // caller can decide whether to retry.
+  const attemptInsert = async (includeStatus: boolean) => {
+    const { error } = await sb.from("submissions").insert(buildRow(includeStatus));
+    return error;
+  };
+
+  let lastError: any = null;
+
+  // Up to 2 tries total for ordinary (transient) failures — a dropped
+  // connection or a momentary Supabase hiccup shouldn't cost the user their
+  // Work Log entry when a simple retry would have gone through fine.
+  for (let attempt = 1; attempt <= 2; attempt++) {
     try {
-      const row = {
-        id: entry.id,
-        date: entry.date,
-        user_email: entry.userEmail,
-        works: entry.works || [],
-        created_at: entry.createdAt,
-        status: entry.status || 'Pending'
-      };
+      const error = await attemptInsert(true);
+      if (!error) return { ok: true };
 
-      const { error } = await sb
-        .from("submissions")
-        .insert(row);
+      lastError = error;
+      const msg = String(error.message || "");
 
-      if (error) {
-        console.warn("Supabase append submission failed:", error.message);
-        return false;
+      // Some Supabase projects' "submissions" table predates the "status"
+      // column being added to the app. In that case every insert here would
+      // fail forever with "Could not find the 'status' column..." even
+      // though nothing is actually wrong with the submission itself. Detect
+      // that specific case and immediately retry once WITHOUT the status
+      // field, rather than losing the whole Work Log entry over one
+      // optional column.
+      const isMissingStatusColumn =
+        error.code === "PGRST204" ||
+        (msg.toLowerCase().includes("status") && msg.toLowerCase().includes("column"));
+
+      if (isMissingStatusColumn) {
+        const fallbackError = await attemptInsert(false);
+        if (!fallbackError) return { ok: true };
+        lastError = fallbackError;
       }
-      return true;
-    } catch (err) {
-      console.error("Supabase append submission exception:", err);
+
+      console.warn(`Supabase append submission failed (attempt ${attempt}):`, {
+        message: error.message,
+        code: (error as any).code,
+        details: (error as any).details,
+        hint: (error as any).hint,
+      });
+
+      // Brief backoff before the one retry for transient errors only.
+      if (attempt === 1) await new Promise((r) => setTimeout(r, 400));
+    } catch (err: any) {
+      lastError = err;
+      console.error(`Supabase append submission exception (attempt ${attempt}):`, err);
+      if (attempt === 1) await new Promise((r) => setTimeout(r, 400));
     }
   }
-  return false;
+
+  return { ok: false, error: lastError?.message || "Unknown database error." };
 }
 
 export async function updateSubmissionStatusDb(submissionId: string, status: string): Promise<boolean> {
