@@ -263,6 +263,12 @@ export default function TaskLineup({
   const [date, setDate] = useState<string>(''); // optional filter — empty means "just show the current lineup"
   const [assignments, setAssignments] = useState<TaskAssignment[]>([]);
   const [loading, setLoading] = useState(false);
+  // Set only on a 401 from GET /api/task-lineup (missing/stale identity
+  // header) — an actually-empty lineup is a normal 200 with an empty list
+  // and does NOT set this. Lets the UI tell "genuinely nothing assigned"
+  // apart from "your session needs a refresh" instead of showing the same
+  // ambiguous empty-state message for both.
+  const [lineupAuthError, setLineupAuthError] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
   const [generateMsg, setGenerateMsg] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -315,6 +321,12 @@ export default function TaskLineup({
     try {
       const res = await fetch(`/api/task-lineup?date=${encodeURIComponent(d)}`, { headers: authHeaders });
       const data = await res.json();
+      if (res.status === 401) {
+        setLineupAuthError(typeof data?.error === 'string' ? data.error : 'Your session needs a refresh — please log in again.');
+        setAssignments([]);
+        return;
+      }
+      setLineupAuthError(null);
       setAssignments(Array.isArray(data.assignments) ? data.assignments : []);
     } catch (err) {
       console.error('Failed to load Task Lineup:', err);
@@ -936,6 +948,8 @@ export default function TaskLineup({
               </div>
               {loading ? (
                 <p className="px-5 py-6 text-xs font-bold text-gray-400 dark:text-slate-500">Loading…</p>
+              ) : lineupAuthError ? (
+                <p className="px-5 py-6 text-xs font-bold text-red-600 dark:text-red-400">{lineupAuthError}</p>
               ) : myAssignments.length === 0 ? (
                 <p className="px-5 py-6 text-xs font-bold text-gray-400 dark:text-slate-500">No tasks assigned to you for this date yet.</p>
               ) : (
