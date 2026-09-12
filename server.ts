@@ -1177,7 +1177,7 @@ app.post("/api/submissions/append", async (req, res) => {
     // Both are still awaited before responding, so by the time the success
     // screen shows and the user taps "Task Lineup", the flip to "Done" has
     // already landed and the very next fetch reflects it correctly.
-    const [dbSaved] = await Promise.all([
+    const [appendResult] = await Promise.all([
       appendSubmissionDb(newEntry),
 
       // Flip any Task Lineup assignment(s) covering the same project/user/
@@ -1209,8 +1209,10 @@ app.post("/api/submissions/append", async (req, res) => {
       })(),
     ]);
 
+    const dbSaved = appendResult.ok;
+
     if (!dbSaved) {
-      console.error(`Submission "${submissionId}" was NOT saved to Supabase — check server logs for the underlying database error. It only exists in the submitter's local browser state right now.`);
+      console.error(`Submission "${submissionId}" was NOT saved to Supabase: ${appendResult.error || "unknown error"}. It only exists in the submitter's local browser state right now.`);
     }
 
     // Respond to the user as soon as the thing they actually care about —
@@ -1228,7 +1230,7 @@ app.post("/api/submissions/append", async (req, res) => {
     // before the user gets their answer. They now run in the background
     // AFTER the response is sent; the submission itself is already safely
     // in Supabase by this point regardless of how long they take.
-    res.json({ success: true, dbSaved });
+    res.json({ success: true, dbSaved, dbError: dbSaved ? undefined : (appendResult.error || "Unknown database error.") });
 
     logActivityLocally(userEmail, "DSR Submission", `Submitted Work Log for date ${date} containing ${works.length} project block(s).`)
       .catch((activityErr: any) => console.error("Failed to log DSR submission activity:", activityErr?.message || activityErr));
