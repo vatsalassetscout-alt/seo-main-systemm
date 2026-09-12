@@ -3299,3 +3299,14 @@ async function startServer() {
 startServer();
 
 export default app;
+// Keep-alive: server khud ko periodically ping karega
+const SELF_URL = process.env.RENDER_EXTERNAL_URL || 'https://seo-main-systemm.onrender.com/';
+
+if (process.env.NODE_ENV === 'production') {
+  setInterval(() => {
+    fetch(`${SELF_URL}/health`)
+      .then(() => console.log('Keep-alive ping sent'))
+      .catch((err) => console.error('Keep-alive ping failed:', err.message));
+  }, 10 * 60 * 1000); // har 10 minute
+}
+app.get('/health', (req, res) => res.status(200).send('OK'));
