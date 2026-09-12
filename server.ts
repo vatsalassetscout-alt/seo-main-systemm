@@ -65,6 +65,19 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// A single unhandled promise rejection or a thrown error outside an Express
+// route handler (e.g. inside the setInterval background job further down)
+// would otherwise crash the whole Node process — and on Render that shows
+// up to every user as a 502/503 until the platform notices and restarts it.
+// Logging and surviving instead of dying keeps one bad background call from
+// taking the entire app down.
+process.on("unhandledRejection", (reason) => {
+  console.error("Unhandled promise rejection (server kept alive):", reason);
+});
+process.on("uncaughtException", (err) => {
+  console.error("Uncaught exception (server kept alive):", err);
+});
+
 app.use(express.json());
 
 // User email authentication mapping
@@ -723,6 +736,12 @@ app.get("/api/filters", async (req, res) => {
 // GET today's (or any given date's) lineup. Admins get everyone's; a
 // non-admin only ever gets their own rows regardless of what's asked for.
 app.get("/api/task-lineup", async (req, res) => {
+  // Never let a browser/proxy cache this — it's asked for with the exact
+  // same URL every time the tab opens, and a cached empty response (e.g.
+  // from the moment before today's lineup finished generating) would
+  // otherwise keep showing "No tasks assigned" until a hard refresh forced
+  // a real network round trip.
+  res.set("Cache-Control", "no-store");
   try {
     const date = typeof req.query.date === "string" && req.query.date ? req.query.date : new Date().toISOString().slice(0, 10);
     const clientUserEmail = req.headers["x-user-email"];
@@ -1151,33 +1170,47 @@ app.post("/api/submissions/append", async (req, res) => {
       createdAt
     };
 
-    const dbSaved = await appendSubmissionDb(newEntry);
+    // These two writes touch different tables and don't depend on each
+    // other's result, so they run concurrently instead of one-after-another
+    // — this is what makes submit feel instant instead of waiting out two
+    // sequential round trips to Supabase before the user sees anything.
+    // Both are still awaited before responding, so by the time the success
+    // screen shows and the user taps "Task Lineup", the flip to "Done" has
+    // already landed and the very next fetch reflects it correctly.
+    const [dbSaved] = await Promise.all([
+      appendSubmissionDb(newEntry),
+
+      // Flip any Task Lineup assignment(s) covering the same project/user/
+      // date to "Done" now that a Work Log actually came in for it.
+      // Assignments are generated under a person's CANONICAL email (see
+      // buildCanonicalEmailMap), so if this submitter is logged in under a
+      // different (non-canonical) duplicate account email, matching on the
+      // raw userEmail would silently miss the row and the admin's calendar
+      // would keep showing "Not Submitted" forever. Resolve to canonical
+      // first so the flip always lands on the right row. Wrapped in its
+      // own try/catch so a lineup-side hiccup never fails the submission
+      // itself — the work log is still safely saved either way.
+      (async () => {
+        try {
+          const usersForCanonical = await getUsersDb();
+          const canonicalMapForSubmission = buildCanonicalEmailMap(usersForCanonical);
+          const canonicalSubmitterEmail = resolveCanonicalEmail(userEmail, canonicalMapForSubmission);
+
+          const seenProjectIds = new Set<string>();
+          for (const w of worksWithIds) {
+            if (w.projectId && !seenProjectIds.has(w.projectId)) {
+              seenProjectIds.add(w.projectId);
+              await markTaskAssignmentDoneDb(date, canonicalSubmitterEmail, w.projectId);
+            }
+          }
+        } catch (lineupErr: any) {
+          console.error("Failed to update Task Lineup status from submission:", lineupErr.message);
+        }
+      })(),
+    ]);
+
     if (!dbSaved) {
       console.error(`Submission "${submissionId}" was NOT saved to Supabase — check server logs for the underlying database error. It only exists in the submitter's local browser state right now.`);
-    }
-
-    // Flip any Task Lineup assignment(s) covering the same project/user/date
-    // to "Done" now that a Work Log actually came in for it. Assignments
-    // are generated under a person's CANONICAL email (see
-    // buildCanonicalEmailMap), so if this submitter is logged in under a
-    // different (non-canonical) duplicate account email, matching on the
-    // raw userEmail would silently miss the row and the admin's calendar
-    // would keep showing "Not Submitted" forever. Resolve to canonical
-    // first so the flip always lands on the right row.
-    try {
-      const usersForCanonical = await getUsersDb();
-      const canonicalMapForSubmission = buildCanonicalEmailMap(usersForCanonical);
-      const canonicalSubmitterEmail = resolveCanonicalEmail(userEmail, canonicalMapForSubmission);
-
-      const seenProjectIds = new Set<string>();
-      for (const w of worksWithIds) {
-        if (w.projectId && !seenProjectIds.has(w.projectId)) {
-          seenProjectIds.add(w.projectId);
-          await markTaskAssignmentDoneDb(date, canonicalSubmitterEmail, w.projectId);
-        }
-      }
-    } catch (lineupErr: any) {
-      console.error("Failed to update Task Lineup status from submission:", lineupErr.message);
     }
 
     // Respond to the user as soon as the thing they actually care about —
