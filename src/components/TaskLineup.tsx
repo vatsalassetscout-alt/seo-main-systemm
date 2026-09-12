@@ -316,20 +316,37 @@ export default function TaskLineup({
     'x-user-role': isAdmin ? 'admin' : 'user',
   }), [currentUserEmail, isAdmin]);
 
-  const loadLineup = useCallback(async (d: string) => {
+  // Returns the assignments array it just fetched (or null on auth/network
+  // failure) so callers that need to know "did this come back empty" — like
+  // the first-load retry below — don't have to read back a state value that
+  // may not have committed yet.
+  const loadLineup = useCallback(async (d: string): Promise<TaskAssignment[] | null> => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/task-lineup?date=${encodeURIComponent(d)}`, { headers: authHeaders });
+      // `no-store` matters here: this same URL (same date, same headers) is
+      // requested every time the tab is opened, and without an explicit
+      // directive some browsers/proxies are free to serve a cached copy of
+      // an earlier — possibly empty — response instead of hitting the
+      // server again. That's what made a freshly-generated lineup show as
+      // "No tasks assigned to you for this date yet." until a hard refresh
+      // forced a real network round trip.
+      const res = await fetch(`/api/task-lineup?date=${encodeURIComponent(d)}`, {
+        headers: authHeaders,
+        cache: 'no-store',
+      });
       const data = await res.json();
       if (res.status === 401) {
         setLineupAuthError(typeof data?.error === 'string' ? data.error : 'Your session needs a refresh — please log in again.');
         setAssignments([]);
-        return;
+        return null;
       }
       setLineupAuthError(null);
-      setAssignments(Array.isArray(data.assignments) ? data.assignments : []);
+      const list = Array.isArray(data.assignments) ? data.assignments : [];
+      setAssignments(list);
+      return list;
     } catch (err) {
       console.error('Failed to load Task Lineup:', err);
+      return null;
     } finally {
       setLoading(false);
     }
@@ -404,8 +421,28 @@ export default function TaskLineup({
   }, [authHeaders]);
 
   useEffect(() => {
-    loadLineup(activeDate);
+    let cancelled = false;
+    (async () => {
+      const first = await loadLineup(activeDate);
+      // One soft, silent retry — only when the very first fetch for this
+      // date came back genuinely empty. This covers the narrow window
+      // right after a Work Log submit where the user jumps straight to
+      // Task Lineup faster than the server's auto-assignment engine
+      // finishes writing today's rows: the immediate request can land a
+      // beat too early and see nothing, even though the same request a
+      // moment later (e.g. after a manual page refresh) would find the
+      // lineup that had already finished generating by then. Re-checking
+      // once, a short beat later, closes that gap without a full reload —
+      // and does nothing extra when the empty state is genuinely correct.
+      if (!cancelled && first && first.length === 0) {
+        await new Promise((r) => setTimeout(r, 1500));
+        if (!cancelled) await loadLineup(activeDate);
+      }
+    })();
     if (!isAdmin) loadPendingSummary();
+    return () => {
+      cancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeDate, loadLineup, isAdmin, loadPendingSummary]);
 
