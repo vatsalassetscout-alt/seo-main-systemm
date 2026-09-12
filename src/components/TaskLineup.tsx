@@ -657,9 +657,23 @@ export default function TaskLineup({
       .sort((a, b) => numericIdCompare(a[1], b[1]));
   }, [assignments, allowedUsers]);
 
+  // For a non-admin, GET /api/task-lineup has ALREADY scoped `assignments`
+  // down to this user's own rows server-side — and it does that using the
+  // canonical email (duplicate-account aware), not whatever raw address
+  // this login happens to be under. Re-filtering here by a straight
+  // `a.userEmail === currentUserEmail` string match used to silently wipe
+  // the list back down to empty for anyone logged in under a secondary/
+  // alias email, since their row's `userEmail` is the *canonical* address,
+  // not the alias — that's what showed "No tasks assigned to you for this
+  // date yet." even though the lineup existed. For admins, `assignments`
+  // holds every user's rows and this filter is genuinely still needed to
+  // isolate "my own" tasks. Sorting is kept either way for display order.
   const myAssignments = useMemo(
-    () => sortPendingFirst(assignments.filter(a => a.userEmail.trim().toLowerCase() === (currentUserEmail || '').trim().toLowerCase())),
-    [assignments, currentUserEmail]
+    () =>
+      isAdmin
+        ? sortPendingFirst(assignments.filter(a => a.userEmail.trim().toLowerCase() === (currentUserEmail || '').trim().toLowerCase()))
+        : sortPendingFirst(assignments),
+    [assignments, currentUserEmail, isAdmin]
   );
 
   // Groups `myAssignments` into X1 -> X2 -> X3 -> X4 -> X5 buckets (any
