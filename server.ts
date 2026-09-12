@@ -728,6 +728,16 @@ app.get("/api/task-lineup", async (req, res) => {
     const clientUserEmail = req.headers["x-user-email"];
     const clientUserRole = req.headers["x-user-role"];
 
+    // Fail fast, before doing any generation/DB work: a non-admin request
+    // with no identity header can't be scoped to "their own" rows at all,
+    // so there's nothing safe to answer. Returning a clear 401 here (instead
+    // of silently answering with an empty list) means the one genuinely
+    // broken case — a stale session losing its header — surfaces as an
+    // obvious "please log in again", not as a confusing "no lineup today".
+    if (clientUserRole !== "admin" && !(typeof clientUserEmail === "string" && clientUserEmail)) {
+      return res.status(401).json({ error: "Missing user identity — please log in again.", date, assignments: [] });
+    }
+
     // Opportunistic auto-generate: if the engine has been started and isn't
     // paused, make sure today's lineup exists before answering. When the
     // requested date is today, reuse the rows it already looked up instead
@@ -757,8 +767,11 @@ app.get("/api/task-lineup", async (req, res) => {
     );
     list = list.filter((a: any) => !adminEmails.has(a.userEmail));
 
-    if (clientUserRole !== "admin" && typeof clientUserEmail === "string" && clientUserEmail) {
-      const emailLower = resolveCanonicalEmail(clientUserEmail, canonicalMap);
+    // The early guard above already guarantees a non-admin request only
+    // ever reaches here WITH a real identity header, so this can scope
+    // straight to "is it admin or not" without re-checking clientUserEmail.
+    if (clientUserRole !== "admin") {
+      const emailLower = resolveCanonicalEmail(clientUserEmail as string, canonicalMap);
       list = list.filter((a: any) => a.userEmail === emailLower);
     }
     return res.json({ date, assignments: list });
@@ -783,6 +796,11 @@ app.get("/api/task-lineup/month-summary", async (req, res) => {
     const clientUserEmail = req.headers["x-user-email"];
     const clientUserRole = req.headers["x-user-role"];
 
+    // Same fail-fast identity guard as GET /api/task-lineup above.
+    if (clientUserRole !== "admin" && !(typeof clientUserEmail === "string" && clientUserEmail)) {
+      return res.status(401).json({ error: "Missing user identity — please log in again.", year, month, days: {} });
+    }
+
     const dateFrom = `${year}-${String(month).padStart(2, "0")}-01`;
     const lastDay = new Date(year, month, 0).getDate();
     const dateTo = `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
@@ -798,8 +816,10 @@ app.get("/api/task-lineup/month-summary", async (req, res) => {
     );
     list = list.filter((a: any) => !adminEmails.has(a.userEmail));
 
-    if (clientUserRole !== "admin" && typeof clientUserEmail === "string" && clientUserEmail) {
-      const emailLower = resolveCanonicalEmail(clientUserEmail, canonicalMap);
+    // Guarded above, so a non-admin here is guaranteed to have a real
+    // identity header.
+    if (clientUserRole !== "admin") {
+      const emailLower = resolveCanonicalEmail(clientUserEmail as string, canonicalMap);
       list = list.filter((a: any) => a.userEmail === emailLower);
     }
 
