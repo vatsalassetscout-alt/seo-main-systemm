@@ -2094,19 +2094,33 @@ export async function setLineupEngineStateDb(patch: { active?: boolean; paused?:
 // paused, and today's lineup doesn't exist yet (and today isn't a Sunday),
 // this generates it — so nobody ever has to remember to click "Start Cycle"
 // again after the very first time.
-export async function ensureTodayLineupIfEngineActive(): Promise<void> {
+//
+// Returns today's date plus the assignment rows for today whenever it
+// actually looked them up (either found them already there, or just
+// generated them) — so a caller like GET /api/task-lineup, which is about
+// to fetch that exact same date right after calling this, can reuse the
+// result instead of firing an identical query a second time. Returns null
+// when it didn't look anything up (engine inactive/paused, Sunday, or an
+// error) — callers should fall back to fetching themselves in that case,
+// same as before this returned anything.
+export async function ensureTodayLineupIfEngineActive(): Promise<{ date: string; list: any[] } | null> {
   try {
     const state = await getLineupEngineStateDb();
-    if (!state.active || state.paused) return;
+    if (!state.active || state.paused) return null;
     const today = new Date().toISOString().slice(0, 10);
-    if (new Date(today + "T00:00:00Z").getUTCDay() === 0) return; // Sunday rest day
+    if (new Date(today + "T00:00:00Z").getUTCDay() === 0) return null; // Sunday rest day
     const existing = await getTaskAssignmentsDb({ date: today });
-    if (existing.length > 0) return;
+    if (existing.length > 0) return { date: today, list: existing };
     const projects = await getProjectsDb();
     const users = await getUsersDb();
     await generateLineupForDate(today, projects, users, false);
+    // Re-fetch once after generating so the caller gets the freshly-created
+    // rows back (generateLineupForDate only returns a count, not the rows).
+    const generated = await getTaskAssignmentsDb({ date: today });
+    return { date: today, list: generated };
   } catch (err) {
     console.error("ensureTodayLineupIfEngineActive error:", err);
+    return null;
   }
 }
 
