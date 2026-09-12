@@ -729,11 +729,14 @@ app.get("/api/task-lineup", async (req, res) => {
     const clientUserRole = req.headers["x-user-role"];
 
     // Opportunistic auto-generate: if the engine has been started and isn't
-    // paused, make sure today's lineup exists before answering. Cheap no-op
-    // once today's lineup is already there.
-    await ensureTodayLineupIfEngineActive();
+    // paused, make sure today's lineup exists before answering. When the
+    // requested date is today, reuse the rows it already looked up instead
+    // of hitting Supabase again for the exact same date right below — this
+    // is the query that was firing twice on every single Task Lineup page
+    // load and made it feel slow.
+    const ensured = await ensureTodayLineupIfEngineActive();
 
-    let list = await getTaskAssignmentsDb({ date });
+    let list = ensured && ensured.date === date ? ensured.list : await getTaskAssignmentsDb({ date });
 
     // Collapse duplicate-account rows (same real person, two login emails)
     // onto one canonical email before returning — this is what fixes the
