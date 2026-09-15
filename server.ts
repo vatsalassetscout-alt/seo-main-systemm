@@ -54,7 +54,10 @@ import {
   getPendingSummaryAllUsersDb,
   buildCanonicalEmailMap,
   resolveCanonicalEmail,
-  dedupeAssignmentsByCanonicalIdentity
+  dedupeAssignmentsByCanonicalIdentity,
+  todayIST,
+  addDays,
+  reconcileStuckPendingAssignmentsDb
 } from "./src/lib/supabaseServer";
 import { detectColumns } from "./src/lib/columnMapper";
 
@@ -735,7 +738,7 @@ app.get("/api/task-lineup", async (req, res) => {
   // a real network round trip.
   res.set("Cache-Control", "no-store");
   try {
-    const date = typeof req.query.date === "string" && req.query.date ? req.query.date : new Date().toISOString().slice(0, 10);
+    const date = typeof req.query.date === "string" && req.query.date ? req.query.date : todayIST();
     const clientUserEmail = req.headers["x-user-email"];
     const clientUserRole = req.headers["x-user-role"];
 
@@ -854,7 +857,7 @@ app.get("/api/task-lineup/month-summary", async (req, res) => {
 // Admin-only — this is the "Start Cycle" button in the Task Lineup tab.
 app.post("/api/task-lineup/generate", requireAdmin, async (req, res) => {
   try {
-    const date = req.body?.date || new Date().toISOString().slice(0, 10);
+    const date = req.body?.date || todayIST();
     const force = !!req.body?.force;
 
     const projects = await getProjectsDb();
@@ -900,8 +903,13 @@ app.get("/api/task-lineup/pending-summary", async (req, res) => {
       return res.json({ yesterdayPending: [], totalPendingCount: 0, totalPending: [] });
     }
 
-    const today = new Date().toISOString().slice(0, 10);
-    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    // Was: new Date().toISOString().slice(0, 10) — UTC-based, which is
+    // wrong for ~5.5 hours every night IST-wise (see todayIST() for why).
+    // That's what let early-morning submissions get stuck on "Pending"
+    // forever, since this endpoint's "today"/"yesterday" boundary disagreed
+    // with the boundary the assignment rows were actually generated under.
+    const today = todayIST();
+    const yesterday = addDays(today, -1);
 
     // Same canonicalization the Daily Assignment Status calendar already
     // uses (GET /api/task-lineup) — that's exactly why the calendar is
@@ -942,6 +950,25 @@ app.get("/api/task-lineup/pending-summary", async (req, res) => {
   }
 });
 
+// POST one-time cleanup for assignments stuck on "Pending" from BEFORE the
+// IST-date fixes above existed (e.g. last Saturday's rows, submitted fine
+// but never flipped because of the UTC/IST boundary bug). Cross-checks
+// every still-Pending assignment against submissions already in the DB and
+// flips the ones that genuinely have a matching Work Log. Admin-only, and
+// safe to run more than once — call this once after deploying to clear the
+// existing backlog; going forward the ±1-day window in
+// markTaskAssignmentDoneDb keeps this from happening again on its own.
+app.post("/api/task-lineup/reconcile-pending", requireAdmin, async (req, res) => {
+  try {
+    const users = await getUsersDb();
+    const result = await reconcileStuckPendingAssignmentsDb(users);
+    return res.json({ success: true, ...result });
+  } catch (err: any) {
+    console.error("POST /api/task-lineup/reconcile-pending error:", err);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
 // POST toggle a user's pause state (admin only).
 // - Pausing: TODAY's already-generated lineup for this user is left exactly
 //   as it is — nothing gets cleared, and anything already Submitted stays
@@ -967,7 +994,7 @@ app.post("/api/task-lineup/pause", requireAdmin, async (req, res) => {
     }
     const normalizedEmail = String(userEmail).trim().toLowerCase();
     const ok = await setUserPausedDb(normalizedEmail, paused);
-    const today = new Date().toISOString().slice(0, 10);
+    const today = todayIST();
 
     if (!paused) {
       try {
@@ -3292,7 +3319,29 @@ async function startServer() {
   ensureTodayLineupIfEngineActive();
   setInterval(() => {
     ensureTodayLineupIfEngineActive();
+    reconcileStuckPendingAssignmentsDb_safe();
   }, 15 * 60 * 1000);
+
+  // One-time (safe to repeat) auto-cleanup for assignments stuck on
+  // "Pending" from before the IST-date fix — e.g. last Saturday's rows
+  // that were submitted fine but never flipped to "Done" because of the
+  // old UTC/IST boundary bug. Runs automatically on every server boot AND
+  // on the same 15-min interval as the lineup check above (Render's free
+  // plan can restart the process on wake, but this covers it either way),
+  // so nobody has to remember to press a button. Once everything's caught
+  // up this finds nothing to fix and is a cheap no-op.
+  async function reconcileStuckPendingAssignmentsDb_safe() {
+    try {
+      const users = await getUsersDb();
+      const result = await reconcileStuckPendingAssignmentsDb(users);
+      if (result.fixed > 0) {
+        console.log(`Auto-reconcile: fixed ${result.fixed} of ${result.checked} stuck-Pending assignment(s).`);
+      }
+    } catch (err: any) {
+      console.error("Auto-reconcile-pending failed:", err.message);
+    }
+  }
+  reconcileStuckPendingAssignmentsDb_safe();
 }
 
 
