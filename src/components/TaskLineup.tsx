@@ -537,30 +537,6 @@ export default function TaskLineup({
     }
   };
 
-  // One-time cleanup for assignments stuck on "Pending" from before the
-  // IST-date fix (e.g. last Saturday's rows — submitted fine, never
-  // flipped). Cross-checks Pending rows against submissions already in the
-  // DB and flips the ones that genuinely have a matching Work Log. Safe to
-  // click more than once.
-  const [reconcileBusy, setReconcileBusy] = useState(false);
-  const handleReconcilePending = async () => {
-    setReconcileBusy(true);
-    setGenerateMsg(null);
-    try {
-      const res = await fetch('/api/task-lineup/reconcile-pending', { method: 'POST', headers: authHeaders });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || 'Failed to reconcile pending assignments.');
-      setGenerateMsg(`Checked ${data.checked} pending task${data.checked === 1 ? '' : 's'} — fixed ${data.fixed} that already had a matching Work Log submitted.`);
-      await loadLineup(activeDate);
-      if (isAdmin) await loadPendingAllUsers(); else await loadPendingSummary();
-    } catch (err: any) {
-      console.error('Failed to reconcile pending assignments:', err);
-      setGenerateMsg(`Couldn't fix stuck pending tasks: ${err?.message || 'check server logs.'}`);
-    } finally {
-      setReconcileBusy(false);
-    }
-  };
-
   const handleDelete = async () => {
     const confirmed = window.confirm(
       `Full reset: this deletes EVERY task assignment for EVERY user on EVERY date (not just ${activeDate}), clears Yesterday Pending and Total Pending back to 0, and stops the cycle — you'll need to hit "Start Cycle" again afterwards. This cannot be undone. Continue?`
@@ -819,15 +795,6 @@ export default function TaskLineup({
                   {enginePaused ? 'Run Cycle' : 'Stop Cycle'}
                 </button>
               )}
-              <button
-                onClick={handleReconcilePending}
-                disabled={reconcileBusy}
-                className="flex items-center gap-1.5 px-3 py-2 bg-indigo-50 dark:bg-blue-500/10 hover:bg-indigo-100 disabled:opacity-40 disabled:cursor-not-allowed text-indigo-700 dark:text-blue-400 text-xs font-bold rounded-xl transition cursor-pointer"
-                title="Fix tasks stuck on Pending that already have a matching Work Log submitted (one-time cleanup for the old date-boundary bug)"
-              >
-                <CheckCircle2 size={13} />
-                {reconcileBusy ? 'Checking…' : 'Fix Stuck Pending'}
-              </button>
               <button
                 onClick={handleDelete}
                 disabled={deleting || generating}
