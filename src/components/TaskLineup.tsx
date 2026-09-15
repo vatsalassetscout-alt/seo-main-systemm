@@ -753,15 +753,11 @@ export default function TaskLineup({
   // total), and scoped to just the signed-in person for everyone else (so
   // a regular user only ever sees their own total, never anyone else's).
   //
-  // Pause filtering is NOT done here — it's already been applied
-  // server-side before this data ever arrives. `/api/task-lineup/
-  // pending-summary/all` returns 0 pending (and empty lists) for anyone
-  // currently paused, and for everyone at once while the cycle is stopped,
-  // so pooling these entries as-is automatically gives a team total that
-  // matches the lineup on screen. Keeping the rule in exactly one place —
-  // the server — is what stops the lineup, the calendar and these totals
-  // from ever drifting apart. Nothing is deleted, so a paused person's real
-  // numbers reappear in this pool the moment they're resumed.
+  // These are always the REAL, true pending numbers — pause (per-user or
+  // whole-cycle "Stop Cycle") never zeroes or hides anything here. Pause
+  // only hides the day's already-assigned LINEUP card above (Today's
+  // Lineup); a paused person's real pending backlog stays fully visible in
+  // Yesterday Pending / Total Pending so nothing gets lost sight of.
   const historyYesterdayPending = useMemo(
     () => (isAdmin ? pendingAllUsers.flatMap(u => u.yesterdayPending) : yesterdayPending),
     [isAdmin, pendingAllUsers, yesterdayPending]
