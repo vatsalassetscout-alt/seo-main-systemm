@@ -1694,6 +1694,54 @@ export function dedupeAssignmentsByCanonicalIdentity(rows: any[], canonicalMap: 
   return Array.from(byKey.values());
 }
 
+// Hides still-"Pending" rows for a user who is currently paused (either
+// individually, via the per-user Pause button, or because the whole Task
+// Lineup cycle/engine is paused) — WITHOUT deleting anything. The row keeps
+// existing in the DB exactly as it was assigned; this only decides whether
+// a given caller's response includes it.
+//
+// Why filter instead of delete: the ask is "same din pause kiya to us din
+// ka already-assigned lineup UI se aur pending count se gayab ho jaye, aur
+// resume karte hi WAHI assignment wapas aa jaye" — i.e. resuming must bring
+// back the exact same rows, not a freshly regenerated lineup that might
+// pick different projects. Deleting-and-regenerating can't guarantee that;
+// simply not returning the row while paused, and returning it again the
+// moment `paused` flips back to false, guarantees it byte-for-byte.
+//
+// "Done" rows are never hidden — once a task is actually submitted it's
+// real logged work, pause/resume only ever affects work that hasn't been
+// done yet.
+export function filterHiddenByPause<T extends { userEmail: string; status: string }>(
+  rows: T[],
+  pausedCanonicalEmails: Set<string>,
+  canonicalOf: (rawEmail: string) => string,
+  enginePaused: boolean
+): T[] {
+  if (!enginePaused && pausedCanonicalEmails.size === 0) return rows;
+  return rows.filter((r) => {
+    if (r.status !== "Pending") return true;
+    // Whole cycle paused ("Stop Cycle") hides every still-pending row for
+    // everyone, the same way an individual pause hides just that person's.
+    if (enginePaused) return false;
+    return !pausedCanonicalEmails.has(canonicalOf(r.userEmail));
+  });
+}
+
+// Builds the canonical-email set of currently-paused users, for use with
+// filterHiddenByPause above.
+export function buildPausedCanonicalEmails(
+  users: { email: string; paused?: boolean }[],
+  canonicalOf: (rawEmail: string) => string
+): Set<string> {
+  const pausedCanonicalEmails = new Set<string>();
+  users.forEach((u) => {
+    if (!u.paused) return;
+    const email = String(u.email || "").trim().toLowerCase();
+    if (!email) return;
+    pausedCanonicalEmails.add(canonicalOf(email));
+  });
+  return pausedCanonicalEmails;
+}
 
 function ymd(d: Date): string {
   return d.toISOString().slice(0, 10);
@@ -2228,7 +2276,11 @@ export async function ensureTodayLineupIfEngineActive(): Promise<{ date: string;
 // still-pending count, and the all-time still-pending count, for every
 // configured user in one shot (avoids N round trips from the client).
 export async function getPendingSummaryAllUsersDb(
-  users: { email: string; name: string; role?: string }[]
+  users: { email: string; name: string; role?: string; paused?: boolean }[],
+  // Whole-cycle "Stop Cycle" switch — when true, every still-pending row is
+  // hidden from these totals for every user, same as an individual pause
+  // hides just that one person's (see filterHiddenByPause).
+  enginePaused: boolean = false
 ): Promise<Array<{
   email: string;
   name: string;
@@ -2277,11 +2329,16 @@ export async function getPendingSummaryAllUsersDb(
     return true;
   });
 
+  // A person counts as paused for this rollup if any of their duplicate
+  // accounts is paused — same rule generateLineupForDate already uses.
+  const pausedCanonicalEmails = buildPausedCanonicalEmails(users, canonicalOf);
+
   return dedupedUsers.map((u) => {
     const key = canonicalOf(u.email);
     const rows = perUser.get(key) || [];
-    const yesterdayPending = rows.filter((r) => r.date === yesterday && r.status === "Pending");
-    const totalPending = rows.filter((r) => r.status === "Pending");
+    const visibleRows = filterHiddenByPause(rows, pausedCanonicalEmails, canonicalOf, enginePaused);
+    const yesterdayPending = visibleRows.filter((r) => r.date === yesterday && r.status === "Pending");
+    const totalPending = visibleRows.filter((r) => r.status === "Pending");
     return {
       email: u.email,
       name: u.name,
