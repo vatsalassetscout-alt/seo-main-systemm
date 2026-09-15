@@ -504,6 +504,38 @@ export default function TaskLineup({
     }
   };
 
+  // Pausing or resuming (either the single-user Pause button or the
+  // whole-team Stop/Run Cycle switch) changes what the SERVER is willing to
+  // return — paused people's still-pending rows are withheld entirely, so
+  // that day reads as "no lineup for today". None of that is visible until
+  // the screen refetches, so every surface that renders lineup data has to
+  // be pulled again in one go: the day's lineup itself, the pending
+  // summaries (both the personal one and the admin rollup), and the History
+  // tab's calendar — both its month heatmap and whichever day is currently
+  // open in it. Refreshing only some of these is what would leave the
+  // lineup correctly empty while the calendar next to it still showed the
+  // old pending dots.
+  const refreshAfterPauseChange = useCallback(async () => {
+    await Promise.all([
+      loadLineup(activeDate),
+      loadPendingSummary(),
+      isAdmin ? loadPendingAllUsers() : Promise.resolve(),
+      loadHistoryCalMonthSummary(historyCalYear, historyCalMonth),
+      historyCalDay ? loadHistoryCalDay(historyCalDay) : Promise.resolve(),
+    ]);
+  }, [
+    loadLineup,
+    activeDate,
+    loadPendingSummary,
+    isAdmin,
+    loadPendingAllUsers,
+    loadHistoryCalMonthSummary,
+    historyCalYear,
+    historyCalMonth,
+    historyCalDay,
+    loadHistoryCalDay,
+  ]);
+
   const handleToggleEnginePause = async () => {
     setEngineBusy(true);
     setGenerateMsg(null);
@@ -521,11 +553,18 @@ export default function TaskLineup({
       // relogin. Now a failed save throws and gets surfaced to the admin.
       if (!res.ok) throw new Error(data?.error || 'Failed to update the cycle state.');
       setEnginePaused(!!data.paused);
-      setGenerateMsg(nextPaused ? 'Cycle paused — nothing will auto-generate until you resume.' : 'Cycle resumed.');
-      if (!nextPaused) {
-        await loadLineup(activeDate);
-        await loadPendingAllUsers();
-      }
+      setGenerateMsg(
+        nextPaused
+          ? "Cycle stopped — today's lineup is hidden for everyone (it reads as no lineup for today) and nothing new will auto-generate. Nothing has been deleted: resuming brings the exact same lineup back."
+          : 'Cycle resumed — the same lineup is back and continues from where it left off.'
+      );
+      // Refetch on BOTH stop and resume. This used to refetch only on
+      // resume, because stopping physically deleted the rows and the client
+      // could just assume they were gone. Stopping now hides rather than
+      // deletes, so the screen has to ask the server again either way —
+      // otherwise hitting Stop Cycle would leave the old lineup sitting on
+      // screen until a manual refresh.
+      await refreshAfterPauseChange();
     } catch (err: any) {
       console.error('Failed to toggle engine pause:', err);
       setGenerateMsg(`Couldn't ${nextPaused ? 'pause' : 'resume'} the cycle: ${err?.message || 'check server logs.'} Reverting to the actual saved state.`);
@@ -591,12 +630,18 @@ export default function TaskLineup({
         setGenerateMsg('Could not update pause state — please try again.');
         return;
       }
-      // Pausing clears today's pending queue for this user; resuming tops it
-      // right back up. Refresh what's on screen so it doesn't look stale.
-      await Promise.all([
-        loadLineup(activeDate),
-        loadPendingAllUsers(),
-      ]);
+      // Pausing hides this one user's still-pending lineup everywhere (their
+      // own tab, this admin card, the calendar, every pending count) without
+      // deleting a thing; resuming brings the identical rows straight back.
+      // Refresh every surface that shows lineup data so none of them sit
+      // there stale — and note this only ever affects the paused person:
+      // everyone else's lineup for the same day is untouched.
+      setGenerateMsg(
+        paused
+          ? `${nameFor(userEmail)} paused — their lineup is hidden (no lineup for today) but nothing is deleted. Work Log and everything else still works for them.`
+          : `${nameFor(userEmail)} resumed — the same lineup is back and continues.`
+      );
+      await refreshAfterPauseChange();
     } catch (err) {
       console.error('Failed to toggle pause:', err);
       onSetAllowedUsers(previous);
@@ -708,16 +753,15 @@ export default function TaskLineup({
   // total), and scoped to just the signed-in person for everyone else (so
   // a regular user only ever sees their own total, never anyone else's).
   //
-  // Each entry in `pendingAllUsers` (from pending-summary/all) always
-  // holds that PERSON's real, true pending numbers. This pooled total used
-  // to drop a paused person's rows (and, while the whole cycle was
-  // stopped, EVERY still-pending row) right at the point of pooling — so
-  // the admin's pooled "Pending" list (and its "Log Work" buttons) would
-  // shrink or go empty the moment someone was paused, even though that
-  // work was still sitting there un-done. Pause only stops FUTURE lineup
-  // generation, so it should never shrink this list either — every still-
-  // pending row is pooled here regardless of pause/stop state, same as the
-  // per-person numbers it's built from.
+  // Pause filtering is NOT done here — it's already been applied
+  // server-side before this data ever arrives. `/api/task-lineup/
+  // pending-summary/all` returns 0 pending (and empty lists) for anyone
+  // currently paused, and for everyone at once while the cycle is stopped,
+  // so pooling these entries as-is automatically gives a team total that
+  // matches the lineup on screen. Keeping the rule in exactly one place —
+  // the server — is what stops the lineup, the calendar and these totals
+  // from ever drifting apart. Nothing is deleted, so a paused person's real
+  // numbers reappear in this pool the moment they're resumed.
   const historyYesterdayPending = useMemo(
     () => (isAdmin ? pendingAllUsers.flatMap(u => u.yesterdayPending) : yesterdayPending),
     [isAdmin, pendingAllUsers, yesterdayPending]
@@ -800,7 +844,11 @@ export default function TaskLineup({
                   className={`flex items-center gap-1.5 px-4 py-2 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-bold rounded-xl transition cursor-pointer ${
                     enginePaused ? 'bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-100 text-emerald-700 dark:text-emerald-400' : 'bg-amber-50 dark:bg-amber-500/10 hover:bg-amber-100 text-amber-700 dark:text-amber-400'
                   }`}
-                  title="The cycle runs every day on its own. Pause it only for long vacations."
+                  title={
+                    enginePaused
+                      ? 'Resume the cycle — the same lineup that was hidden comes straight back and continues.'
+                      : "Stop the cycle for everyone. Today's lineup is hidden (it reads as no lineup for today) and nothing new generates, but nothing is deleted — resuming restores the exact same lineup."
+                  }
                 >
                   {enginePaused ? <Play size={13} /> : <Pause size={13} />}
                   {enginePaused ? 'Run Cycle' : 'Stop Cycle'}
