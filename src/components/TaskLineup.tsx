@@ -709,31 +709,22 @@ export default function TaskLineup({
   // a regular user only ever sees their own total, never anyone else's).
   //
   // Each entry in `pendingAllUsers` (from pending-summary/all) always
-  // holds that PERSON's real, true pending numbers — including a paused
-  // person's, since that's still useful info on their own Controls row.
-  // But this combined/pooled TOTAL is a different thing: it's meant to
-  // read as "how much pending work is actually outstanding for the team
-  // right now", and a paused person's queue is explicitly frozen/on hold,
-  // not outstanding — so their rows (and, while the whole cycle is
-  // stopped, EVERY still-pending row) are excluded here, right at the
-  // point of pooling, without touching the per-person numbers above.
+  // holds that PERSON's real, true pending numbers. This pooled total used
+  // to drop a paused person's rows (and, while the whole cycle was
+  // stopped, EVERY still-pending row) right at the point of pooling — so
+  // the admin's pooled "Pending" list (and its "Log Work" buttons) would
+  // shrink or go empty the moment someone was paused, even though that
+  // work was still sitting there un-done. Pause only stops FUTURE lineup
+  // generation, so it should never shrink this list either — every still-
+  // pending row is pooled here regardless of pause/stop state, same as the
+  // per-person numbers it's built from.
   const historyYesterdayPending = useMemo(
-    () =>
-      isAdmin
-        ? enginePaused
-          ? []
-          : pendingAllUsers.filter(u => !isEmailPaused(u.email)).flatMap(u => u.yesterdayPending)
-        : yesterdayPending,
-    [isAdmin, pendingAllUsers, yesterdayPending, enginePaused, allowedUsers]
+    () => (isAdmin ? pendingAllUsers.flatMap(u => u.yesterdayPending) : yesterdayPending),
+    [isAdmin, pendingAllUsers, yesterdayPending]
   );
   const historyTotalPending = useMemo(
-    () =>
-      isAdmin
-        ? enginePaused
-          ? []
-          : pendingAllUsers.filter(u => !isEmailPaused(u.email)).flatMap(u => u.totalPending)
-        : totalPending,
-    [isAdmin, pendingAllUsers, totalPending, enginePaused, allowedUsers]
+    () => (isAdmin ? pendingAllUsers.flatMap(u => u.totalPending) : totalPending),
+    [isAdmin, pendingAllUsers, totalPending]
   );
 
   // Calendar grid cells (blank leading slots + actual day numbers) for the
