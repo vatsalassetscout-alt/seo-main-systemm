@@ -1694,54 +1694,146 @@ export function dedupeAssignmentsByCanonicalIdentity(rows: any[], canonicalMap: 
   return Array.from(byKey.values());
 }
 
-// Hides still-"Pending" rows for a user who is currently paused (either
-// individually, via the per-user Pause button, or because the whole Task
-// Lineup cycle/engine is paused) — WITHOUT deleting anything. The row keeps
-// existing in the DB exactly as it was assigned; this only decides whether
-// a given caller's response includes it.
+// =========================================================================
+// PAUSE = A REAL STATUS, NOT A READ-TIME HIDE.
 //
-// Why filter instead of delete: the ask is "same din pause kiya to us din
-// ka already-assigned lineup UI se aur pending count se gayab ho jaye, aur
-// resume karte hi WAHI assignment wapas aa jaye" — i.e. resuming must bring
-// back the exact same rows, not a freshly regenerated lineup that might
-// pick different projects. Deleting-and-regenerating can't guarantee that;
-// simply not returning the row while paused, and returning it again the
-// moment `paused` flips back to false, guarantees it byte-for-byte.
+// "Paused" is a third status value alongside "Pending" and "Done". Pausing
+// a day's lineup (for one user, or for everyone via "Stop Cycle") flips
+// that day's still-"Pending" rows to "Paused" — a real write, nothing is
+// deleted. Resuming flips them straight back to "Pending".
 //
-// "Done" rows are never hidden — once a task is actually submitted it's
-// real logged work, pause/resume only ever affects work that hasn't been
-// done yet.
-export function filterHiddenByPause<T extends { userEmail: string; status: string }>(
-  rows: T[],
-  pausedCanonicalEmails: Set<string>,
-  canonicalOf: (rawEmail: string) => string,
-  enginePaused: boolean
-): T[] {
-  if (!enginePaused && pausedCanonicalEmails.size === 0) return rows;
-  return rows.filter((r) => {
-    if (r.status !== "Pending") return true;
-    // Whole cycle paused ("Stop Cycle") hides every still-pending row for
-    // everyone, the same way an individual pause hides just that person's.
-    if (enginePaused) return false;
-    return !pausedCanonicalEmails.has(canonicalOf(r.userEmail));
-  });
+// This is deliberately simple on purpose:
+//   - Every screen that reads the lineup (Today's Lineup, the admin's
+//     per-user cards, the Daily Assignment Status calendar) just excludes
+//     "Paused" rows, so a paused day reads as "no lineup for today" with
+//     no extra bookkeeping needed — the status IS the visibility.
+//   - Every pending-count endpoint already filters on status === "Pending"
+//     specifically, so a "Paused" row simply stops being counted the
+//     moment it's paused, and starts being counted again the moment it's
+//     resumed — the count naturally goes down on pause and back up on
+//     resume, because that's what actually happened to the data.
+//   - The Work Log "Done" flip (markTaskAssignmentDoneDb) only ever
+//     matches rows still at status "Pending", so a submission made while
+//     paused correctly leaves the "Paused" row alone instead of silently
+//     consuming it — the work log itself still saves in full either way.
+//   - "Done" rows are NEVER touched by any of the functions below — once a
+//     task is actually submitted it's real logged work, and pause/resume
+//     only ever affects work that hasn't been done yet.
+// =========================================================================
+
+// Per-user Pause: flips ONE user's still-Pending rows on ONE date to
+// "Paused". Used by the per-user Pause button — only ever touches that
+// single person's rows for that day; every other user's lineup for the
+// same date is completely untouched.
+export async function pauseUserAssignmentsForDateDb(date: string, userEmail: string): Promise<boolean> {
+  const sb = getSupabase();
+  if (!sb) return false;
+  try {
+    const { error } = await sb
+      .from("task_assignments")
+      .update({ status: "Paused" })
+      .eq("date", date)
+      .eq("user_email", userEmail.trim().toLowerCase())
+      .eq("status", "Pending");
+    if (error) {
+      console.warn("Supabase pause user assignments failed:", error.message);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error("Supabase pause user assignments exception:", err);
+    return false;
+  }
 }
 
-// Builds the canonical-email set of currently-paused users, for use with
-// filterHiddenByPause above.
-export function buildPausedCanonicalEmails(
-  users: { email: string; paused?: boolean }[],
-  canonicalOf: (rawEmail: string) => string
-): Set<string> {
-  const pausedCanonicalEmails = new Set<string>();
-  users.forEach((u) => {
-    if (!u.paused) return;
-    const email = String(u.email || "").trim().toLowerCase();
-    if (!email) return;
-    pausedCanonicalEmails.add(canonicalOf(email));
-  });
-  return pausedCanonicalEmails;
+// Per-user Resume: flips this user's "Paused" rows (any date they're
+// paused on) straight back to "Pending" — the exact same lineup they had
+// before reappears, and it starts counting toward their pending totals
+// again immediately, because it now genuinely IS pending again.
+export async function resumeUserAssignmentsDb(userEmail: string): Promise<boolean> {
+  const sb = getSupabase();
+  if (!sb) return false;
+  try {
+    const { error } = await sb
+      .from("task_assignments")
+      .update({ status: "Pending" })
+      .eq("user_email", userEmail.trim().toLowerCase())
+      .eq("status", "Paused");
+    if (error) {
+      console.warn("Supabase resume user assignments failed:", error.message);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error("Supabase resume user assignments exception:", err);
+    return false;
+  }
 }
+
+// "Stop Cycle": flips EVERY still-Pending row dated `date` to "Paused" in
+// one shot — the whole team's lineup for that day disappears from every
+// screen (and every pending count) at once, with nothing deleted.
+export async function pauseAllAssignmentsForDateDb(date: string): Promise<boolean> {
+  const sb = getSupabase();
+  if (!sb) return false;
+  try {
+    const { error } = await sb
+      .from("task_assignments")
+      .update({ status: "Paused" })
+      .eq("date", date)
+      .eq("status", "Pending");
+    if (error) {
+      console.warn("Supabase pause all assignments failed:", error.message);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error("Supabase pause all assignments exception:", err);
+    return false;
+  }
+}
+
+// "Run Cycle": flips every "Paused" row back to "Pending" — EXCEPT rows
+// belonging to a user who is still individually paused (their own Pause
+// switch hasn't been turned back on). That exclusion is what keeps an
+// individually-paused person's lineup correctly hidden even after the
+// whole-team stop has lifted, instead of Run Cycle silently un-pausing
+// someone the admin never asked to resume.
+export async function resumeAllAssignmentsDb(
+  excludeCanonicalEmails: Set<string>,
+  canonicalOf: (rawEmail: string) => string
+): Promise<boolean> {
+  const sb = getSupabase();
+  if (!sb) return false;
+  try {
+    const { data, error: fetchErr } = await sb
+      .from("task_assignments")
+      .select("id, user_email")
+      .eq("status", "Paused");
+    if (fetchErr) {
+      console.warn("Supabase fetch paused assignments failed:", fetchErr.message);
+      return false;
+    }
+    const idsToResume = (data || [])
+      .filter((r: any) => !excludeCanonicalEmails.has(canonicalOf(String(r.user_email || ""))))
+      .map((r: any) => r.id);
+    if (idsToResume.length === 0) return true;
+    const { error } = await sb
+      .from("task_assignments")
+      .update({ status: "Pending" })
+      .in("id", idsToResume);
+    if (error) {
+      console.warn("Supabase resume all assignments failed:", error.message);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error("Supabase resume all assignments exception:", err);
+    return false;
+  }
+}
+
+
 
 function ymd(d: Date): string {
   return d.toISOString().slice(0, 10);
