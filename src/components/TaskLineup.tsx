@@ -707,13 +707,33 @@ export default function TaskLineup({
   // across every user for admins (so admin sees everyone's combined
   // total), and scoped to just the signed-in person for everyone else (so
   // a regular user only ever sees their own total, never anyone else's).
+  //
+  // Each entry in `pendingAllUsers` (from pending-summary/all) always
+  // holds that PERSON's real, true pending numbers — including a paused
+  // person's, since that's still useful info on their own Controls row.
+  // But this combined/pooled TOTAL is a different thing: it's meant to
+  // read as "how much pending work is actually outstanding for the team
+  // right now", and a paused person's queue is explicitly frozen/on hold,
+  // not outstanding — so their rows (and, while the whole cycle is
+  // stopped, EVERY still-pending row) are excluded here, right at the
+  // point of pooling, without touching the per-person numbers above.
   const historyYesterdayPending = useMemo(
-    () => (isAdmin ? pendingAllUsers.flatMap(u => u.yesterdayPending) : yesterdayPending),
-    [isAdmin, pendingAllUsers, yesterdayPending]
+    () =>
+      isAdmin
+        ? enginePaused
+          ? []
+          : pendingAllUsers.filter(u => !isEmailPaused(u.email)).flatMap(u => u.yesterdayPending)
+        : yesterdayPending,
+    [isAdmin, pendingAllUsers, yesterdayPending, enginePaused, allowedUsers]
   );
   const historyTotalPending = useMemo(
-    () => (isAdmin ? pendingAllUsers.flatMap(u => u.totalPending) : totalPending),
-    [isAdmin, pendingAllUsers, totalPending]
+    () =>
+      isAdmin
+        ? enginePaused
+          ? []
+          : pendingAllUsers.filter(u => !isEmailPaused(u.email)).flatMap(u => u.totalPending)
+        : totalPending,
+    [isAdmin, pendingAllUsers, totalPending, enginePaused, allowedUsers]
   );
 
   // Calendar grid cells (blank leading slots + actual day numbers) for the
