@@ -950,26 +950,23 @@ app.get("/api/task-lineup/pending-summary", async (req, res) => {
     const users = await getUsersDb();
     const canonicalMap = buildCanonicalEmailMap(users);
     const canonicalUserEmail = resolveCanonicalEmail(rawUserEmail, canonicalMap);
-    const canonicalOfEmail = (raw: string) => resolveCanonicalEmail(raw, canonicalMap);
 
-    // Same "hide, don't delete" pause behavior as the main lineup list —
-    // a currently-paused person's Pending rows (or, cycle-wide, everyone's
-    // while the whole cycle is stopped) don't count here either, and come
-    // back the moment they're resumed since nothing was ever removed.
-    const engineStateForFilter = await getLineupEngineStateDb();
-    const pausedCanonicalEmails = buildPausedCanonicalEmails(users, canonicalOfEmail);
-
-    let yesterdayPending = dedupeAssignmentsByCanonicalIdentity(
+    // NOTE: this is a per-person informational stat ("how much is actually
+    // sitting pending for THIS person"), not the pooled team-wide "Total
+    // Pending" figure — so it always reflects the real, true count and is
+    // never zeroed just because the person happens to be paused right now.
+    // (Only the pooled/aggregate total — computed client-side in
+    // TaskLineup.tsx from pending-summary/all — excludes paused people's
+    // rows; see the comment there for why.)
+    const yesterdayPending = dedupeAssignmentsByCanonicalIdentity(
       await getTaskAssignmentsDb({ date: yesterday, status: "Pending" }),
       canonicalMap
     ).filter((a: any) => a.userEmail === canonicalUserEmail);
-    yesterdayPending = filterHiddenByPause(yesterdayPending, pausedCanonicalEmails, canonicalOfEmail, engineStateForFilter.paused);
 
-    let totalPending = dedupeAssignmentsByCanonicalIdentity(
+    const totalPending = dedupeAssignmentsByCanonicalIdentity(
       await getTaskAssignmentsDb({ dateTo: today, status: "Pending" }),
       canonicalMap
     ).filter((a: any) => a.userEmail === canonicalUserEmail);
-    totalPending = filterHiddenByPause(totalPending, pausedCanonicalEmails, canonicalOfEmail, engineStateForFilter.paused);
 
     return res.json({
       yesterdayPending,
@@ -1149,8 +1146,15 @@ app.post("/api/task-lineup/engine/pause", requireAdmin, async (req, res) => {
 app.get("/api/task-lineup/pending-summary/all", requireAdmin, async (req, res) => {
   try {
     const users = await getUsersDb();
-    const engineState = await getLineupEngineStateDb();
-    const summary = await getPendingSummaryAllUsersDb(users, engineState.paused);
+    // Real, unhidden per-user totals here — this feeds both the Controls
+    // list's per-row "Pending: N" stat and the admin "Check Pendings"
+    // drill-down, and both are meant to show each person's true pending
+    // count even while they're paused (that's still useful info for an
+    // admin — "how much is piling up for them"). Excluding paused people
+    // only happens where the numbers get POOLED into one team-wide total
+    // (historyTotalPending / historyYesterdayPending in TaskLineup.tsx),
+    // not in this per-person rollup itself.
+    const summary = await getPendingSummaryAllUsersDb(users);
     return res.json({ users: summary });
   } catch (err: any) {
     console.error("GET /api/task-lineup/pending-summary/all error:", err);
