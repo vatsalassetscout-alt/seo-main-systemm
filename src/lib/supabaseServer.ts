@@ -2275,12 +2275,16 @@ export async function ensureTodayLineupIfEngineActive(): Promise<{ date: string;
 // "Check Pendings" drill-down: total assignments ever made, yesterday's
 // still-pending count, and the all-time still-pending count, for every
 // configured user in one shot (avoids N round trips from the client).
+//
+// NOTE: these are always the real, true numbers for each person — never
+// zeroed out just because that person happens to be paused right now. A
+// paused person's own pending backlog is still useful information for an
+// admin to see on their row ("Total: 248 · Pending: 15"). Excluding
+// paused people only happens where these per-person numbers get POOLED
+// together into one team-wide total (historyTotalPending /
+// historyYesterdayPending in TaskLineup.tsx) — see the comment there.
 export async function getPendingSummaryAllUsersDb(
-  users: { email: string; name: string; role?: string; paused?: boolean }[],
-  // Whole-cycle "Stop Cycle" switch — when true, every still-pending row is
-  // hidden from these totals for every user, same as an individual pause
-  // hides just that one person's (see filterHiddenByPause).
-  enginePaused: boolean = false
+  users: { email: string; name: string; role?: string; paused?: boolean }[]
 ): Promise<Array<{
   email: string;
   name: string;
@@ -2329,16 +2333,11 @@ export async function getPendingSummaryAllUsersDb(
     return true;
   });
 
-  // A person counts as paused for this rollup if any of their duplicate
-  // accounts is paused — same rule generateLineupForDate already uses.
-  const pausedCanonicalEmails = buildPausedCanonicalEmails(users, canonicalOf);
-
   return dedupedUsers.map((u) => {
     const key = canonicalOf(u.email);
     const rows = perUser.get(key) || [];
-    const visibleRows = filterHiddenByPause(rows, pausedCanonicalEmails, canonicalOf, enginePaused);
-    const yesterdayPending = visibleRows.filter((r) => r.date === yesterday && r.status === "Pending");
-    const totalPending = visibleRows.filter((r) => r.status === "Pending");
+    const yesterdayPending = rows.filter((r) => r.date === yesterday && r.status === "Pending");
+    const totalPending = rows.filter((r) => r.status === "Pending");
     return {
       email: u.email,
       name: u.name,
