@@ -1003,23 +1003,19 @@ app.get("/api/task-lineup/pending-summary", async (req, res) => {
     const canonicalMap = buildCanonicalEmailMap(users);
     const canonicalUserEmail = resolveCanonicalEmail(rawUserEmail, canonicalMap);
 
-    // Pause hiding applies here too (see getPauseVisibility): "no lineup
-    // for today" has to mean no pending numbers either, otherwise a paused
-    // person's Task Lineup tab would show an empty lineup while the
-    // Yesterday Pending / Total Pending blocks right next to it still
-    // reported a backlog — the exact contradiction pausing is meant to
-    // avoid. Nothing is deleted, so the real counts return intact on resume.
-    const { pausedCanonicalEmails, enginePaused } = await getPauseVisibility(users, (e) =>
-      resolveCanonicalEmail(e, canonicalMap)
-    );
-    const hidePending = enginePaused || pausedCanonicalEmails.has(canonicalUserEmail);
-
-    const yesterdayPending = hidePending ? [] : dedupeAssignmentsByCanonicalIdentity(
+    // NOTE: this is a per-person informational stat ("how much is actually
+    // sitting pending for THIS person") and is deliberately NEVER hidden or
+    // zeroed by pause state — an admin (and the person themself) should
+    // always be able to see the real, true pending backlog piling up, even
+    // while paused. Pause only hides the day's already-assigned LINEUP card
+    // (see GET /api/task-lineup / getPauseVisibility) — it does not touch
+    // these pending counts at all.
+    const yesterdayPending = dedupeAssignmentsByCanonicalIdentity(
       await getTaskAssignmentsDb({ date: yesterday, status: "Pending" }),
       canonicalMap
     ).filter((a: any) => a.userEmail === canonicalUserEmail);
 
-    const totalPending = hidePending ? [] : dedupeAssignmentsByCanonicalIdentity(
+    const totalPending = dedupeAssignmentsByCanonicalIdentity(
       await getTaskAssignmentsDb({ dateTo: today, status: "Pending" }),
       canonicalMap
     ).filter((a: any) => a.userEmail === canonicalUserEmail);
@@ -1220,33 +1216,15 @@ app.post("/api/task-lineup/engine/pause", requireAdmin, async (req, res) => {
 app.get("/api/task-lineup/pending-summary/all", requireAdmin, async (req, res) => {
   try {
     const users = await getUsersDb();
+    // Real, unhidden per-user totals here, always — pause never zeroes or
+    // touches these numbers, on this route or anywhere it's consumed
+    // (Team Pause Controls per-row stat, the "Check Pendings" drill-down,
+    // and the pooled History tab totals). Pause only ever hides the day's
+    // already-assigned LINEUP card itself (see GET /api/task-lineup) — the
+    // pending backlog stays fully visible for admins to see and act on
+    // even while someone is paused or the whole cycle is stopped.
     const summary = await getPendingSummaryAllUsersDb(users);
-
-    // Pause hiding, applied to the admin rollup as well. This one endpoint
-    // feeds three places at once: the Team Pause Controls per-row
-    // "Pending: N" stat, the "Check Pendings" drill-down, and (pooled
-    // client-side) the History tab's team-wide Yesterday/Total Pending
-    // lists. All three have to agree with the lineup itself, so a paused
-    // person contributes 0 pending to every one of them until they're
-    // resumed. `totalTasks` is left alone — that's a lifetime count that
-    // includes real completed work, and pause never rewrites history.
-    const canonicalMap = buildCanonicalEmailMap(users);
-    const canonicalOf = (e: string) => resolveCanonicalEmail(e, canonicalMap);
-    const { pausedCanonicalEmails, enginePaused } = await getPauseVisibility(users, canonicalOf);
-
-    const visible = summary.map((u) => {
-      const hidden = enginePaused || pausedCanonicalEmails.has(canonicalOf(u.email));
-      if (!hidden) return u;
-      return {
-        ...u,
-        yesterdayPendingCount: 0,
-        totalPendingCount: 0,
-        yesterdayPending: [],
-        totalPending: [],
-      };
-    });
-
-    return res.json({ users: visible });
+    return res.json({ users: summary });
   } catch (err: any) {
     console.error("GET /api/task-lineup/pending-summary/all error:", err);
     return res.status(500).json({ error: err.message });
