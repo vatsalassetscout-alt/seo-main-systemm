@@ -25,6 +25,35 @@ export function isSupabaseConfigured(): boolean {
   return !!getSupabase();
 }
 
+// ---------------------------------------------------------------------------
+// IST-safe "today" helper.
+//
+// BUG THIS FIXES: every "what's today's date" calculation in this file used
+// to be `new Date().toISOString().slice(0, 10)`. toISOString() ALWAYS
+// returns the date in UTC, never the server's or user's local timezone. For
+// any time between 12:00 AM and 5:29 AM IST, UTC is still on the PREVIOUS
+// calendar day (IST = UTC + 5:30) — so a lineup generated, or a
+// pending-summary computed, in that early-morning window silently landed
+// one day earlier than the actual IST date. Work logged/submitted that
+// morning (matched against the correct IST date) then never lined up with
+// the assignment row that got the wrong (UTC) date, so it stayed stuck on
+// "Pending" forever even though the work was genuinely done and saved.
+//
+// Fix: compute "today" (and "yesterday") explicitly in Asia/Kolkata, not by
+// asking a UTC-based Date for its ISO string. Every "today"/"current date"
+// call site in this file (and the pending-summary route in server.ts) now
+// goes through this instead of `new Date().toISOString().slice(0, 10)`.
+export function todayIST(): string {
+  // en-CA locale formats as YYYY-MM-DD, which is exactly what every date
+  // column/comparison in this codebase expects.
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Kolkata",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+}
+
 // Check which tables exist in Supabase
 export async function checkSupabaseTablesStatus(): Promise<{ configured: boolean; ok: boolean; error: string; missingTables: string[] }> {
   const sb = getSupabase();
@@ -1425,14 +1454,28 @@ export async function deleteAllTaskAssignmentsDb(): Promise<boolean> {
   }
 }
 
+// Matches the submission's date to a Pending assignment within a ±1 day
+// window (not an exact string match) — this is what makes the flip
+// self-healing against the IST/UTC boundary drift described above at
+// todayIST(): if a work log's date and its assignment's date end up one
+// calendar day apart because either side was computed right at the
+// midnight/5:30-AM-IST boundary, the two still resolve to the same "Done"
+// flip instead of the assignment being stranded on Pending forever. A
+// same-user/same-project assignment repeating on the very next or previous
+// day is rare (frequency throttling in generateLineupForDate already
+// prevents re-offering a project that's already been assigned this
+// period), so widening the window here is safe.
 export async function markTaskAssignmentDoneDb(date: string, userEmail: string, projectId: string): Promise<boolean> {
   const sb = getSupabase();
   if (!sb) return false;
   try {
+    const windowStart = addDays(date, -1);
+    const windowEnd = addDays(date, 1);
     const { error } = await sb
       .from("task_assignments")
       .update({ status: "Done" })
-      .eq("date", date)
+      .gte("date", windowStart)
+      .lte("date", windowEnd)
       .eq("user_email", userEmail.trim().toLowerCase())
       .eq("project_id", projectId)
       .eq("status", "Pending");
@@ -1446,6 +1489,62 @@ export async function markTaskAssignmentDoneDb(date: string, userEmail: string, 
     return false;
   }
 }
+// One-time cleanup for assignments that got stuck on "Pending" from BEFORE
+// the todayIST()/±1-day-window fixes above existed — i.e. exactly the
+// "I submitted it but it still shows Pending" backlog (e.g. last
+// Saturday's rows). Cross-checks every still-Pending assignment against the
+// submissions that already exist in the DB: if a Work Log was filed by the
+// same (canonical) user, for the same project, within a day of the
+// assignment's date, the work was genuinely done — so it gets flipped to
+// Done now instead of staying stuck forever. Safe to run more than once;
+// anything that's already Done or has no matching submission is left
+// untouched. Returns how many rows it fixed.
+export async function reconcileStuckPendingAssignmentsDb(
+  users: { email: string; name: string; role?: string }[]
+): Promise<{ checked: number; fixed: number }> {
+  const sb = getSupabase();
+  if (!sb) return { checked: 0, fixed: 0 };
+
+  const canonicalMap = buildCanonicalEmailMap(users);
+  const canonicalOf = (rawEmail: string): string => resolveCanonicalEmail(rawEmail, canonicalMap);
+
+  const [pending, submissions] = await Promise.all([
+    getTaskAssignmentsDb({ status: "Pending" }),
+    getSubmissionsDb(),
+  ]);
+
+  // Index submissions by canonical user -> set of "date::projectId" strings
+  // (plus the day before/after each submission's date, matching the same
+  // ±1 day tolerance markTaskAssignmentDoneDb now uses going forward).
+  const submittedKeys = new Set<string>();
+  submissions.forEach((s: any) => {
+    if (!s.date || !Array.isArray(s.works)) return;
+    const canonical = canonicalOf(String(s.userEmail || ""));
+    [addDays(s.date, -1), s.date, addDays(s.date, 1)].forEach((d) => {
+      s.works.forEach((w: any) => {
+        if (w.projectId) submittedKeys.add(`${canonical}::${w.projectId}::${d}`);
+      });
+    });
+  });
+
+  let fixed = 0;
+  for (const a of pending) {
+    const canonical = canonicalOf(String(a.userEmail || ""));
+    const key = `${canonical}::${a.projectId}::${a.date}`;
+    if (submittedKeys.has(key)) {
+      const { error } = await sb
+        .from("task_assignments")
+        .update({ status: "Done" })
+        .eq("id", a.id)
+        .eq("status", "Pending");
+      if (!error) fixed++;
+      else console.warn(`Reconcile: failed to flip assignment ${a.id}:`, error.message);
+    }
+  }
+
+  return { checked: pending.length, fixed };
+}
+
 // Reverse of markTaskAssignmentDoneDb — when the Work Log entry that flipped
 // an assignment to "Done" gets deleted, the assignment goes back to
 // "Pending" so Task Lineup / History reflect that the work is, once again,
@@ -1600,7 +1699,7 @@ function ymd(d: Date): string {
   return d.toISOString().slice(0, 10);
 }
 
-function addDays(dateStr: string, days: number): string {
+export function addDays(dateStr: string, days: number): string {
   const d = new Date(dateStr + "T00:00:00Z");
   d.setUTCDate(d.getUTCDate() + days);
   return ymd(d);
@@ -2093,7 +2192,7 @@ export async function ensureTodayLineupIfEngineActive(): Promise<{ date: string;
   try {
     const state = await getLineupEngineStateDb();
     if (!state.active || state.paused) return null;
-    const today = new Date().toISOString().slice(0, 10);
+    const today = todayIST();
     if (new Date(today + "T00:00:00Z").getUTCDay() === 0) return null; // Sunday rest day
     const existing = await getTaskAssignmentsDb({ date: today });
     if (existing.length > 0) return { date: today, list: existing };
@@ -2143,7 +2242,7 @@ export async function getPendingSummaryAllUsersDb(
   // member and should never appear in the per-user pending breakdown.
   users = users.filter((u) => (u.role || "user") !== "admin");
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayIST();
   const yesterday = addDays(today, -1);
   const all = await getTaskAssignmentsDb({ dateTo: today });
 
