@@ -1079,22 +1079,16 @@ app.post("/api/task-lineup/engine/start", requireAdmin, async (req, res) => {
 });
 
 // POST pause/resume the whole engine (admin only) — the "Stop Cycle" /
-// "Run Cycle" switch. Stopping does NOT delete or hide any existing
-// assignment — every row stays in the DB exactly as it was AND stays fully
-// visible/workable in the UI (GET /api/task-lineup, /month-summary,
-// /pending-summary, /pending-summary/all no longer hide anything for a
-// stopped cycle). Already-assigned, still-Pending work keeps showing up
-// and keeps being loggable while stopped. All Stop Cycle does is skip the
-// auto-generate step for any day the engine is paused on, so no NEW
-// lineup gets created for tomorrow (or any later day) while stopped.
-// Resuming doesn't need to "refill" anything: since nothing was ever
-// deleted or hidden, today's rows were already there the whole time, and
-// ensureTodayLineupIfEngineActive only generates when today's date has no
-// lineup yet, so —
-//   - resuming the SAME day it was stopped: today's lineup is already there
-//     (never cleared), so this is a no-op and it just picks back up as-is.
-//   - resuming on a LATER day: that day never got a lineup while stopped,
-//     so this generates a fresh NEW lineup for it, same as any normal day.
+// "Run Cycle" switch.
+//
+// Stop Cycle: clears today's already-generated lineup (deletes every
+// task_assignments row dated "today") so nothing already-lineup'd is left
+// sitting there while paused. It also stops the auto-generate step for any
+// later day, so no NEW lineup gets created while stopped.
+// Run Cycle (resume): since today's rows were just cleared (or never
+// existed), ensureTodayLineupIfEngineActive generates a brand-new lineup
+// dated the day resume was clicked — so the lineup "comes back" on the
+// resume day, not on whatever day it was stopped on.
 app.post("/api/task-lineup/engine/pause", requireAdmin, async (req, res) => {
   try {
     const { paused } = req.body;
@@ -1114,7 +1108,16 @@ app.post("/api/task-lineup/engine/pause", requireAdmin, async (req, res) => {
       return res.status(500).json({ error: "Failed to save the cycle's paused state — check server logs / Supabase connection." });
     }
 
-    if (!paused) {
+    if (paused) {
+      // Stop Cycle clicked — clear out today's already-generated lineup so
+      // it doesn't sit there while the cycle is stopped. It will be
+      // regenerated fresh, dated the day Run Cycle is actually clicked.
+      try {
+        await deleteTaskAssignmentsForDateDb(todayIST());
+      } catch (clearErr: any) {
+        console.error("Failed to clear today's lineup on pause:", clearErr.message);
+      }
+    } else {
       await ensureTodayLineupIfEngineActive();
     }
     const state = await getLineupEngineStateDb();
