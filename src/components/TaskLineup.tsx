@@ -986,10 +986,13 @@ export default function TaskLineup({
 
           {/* Admin: standalone pause controls — always visible, independent of
               whether a lineup has been generated for the selected date yet.
-              Pausing a user clears today's still-pending queue for them
-              (already-Submitted work today is untouched) and excludes them
-              from the next cycle; resuming immediately tops today's lineup
-              back up with the same queue, in order, so nothing gets skipped.
+              Pausing a user does NOT delete today's already-assigned rows,
+              but hides their still-Pending ones from every board and pending
+              count on the server (see filterHiddenByPause in
+              supabaseServer.ts) — already-Submitted work today is untouched
+              and stays visible. Resuming needs no refill: since nothing was
+              deleted, the exact same rows that were assigned before the
+              pause simply stop being hidden and show up again as-is.
               Each row now also shows total tasks, yesterday pending, and
               total pending. */}
           {isAdmin && (
