@@ -26,6 +26,22 @@ import {
 } from 'lucide-react';
 import { motion } from 'motion/react';
 
+// BUG THIS FIXES: `new Date().toISOString().split('T')[0]` (used to be the
+// default date here) always returns the date in UTC, never the device's
+// local timezone. For IST users, UTC is ~5.5 hours BEHIND local time, so
+// any time between 12:00 AM and 5:29 AM IST, that UTC-based "today" is
+// still YESTERDAY's date. Someone filling the form early Saturday morning
+// (before ~5:30 AM IST) — without manually changing the date field — got
+// their entry silently saved under Friday's date instead of Saturday's,
+// so it could never match (and flip to "Done") the Task Lineup assignment
+// that was actually sitting under Saturday. This reads the date straight
+// from the device's own local clock instead, which is what the date-picker
+// UI (and the person filling it in) actually expects "today" to mean.
+function localDateString(d: Date = new Date()): string {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
 interface DSRFormProps {
   projects: Project[];
   // Now returns a Promise<boolean> — true only if the log actually
@@ -61,7 +77,7 @@ export default function DSRForm({
   submitErrorDetail,
 }: DSRFormProps) {
   const [selectedDate, setSelectedDate] = useState<string>(
-    new Date().toISOString().split('T')[0]
+    localDateString()
   );
 
   // We support single project entry in a submission session based on user preference
@@ -232,7 +248,7 @@ export default function DSRForm({
       return;
     }
 
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = localDateString();
     if (selectedDate > todayStr) {
       setValidationError('You are not allowed to submit a log for a future date. Only current or previous days are permitted.');
       return;
@@ -487,7 +503,7 @@ export default function DSRForm({
                         type="date"
                         required
                         value={selectedDate}
-                        max={new Date().toISOString().split('T')[0]}
+                        max={localDateString()}
                         onChange={(e) => setSelectedDate(e.target.value)}
                         className="px-2.5 py-1 bg-gray-50 dark:bg-ink-800/60 border border-gray-200 dark:border-slate-800 rounded-lg text-gray-955 dark:text-slate-50 font-bold focus:outline-none focus:ring-1 focus:ring-indigo-600 focus:dark:ring-blue-500/50 transition text-[11px] cursor-pointer hover:bg-gray-100 hover:dark:bg-ink-800"
                       />
