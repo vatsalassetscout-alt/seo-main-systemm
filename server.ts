@@ -46,7 +46,10 @@ import {
   regenerateLineupForUserOnDateDb,
   markTaskAssignmentDoneDb,
   markTaskAssignmentPendingDb,
-  deleteTaskAssignmentsForDateDb,
+  // NOTE: deleteTaskAssignmentsForDateDb is intentionally no longer imported
+  // here — "Stop Cycle" hides today's lineup instead of deleting it, so no
+  // route wipes a single day's rows any more. The full-reset "Delete" button
+  // still clears everything via deleteAllTaskAssignmentsDb below.
   deleteAllTaskAssignmentsDb,
   getLineupEngineStateDb,
   setLineupEngineStateDb,
@@ -55,6 +58,8 @@ import {
   buildCanonicalEmailMap,
   resolveCanonicalEmail,
   dedupeAssignmentsByCanonicalIdentity,
+  filterHiddenByPause,
+  buildPausedCanonicalEmails,
   todayIST,
   addDays,
   reconcileStuckPendingAssignmentsDb
@@ -728,6 +733,52 @@ app.get("/api/filters", async (req, res) => {
 // TASK LINEUP (auto-assignment engine)
 // =========================================================================
 
+// -------------------------------------------------------------------------
+// PAUSE VISIBILITY — one shared helper every lineup-reading route uses.
+//
+// The rule (single source of truth, enforced server-side so the user's own
+// tab, the admin's cards, the Daily Assignment Status calendar and every
+// pending count can never disagree with each other):
+//
+//   While a person is paused — either individually via the per-user Pause
+//   button, or because the whole cycle is stopped via "Stop Cycle" (which
+//   pauses EVERYONE at once) — their still-"Pending" lineup rows are simply
+//   NOT RETURNED by any endpoint. Nothing is deleted, cleared or
+//   regenerated: the rows stay in task_assignments byte-for-byte as they
+//   were assigned, they're just invisible. That day reads as "no lineup for
+//   today" everywhere. The moment pause flips back off, the exact same rows
+//   come straight back and the lineup continues from where it left off.
+//
+//   "Done" rows are NEVER hidden — once a Work Log has actually been filed
+//   against an assignment it's real, historical logged work, and pause must
+//   not rewrite history. Pause only ever affects work that hasn't been done.
+//
+//   Everything OUTSIDE the lineup keeps working exactly as before while
+//   paused: the user can still open the Work Log form, fill it and submit,
+//   submissions/DSR/rankings/activity are all untouched. Pause is purely a
+//   lineup-visibility + future-generation switch.
+//
+// Returns the two inputs filterHiddenByPause needs, fetched once per request.
+async function getPauseVisibility(
+  users: { email: string; paused?: boolean }[],
+  canonicalOf: (rawEmail: string) => string
+): Promise<{ pausedCanonicalEmails: Set<string>; enginePaused: boolean }> {
+  let enginePaused = false;
+  try {
+    const state = await getLineupEngineStateDb();
+    enginePaused = !!state.paused;
+  } catch (err: any) {
+    // If the engine state can't be read we deliberately fail OPEN (treat the
+    // cycle as running) rather than blanking out everybody's lineup because
+    // of a transient DB hiccup — per-user pause flags below still apply.
+    console.error("Could not read lineup engine state for pause filtering:", err?.message || err);
+  }
+  return {
+    pausedCanonicalEmails: buildPausedCanonicalEmails(users, canonicalOf),
+    enginePaused,
+  };
+}
+
 // GET today's (or any given date's) lineup. Admins get everyone's; a
 // non-admin only ever gets their own rows regardless of what's asked for.
 app.get("/api/task-lineup", async (req, res) => {
@@ -781,16 +832,16 @@ app.get("/api/task-lineup", async (req, res) => {
     );
     list = list.filter((a: any) => !adminEmails.has(a.userEmail));
 
-    // NOTE: pausing (per-user "Pause" or whole-cycle "Stop Cycle") used to
-    // hide a still-Pending row here via filterHiddenByPause the instant
-    // someone was paused — which meant a paused user's own already-assigned
-    // tasks vanished from their Task Lineup tab and their "Log Work" button
-    // disappeared, even though nothing was actually done/cleared. Pause is
-    // only meant to stop FUTURE lineup generation (see generateLineupForDate
-    // skipping paused users, and ensureTodayLineupIfEngineActive skipping
-    // while the engine is paused) — it should never hide work that's
-    // already assigned. So today's (or any date's) already-assigned rows
-    // are always returned here, paused or not, and stay fully workable.
+    // Pause hiding (see getPauseVisibility above): a paused person's
+    // still-Pending rows are withheld from this response — for BOTH the
+    // person themself and the admin — so the day reads as "no lineup for
+    // today". Nothing is deleted; flipping pause back off returns the exact
+    // same rows on the very next fetch. "Stop Cycle" does this for everyone
+    // at once. Done rows always come through.
+    const { pausedCanonicalEmails, enginePaused } = await getPauseVisibility(users, (e) =>
+      resolveCanonicalEmail(e, canonicalMap)
+    );
+    list = filterHiddenByPause(list, pausedCanonicalEmails, (e) => resolveCanonicalEmail(e, canonicalMap), enginePaused);
 
     // The early guard above already guarantees a non-admin request only
     // ever reaches here WITH a real identity header, so this can scope
@@ -841,10 +892,17 @@ app.get("/api/task-lineup/month-summary", async (req, res) => {
     );
     list = list.filter((a: any) => !adminEmails.has(a.userEmail));
 
-    // Same as GET /api/task-lineup — pause no longer hides already-assigned
-    // still-Pending rows from the calendar heatmap. Pause only stops NEW
-    // lineup generation; anything already assigned stays visible and
-    // countable (and workable) regardless of pause state.
+    // Same pause hiding as GET /api/task-lineup, applied here too so the
+    // History tab's "Daily Assignment Status" calendar matches the lineup
+    // exactly: while someone is paused (or the whole cycle is stopped)
+    // their still-Pending rows stop being counted, so those days paint as
+    // having no lineup instead of showing a phantom pending backlog. Days
+    // with real submitted ("Done") work still paint normally, and every
+    // hidden row comes back into the heatmap the moment pause is lifted.
+    const { pausedCanonicalEmails, enginePaused } = await getPauseVisibility(users, (e) =>
+      resolveCanonicalEmail(e, canonicalMap)
+    );
+    list = filterHiddenByPause(list, pausedCanonicalEmails, (e) => resolveCanonicalEmail(e, canonicalMap), enginePaused);
 
     // Guarded above, so a non-admin here is guaranteed to have a real
     // identity header.
@@ -945,19 +1003,23 @@ app.get("/api/task-lineup/pending-summary", async (req, res) => {
     const canonicalMap = buildCanonicalEmailMap(users);
     const canonicalUserEmail = resolveCanonicalEmail(rawUserEmail, canonicalMap);
 
-    // NOTE: this is a per-person informational stat ("how much is actually
-    // sitting pending for THIS person"), not the pooled team-wide "Total
-    // Pending" figure — so it always reflects the real, true count and is
-    // never zeroed just because the person happens to be paused right now.
-    // (Only the pooled/aggregate total — computed client-side in
-    // TaskLineup.tsx from pending-summary/all — excludes paused people's
-    // rows; see the comment there for why.)
-    const yesterdayPending = dedupeAssignmentsByCanonicalIdentity(
+    // Pause hiding applies here too (see getPauseVisibility): "no lineup
+    // for today" has to mean no pending numbers either, otherwise a paused
+    // person's Task Lineup tab would show an empty lineup while the
+    // Yesterday Pending / Total Pending blocks right next to it still
+    // reported a backlog — the exact contradiction pausing is meant to
+    // avoid. Nothing is deleted, so the real counts return intact on resume.
+    const { pausedCanonicalEmails, enginePaused } = await getPauseVisibility(users, (e) =>
+      resolveCanonicalEmail(e, canonicalMap)
+    );
+    const hidePending = enginePaused || pausedCanonicalEmails.has(canonicalUserEmail);
+
+    const yesterdayPending = hidePending ? [] : dedupeAssignmentsByCanonicalIdentity(
       await getTaskAssignmentsDb({ date: yesterday, status: "Pending" }),
       canonicalMap
     ).filter((a: any) => a.userEmail === canonicalUserEmail);
 
-    const totalPending = dedupeAssignmentsByCanonicalIdentity(
+    const totalPending = hidePending ? [] : dedupeAssignmentsByCanonicalIdentity(
       await getTaskAssignmentsDb({ dateTo: today, status: "Pending" }),
       canonicalMap
     ).filter((a: any) => a.userEmail === canonicalUserEmail);
@@ -992,25 +1054,32 @@ app.post("/api/task-lineup/reconcile-pending", requireAdmin, async (req, res) =>
   }
 });
 
-// POST toggle a user's pause state (admin only).
-// - Pausing: the row in the DB is NOT touched/cleared/deleted, and (as of
-//   the fix below) it's also no longer hidden from the UI — a paused
-//   user's already-assigned still-Pending rows stay fully visible and
-//   workable on their Task Lineup tab and in the admin's calendar/pending
-//   views, exactly like an unpaused user's. Anything already marked "Done"
-//   was never hidden either way. The ONLY thing pausing actually does is
-//   stop the user from being picked up by FUTURE generation runs
-//   (generateLineupForDate skips paused users entirely — see
-//   rawPausedByCanonical in supabaseServer.ts), so tomorrow's lineup won't
-//   include them while they're paused. Today's (or any already-generated
-//   day's) lineup is untouched and keeps working normally.
-// - Resuming: nothing was ever hidden or deleted, so resuming needs no
-//   "refill" for today — the exact same row(s) that were assigned before
-//   the pause just keep being there. `regenerateLineupForUserOnDateDb` is
-//   still called as a safety net for the one case where today's lineup
-//   never existed for this user in the first place (e.g. they were paused
-//   before the day's cycle ever ran for them) — it's a no-op if a row for
-//   today already exists, so it can never duplicate or overwrite anything.
+// POST toggle a single user's pause state (admin only).
+//
+// - Pausing: the rows in the DB are NOT touched, cleared or deleted — but
+//   they ARE hidden from every read endpoint while paused (see
+//   getPauseVisibility). So pausing one person makes that person's already-
+//   generated lineup vanish from their own Task Lineup tab, from the
+//   admin's per-user card, from the Daily Assignment Status calendar and
+//   from every pending count — that day simply reads as "no lineup for
+//   today" for them, while everyone else's lineup is completely unaffected.
+//   Pausing additionally stops them being picked up by FUTURE generation
+//   runs (generateLineupForDate skips paused users — see
+//   rawPausedByCanonical in supabaseServer.ts), so no new lineup accrues
+//   for them while paused either.
+//
+//   Everything that isn't the lineup keeps working normally for a paused
+//   user: they can still open and submit the Work Log, and their DSR /
+//   activity / ranking data is untouched.
+//
+// - Resuming: the hidden rows stop being hidden, so the SAME lineup that
+//   was there before the pause reappears on the next fetch and continues —
+//   not a regenerated one that might pick different projects.
+//   `regenerateLineupForUserOnDateDb` is still called as a safety net for
+//   the one case where today's lineup never existed for this user at all
+//   (e.g. they were paused before the day's cycle ever ran for them) — it's
+//   a no-op if any row for today already exists, so it can never duplicate
+//   or overwrite the restored lineup.
 app.post("/api/task-lineup/pause", requireAdmin, async (req, res) => {
   try {
     const { userEmail, paused } = req.body;
@@ -1081,14 +1150,28 @@ app.post("/api/task-lineup/engine/start", requireAdmin, async (req, res) => {
 // POST pause/resume the whole engine (admin only) — the "Stop Cycle" /
 // "Run Cycle" switch.
 //
-// Stop Cycle: clears today's already-generated lineup (deletes every
-// task_assignments row dated "today") so nothing already-lineup'd is left
-// sitting there while paused. It also stops the auto-generate step for any
-// later day, so no NEW lineup gets created while stopped.
-// Run Cycle (resume): since today's rows were just cleared (or never
-// existed), ensureTodayLineupIfEngineActive generates a brand-new lineup
-// dated the day resume was clicked — so the lineup "comes back" on the
-// resume day, not on whatever day it was stopped on.
+// Stop Cycle: pauses EVERYONE at once. Today's already-generated lineup is
+// NOT deleted any more — it's only hidden (every read endpoint withholds
+// still-Pending rows while the engine is paused, see getPauseVisibility),
+// so the whole team's Task Lineup tab, the admin's per-user cards and the
+// calendar all read as "no lineup for today" while stopped. It also stops
+// the auto-generate step for any later day, so no NEW lineup gets created
+// while stopped.
+//
+// This used to call deleteTaskAssignmentsForDateDb(today) — a real,
+// irreversible wipe of that day's rows. That's what made resuming hand
+// back a FRESHLY generated lineup (potentially a different set of
+// projects, and with the stopped day's assignments gone for good).
+// Requirement is the opposite: resume must bring back the SAME lineup and
+// let it continue. Hiding instead of deleting is what guarantees that
+// byte-for-byte.
+//
+// Run Cycle (resume): the hidden rows simply stop being hidden and
+// reappear exactly as they were. ensureTodayLineupIfEngineActive is still
+// called, purely as a safety net for the case where today genuinely has no
+// rows at all (e.g. the cycle was stopped before today's generation ever
+// ran) — it's a no-op whenever rows already exist, so it can never
+// duplicate or overwrite the restored lineup.
 app.post("/api/task-lineup/engine/pause", requireAdmin, async (req, res) => {
   try {
     const { paused } = req.body;
@@ -1108,18 +1191,17 @@ app.post("/api/task-lineup/engine/pause", requireAdmin, async (req, res) => {
       return res.status(500).json({ error: "Failed to save the cycle's paused state — check server logs / Supabase connection." });
     }
 
-    if (paused) {
-      // Stop Cycle clicked — clear out today's already-generated lineup so
-      // it doesn't sit there while the cycle is stopped. It will be
-      // regenerated fresh, dated the day Run Cycle is actually clicked.
-      try {
-        await deleteTaskAssignmentsForDateDb(todayIST());
-      } catch (clearErr: any) {
-        console.error("Failed to clear today's lineup on pause:", clearErr.message);
-      }
-    } else {
+    if (!paused) {
+      // Resume — safety net only (no-op when today already has rows). The
+      // rows that were hidden while stopped need no action at all: they
+      // stop being filtered out the instant `paused` flips to false, and
+      // the very next fetch shows the same lineup again, continuing from
+      // wherever it was.
       await ensureTodayLineupIfEngineActive();
     }
+    // Stopping deliberately does NOTHING destructive here — see the block
+    // comment above this route. The lineup is hidden by the read-side
+    // filter, never deleted.
     const state = await getLineupEngineStateDb();
     if (state.paused !== paused) {
       console.error(`Lineup engine pause mismatch: requested paused=${paused} but DB reads back paused=${state.paused}`);
@@ -1138,16 +1220,33 @@ app.post("/api/task-lineup/engine/pause", requireAdmin, async (req, res) => {
 app.get("/api/task-lineup/pending-summary/all", requireAdmin, async (req, res) => {
   try {
     const users = await getUsersDb();
-    // Real, unhidden per-user totals here — this feeds both the Controls
-    // list's per-row "Pending: N" stat and the admin "Check Pendings"
-    // drill-down, and both are meant to show each person's true pending
-    // count even while they're paused (that's still useful info for an
-    // admin — "how much is piling up for them"). Excluding paused people
-    // only happens where the numbers get POOLED into one team-wide total
-    // (historyTotalPending / historyYesterdayPending in TaskLineup.tsx),
-    // not in this per-person rollup itself.
     const summary = await getPendingSummaryAllUsersDb(users);
-    return res.json({ users: summary });
+
+    // Pause hiding, applied to the admin rollup as well. This one endpoint
+    // feeds three places at once: the Team Pause Controls per-row
+    // "Pending: N" stat, the "Check Pendings" drill-down, and (pooled
+    // client-side) the History tab's team-wide Yesterday/Total Pending
+    // lists. All three have to agree with the lineup itself, so a paused
+    // person contributes 0 pending to every one of them until they're
+    // resumed. `totalTasks` is left alone — that's a lifetime count that
+    // includes real completed work, and pause never rewrites history.
+    const canonicalMap = buildCanonicalEmailMap(users);
+    const canonicalOf = (e: string) => resolveCanonicalEmail(e, canonicalMap);
+    const { pausedCanonicalEmails, enginePaused } = await getPauseVisibility(users, canonicalOf);
+
+    const visible = summary.map((u) => {
+      const hidden = enginePaused || pausedCanonicalEmails.has(canonicalOf(u.email));
+      if (!hidden) return u;
+      return {
+        ...u,
+        yesterdayPendingCount: 0,
+        totalPendingCount: 0,
+        yesterdayPending: [],
+        totalPending: [],
+      };
+    });
+
+    return res.json({ users: visible });
   } catch (err: any) {
     console.error("GET /api/task-lineup/pending-summary/all error:", err);
     return res.status(500).json({ error: err.message });
@@ -1221,6 +1320,21 @@ app.post("/api/submissions/append", async (req, res) => {
           const usersForCanonical = await getUsersDb();
           const canonicalMapForSubmission = buildCanonicalEmailMap(usersForCanonical);
           const canonicalSubmitterEmail = resolveCanonicalEmail(userEmail, canonicalMapForSubmission);
+
+          // If this person's lineup is currently hidden (they're paused, or
+          // the whole cycle is stopped), there is no lineup for them today
+          // as far as the app is concerned — so a Work Log submitted right
+          // now must NOT quietly consume one of their hidden assignments.
+          // The submission itself is saved in full either way (that's the
+          // "baaki activity as-is" part); we just leave the hidden rows
+          // untouched so that on resume the lineup comes back exactly as it
+          // was and carries on, instead of silently having flipped to Done
+          // while it wasn't even on screen.
+          const { pausedCanonicalEmails: pausedForSubmission, enginePaused: enginePausedForSubmission } =
+            await getPauseVisibility(usersForCanonical, (e) => resolveCanonicalEmail(e, canonicalMapForSubmission));
+          if (enginePausedForSubmission || pausedForSubmission.has(canonicalSubmitterEmail)) {
+            return;
+          }
 
           const seenProjectIds = new Set<string>();
           for (const w of worksWithIds) {
