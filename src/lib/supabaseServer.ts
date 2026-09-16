@@ -1454,28 +1454,32 @@ export async function deleteAllTaskAssignmentsDb(): Promise<boolean> {
   }
 }
 
-// Matches the submission's date to a Pending assignment within a ±1 day
-// window (not an exact string match) — this is what makes the flip
-// self-healing against the IST/UTC boundary drift described above at
-// todayIST(): if a work log's date and its assignment's date end up one
-// calendar day apart because either side was computed right at the
-// midnight/5:30-AM-IST boundary, the two still resolve to the same "Done"
-// flip instead of the assignment being stranded on Pending forever. A
-// same-user/same-project assignment repeating on the very next or previous
-// day is rare (frequency throttling in generateLineupForDate already
-// prevents re-offering a project that's already been assigned this
-// period), so widening the window here is safe.
+// Matches the submission's date to a Pending assignment by EXACT date only.
+//
+// This used to widen the match to a ±1 day window, on the theory that a
+// work log's date and its assignment's date could end up one calendar day
+// apart from midnight/5:30-AM-IST boundary drift. That drift was a real bug
+// once, but it's already fixed at the source by todayIST() above — every
+// "today" computation in this codebase is now IST-safe, so a submission's
+// date and its assignment's date should always agree exactly.
+//
+// Keeping the ±1 day tolerance after that fix caused a WORSE bug: X1-X4
+// projects legitimately repeat for the same user on a following day (that's
+// normal frequency scheduling, not drift), so when today's fresh lineup
+// re-offered a project the user had already done yesterday, this function's
+// wide window matched TODAY's brand-new Pending row against YESTERDAY's
+// submission and silently flipped it to "Done" before the user had done any
+// work today. Each day's row must only be settled by that day's own
+// submission — new day, new date, fresh Pending status — so this is now a
+// strict exact-date match.
 export async function markTaskAssignmentDoneDb(date: string, userEmail: string, projectId: string): Promise<boolean> {
   const sb = getSupabase();
   if (!sb) return false;
   try {
-    const windowStart = addDays(date, -1);
-    const windowEnd = addDays(date, 1);
     const { error } = await sb
       .from("task_assignments")
       .update({ status: "Done" })
-      .gte("date", windowStart)
-      .lte("date", windowEnd)
+      .eq("date", date)
       .eq("user_email", userEmail.trim().toLowerCase())
       .eq("project_id", projectId)
       .eq("status", "Pending");
@@ -1490,15 +1494,23 @@ export async function markTaskAssignmentDoneDb(date: string, userEmail: string, 
   }
 }
 // One-time cleanup for assignments that got stuck on "Pending" from BEFORE
-// the todayIST()/±1-day-window fixes above existed — i.e. exactly the
-// "I submitted it but it still shows Pending" backlog (e.g. last
-// Saturday's rows). Cross-checks every still-Pending assignment against the
-// submissions that already exist in the DB: if a Work Log was filed by the
-// same (canonical) user, for the same project, within a day of the
-// assignment's date, the work was genuinely done — so it gets flipped to
-// Done now instead of staying stuck forever. Safe to run more than once;
-// anything that's already Done or has no matching submission is left
-// untouched. Returns how many rows it fixed.
+// the todayIST() fix above existed — i.e. exactly the "I submitted it but
+// it still shows Pending" backlog (e.g. last Saturday's rows). Cross-checks
+// every still-Pending assignment against the submissions that already exist
+// in the DB: if a Work Log was filed by the same (canonical) user, for the
+// same project, on the assignment's EXACT date, the work was genuinely done
+// — so it gets flipped to Done now instead of staying stuck forever. Safe
+// to run more than once; anything that's already Done or has no matching
+// submission is left untouched. Returns how many rows it fixed.
+//
+// This used to also match submissions from the day before/after each
+// assignment (±1 day tolerance), for the same midnight/5:30-AM-IST boundary
+// drift markTaskAssignmentDoneDb used to guard against. That tolerance is
+// gone here too, for the same reason: todayIST() already makes every date
+// exact, and the tolerance was instead matching yesterday's submission
+// against a same-user/same-project row freshly re-offered TODAY (normal for
+// X1-X4 projects), wrongly marking today's untouched row as Done. New day,
+// new date — only that day's own submission can settle that day's row.
 export async function reconcileStuckPendingAssignmentsDb(
   users: { email: string; name: string; role?: string }[]
 ): Promise<{ checked: number; fixed: number }> {
@@ -1513,17 +1525,14 @@ export async function reconcileStuckPendingAssignmentsDb(
     getSubmissionsDb(),
   ]);
 
-  // Index submissions by canonical user -> set of "date::projectId" strings
-  // (plus the day before/after each submission's date, matching the same
-  // ±1 day tolerance markTaskAssignmentDoneDb now uses going forward).
+  // Index submissions by canonical user -> set of "date::projectId" strings,
+  // using the submission's EXACT date only — no ±1 day tolerance.
   const submittedKeys = new Set<string>();
   submissions.forEach((s: any) => {
     if (!s.date || !Array.isArray(s.works)) return;
     const canonical = canonicalOf(String(s.userEmail || ""));
-    [addDays(s.date, -1), s.date, addDays(s.date, 1)].forEach((d) => {
-      s.works.forEach((w: any) => {
-        if (w.projectId) submittedKeys.add(`${canonical}::${w.projectId}::${d}`);
-      });
+    s.works.forEach((w: any) => {
+      if (w.projectId) submittedKeys.add(`${canonical}::${w.projectId}::${s.date}`);
     });
   });
 
